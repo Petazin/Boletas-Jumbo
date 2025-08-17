@@ -1,0 +1,30 @@
+Este es el archivo de contexto, con el cual se puede entender todos los otros documentos que se subirán y como se realizan los distintos cálculos
+
+Los documento que se subieron son boletas de compra en un supermercado en chile
+La fecha de compra que representa cada boleta está indicada desspues de la siguiente frase "SALDO DE PUNTOS AL", por lo tanto todos los registros de esa boleta son de esa fecha.
+En caso de no encontrar la fecha escrita en la boleta, tabien puede usar la fecha que aparece en el nombre del archivo consultado (aaaamm) y asignarlo a cada registro de la boleta.
+La boleta tiene la siguiente estructura y formato (lo siguiente es un ejemplo)
+
+codigo SKU = 7802800576517
+Cantidad comprada X Valor Unitario= 10 X $290
+Descripcion producto = JUGO INST 7GR FRUT
+Total de a pagar del producto = 2.900 
+descripcion Oferta= TMP OFERTA 10X1990
+cantidad reducida del total = -910
+
+Todo lo anterior es un ejemplo de como se ve en la boleta la compra de productos. Sin embargo tambien sucede que hay productos que no tienen oferta, o se marcan individualmente pareciendo estar duplicados.
+
+Como cada boleta responde a una fecha distinta, un mismo producto si se puede comprar varias veces en distintas fechas.
+si existe un producto duplicado en una misma boleta se deben sumar sus unidades y multiplicar por el precio unitario, asi totalizando la cantidad y el costo del producto.
+
+Lo que se necesita es crear una tabla que contenga las siguientes columnas: 
+
+Fecha (dd-mm-aaaa)
+codigo SKU
+Cantidad comprada X Valor Unitario
+Descripcion producto
+Total de a pagar del producto
+descripcion Oferta=
+cantidad reducida del total (no debe contenr ningun texto ni simbolos, solo la parte numérica)
+
+De tal manera de tener una tabla estandarizada de cada bolta y poder introducir esta informacion a Power BI.
