@@ -11,36 +11,70 @@ El objetivo final es construir una aplicación integral para la gestión de fina
 
 ## Fase 1: Analizador de Boletas de Supermercado (Jumbo)
 
-*   **Objetivo:** "Crear una aplicación que pueda analizar boletas del supermercado JUMBO, guardando en una base de datos la información para luego usar de manera analítica los datos extraídos."
-*   **Funcionalidades Actuales:**
-    *   **1. Descarga Automatizada (`download_boletas.py`)**
-        *   Utiliza **Selenium** para controlar un navegador Chrome y acceder a `Jumbo.cl`.
-        *   **Requiere intervención manual:** El usuario debe iniciar sesión en su cuenta.
-        *   Navega automáticamente a la sección "Mis Compras".
-        *   Recorre el historial de compras y descarga las boletas en formato **PDF**.
-        *   Verifica si una boleta ya fue descargada para evitar duplicados.
-        *   Genera un registro de actividad en `download_boletas.log`.
-    *   **2. Procesamiento y Extracción de Datos (`process_boletas.py`)**
-        *   Escanea la carpeta del proyecto en busca de archivos PDF.
-        *   **Extracción de Texto:** Usa `PyPDF2` para leer el contenido de cada boleta.
-        *   **Análisis con Expresiones Regulares (Regex):**
-            *   Extrae datos clave de la boleta como el **N° de Boleta** y la **Fecha de Compra**.
-            *   Identifica cada producto, extrayendo SKU, descripción, cantidad, precio unitario y descuentos aplicados.
-        *   **Categorización de Productos:**
-            *   Cada producto es clasificado automáticamente en una categoría (ej. "Lácteos y Huevos", "Higiene Personal", "Mascotas") según palabras clave en su descripción.
-        *   **Base de Datos MySQL:**
-            *   Se conecta a una base de datos local llamada `Boletas`.
-            *   Crea (si no existe) y utiliza una tabla `boletas_data` para almacenar la información.
-            *   Guarda cada producto como un registro individual en la base de datos, evitando duplicados si un archivo ya fue procesado.
-        *   Genera un registro detallado del proceso en `process_boletas.log`.
-    *   **3. Exportación de Datos (`export_data.py`)**
-        *   Se conecta a la base de datos `Boletas`.
-        *   Utiliza la librería **Pandas** para leer todos los datos de la tabla `boletas_data`.
-        *   Exporta la información consolidada a un archivo **CSV** llamado `boletas_data.csv`, listo para ser analizado en Excel u otras herramientas.
-*   **Roadmap (Fase 1):**
-    *   `[ ]` **Mejora de Categorización Actual:** Revisar y refinar las reglas de categorización para reducir la cantidad de productos en la categoría "Otros".
-    *   `[ ]` **Generar Gráficos y Estadísticas:** Crear visualizaciones básicas (ej. gasto por categoría, gasto en el tiempo) a partir de los datos de Jumbo.
-    *   `[ ]` **Interfaz Gráfica (GUI) para Jumbo:** Desarrollar una interfaz de usuario simple para ejecutar los scripts actuales (descarga, proceso, exportación) sin usar la línea de comandos.
+### Requisitos Previos
+
+*   Python 3.x
+*   Git
+*   Un servidor de base de datos MySQL
+
+### Instalación y Configuración
+
+1.  **Clonar el Repositorio:**
+    ```bash
+    git clone https://github.com/Petazin/Boletas-Jumbo.git
+    cd Boletas-Jumbo
+    ```
+
+2.  **Instalar Dependencias:**
+    Se recomienda crear un entorno virtual primero. Luego, instalar todas las librerías necesarias con el siguiente comando:
+    ```bash
+    pip install -r requirements.txt
+    ```
+
+3.  **Configurar la Base de Datos:**
+    *   Asegúrate de que tu servidor MySQL esté en funcionamiento.
+    *   Crea una base de datos. El nombre por defecto es `Boletas`.
+    *   Abre el archivo `config.py` y edita el diccionario `DB_CONFIG` con tu `host`, `user`, `password` y `database` si son diferentes a los valores por defecto.
+
+### Estructura del Proyecto
+
+El proyecto ha sido refactorizado para tener una arquitectura modular, donde cada archivo tiene una responsabilidad única:
+
+*   **`config.py`**: Módulo central de configuración. Contiene las credenciales de la base de datos, las rutas a directorios y archivos de log, y URLs importantes. **Es el único archivo que deberías necesitar modificar para la configuración.**
+
+*   **`database_utils.py`**: Utilidad para la base de datos. Gestiona la conexión y desconexión de la base de datos de forma segura y centralizada.
+
+*   **`product_categorizer.py`**: Módulo de lógica de negocio. Contiene la función `categorize_product` que asigna una categoría a cada producto basándose en palabras clave.
+
+*   **`pdf_parser.py`**: Módulo de extracción. Su única responsabilidad es leer un archivo PDF, extraer el texto y parsearlo con expresiones regulares para devolver datos estructurados (ID de boleta, fecha y lista de productos).
+
+*   **`download_boletas.py`**: Script orquestador. Inicia el proceso de descarga de boletas usando Selenium. Utiliza la configuración de `config.py`.
+
+*   **`process_boletas.py`**: Script orquestador. Coordina el proceso de lectura de los PDFs. Llama a `pdf_parser.py` para extraer los datos y a `database_utils.py` para guardarlos en la base de datos.
+
+*   **`export_data.py`**: Script orquestador. Se conecta a la base de datos (usando `database_utils.py`) y exporta la tabla `boletas_data` a un archivo CSV (`boletas_data.csv`).
+
+### Uso
+
+El flujo de trabajo se ejecuta en tres pasos, en el siguiente orden:
+
+1.  **Descargar las Boletas:**
+    ```bash
+    python download_boletas.py
+    ```
+    *Se abrirá una ventana de Chrome. Deberás iniciar sesión manualmente en Jumbo.cl. Una vez hecho, presiona Enter en la terminal para continuar con la descarga automática.*
+
+2.  **Procesar y Guardar en Base de Datos:**
+    ```bash
+    python process_boletas.py
+    ```
+    *Este script leerá todos los PDFs, los procesará y guardará los productos en tu base de datos MySQL.*
+
+3.  **Exportar a CSV (Opcional):**
+    ```bash
+    python export_data.py
+    ```
+    *Si deseas tener los datos en un archivo plano, este script generará `boletas_data.csv`.*
 
 ---
 

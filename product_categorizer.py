@@ -2,11 +2,20 @@
 """Módulo para la categorización de productos."""
 
 def categorize_product(description):
-    """Asigna una categoría a un producto basándose en palabras clave en su descripción."""
+    """Asigna una categoría a un producto basándose en palabras clave en su descripción.
+
+    Args:
+        description (str): La descripción del producto extraída de la boleta.
+
+    Returns:
+        str: La categoría asignada al producto. Devuelve "Otros" si no coincide con ninguna regla.
+    """
+    # Convertir la descripción a mayúsculas para hacer la búsqueda insensible a mayúsculas/minúsculas.
     description = description.upper()
     
-    # El orden es crucial para evitar conflictos de palabras clave.
-    # De más específico a más general.
+    # El orden de las condiciones es importante para evitar falsos positivos.
+    # Se debe ir de lo más específico a lo más general.
+    # Por ejemplo, "VINO" debe estar antes que "BEBIDAS" para que un vino no se clasifique como una bebida genérica.
 
     # Mascotas
     if any(keyword in description for keyword in ['GATO', 'PERRO', 'WHISK', 'PEDIGREE', 'CAT CHOW', 'DOG CHOW', 'SNACK GATO']):
@@ -24,7 +33,7 @@ def categorize_product(description):
     if any(keyword in description for keyword in ['CARNE', 'POLLO', 'PAVO', 'CERDO', 'VACUNO', 'HAMBURGUESA', 'SALCHI', 'JAMON', 'LONGANIZA', 'PECHUGA']):
         return "Carnes y Embutidos"
 
-    # Pescados y Mariscos (antes que Bebidas para evitar conflicto con "AGUA")
+    # Pescados y Mariscos (se prioriza sobre "Bebidas" para evitar conflicto con "AGUA")
     if any(keyword in description for keyword in ['PESCADO', 'MARISCO', 'ATUN', 'JUREL', 'SALMON']):
         return "Pescados y Mariscos"
 
@@ -36,11 +45,11 @@ def categorize_product(description):
     if any(keyword in description for keyword in ['LECHE', 'YOGUR', 'YOG', 'QUESO', 'MANTEQUILLA', 'CREMA', 'HUEVO', 'LACTEO', 'POSTRE', 'CHANDELLE']):
         return "Lácteos y Huevos"
 
-    # Pastas (antes que Cereales para evitar conflicto con "HARINA")
+    # Pastas (se prioriza sobre "Cereales" por la palabra "HARINA")
     if any(keyword in description for keyword in ['PASTA', 'SPAGHETTI', 'TALLARIN', 'FIDEO', 'LASAÑA', 'CANUTO', 'ESPIRALES', 'CORBATA', 'MOSTACCIOLI', 'RIGATONI', 'QUIFAROS']):
         return "Pastas"
 
-    # Aceites y Condimentos (antes que Cereales por "SAZONADOR")
+    # Aceites y Condimentos
     if any(keyword in description for keyword in ['ACEITE', 'SALSA', 'CONDIMENTO', 'MAYONESA', 'KETCHUP', 'MOSTAZA', 'VINAGRE', 'SAL', 'OREGANO', 'CURCUMA', 'HELLMANNS', 'MAY', 'SAZONADOR']):
         return "Aceites y Condimentos"
 
@@ -72,4 +81,5 @@ def categorize_product(description):
     if any(keyword in description for keyword in ['TE', 'CAFE', 'AZUCAR', 'ENDULZANTE', 'HIERBA', 'MATE', 'ALUSWEET', 'NESCAFE']):
         return "Té, Café y Azúcar"
         
+    # Si ninguna de las condiciones anteriores se cumple, se asigna la categoría por defecto.
     return "Otros"
