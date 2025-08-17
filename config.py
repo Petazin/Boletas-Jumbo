@@ -16,7 +16,7 @@ DB_CONFIG = {
     'user': 'root',            # Usuario de la base de datos
     'password': '123456789',   # Contraseña del usuario
     'database': 'Boletas',       # Nombre de la base de datos a la que se conectará
-    'allow_public_key_retrieval': True # Opción para permitir la recuperación de la clave pública
+    'auth_plugin': 'mysql_native_password' # Usar un plugin de autenticación más compatible
 }
 
 # --- Rutas de Directorios y Archivos ---
