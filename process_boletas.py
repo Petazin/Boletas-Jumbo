@@ -3,7 +3,7 @@ import os
 import re
 from datetime import datetime
 import PyPDF2
-import mysql.connector
+from database_utils import db_connection
 
 # Importar desde el archivo de configuración central
 from config import DB_CONFIG, BOLETAS_DIR, PROCESS_LOG_FILE
@@ -107,7 +107,7 @@ def process_pdf(pdf_path):
         logging.warning(f"No se pudo extraer el ID de boleta de {pdf_path}. Saltando.")
         return None, None, []
 
-    date_match = re.search(r"SALDO\s+DE\s+PUNTOS\s+AL\s*(\d{2}[-/]\d{2}[-/]\d{4})", text)
+    date_match = re.search(r"SALDO\s+DE\s+PUNTOS\s+AL\s*(\d{{2}}[-/]\d{{2}}[-/]\d{{4}})", text)
     purchase_date = None
     if date_match:
         try:
@@ -115,7 +115,7 @@ def process_pdf(pdf_path):
         except ValueError:
             pass
     if not purchase_date:
-        filename_match = re.match(r"(\d{4})(\d{2})\.pdf", os.path.basename(pdf_path))
+        filename_match = re.match(r"(\d{{4}})(\d{{2}})\.pdf", os.path.basename(pdf_path))
         if filename_match:
             try:
                 purchase_date = datetime(int(filename_match.group(1)), int(filename_match.group(2)), 1).date()
@@ -126,9 +126,9 @@ def process_pdf(pdf_path):
         return boleta_id, None, []
 
     products = {}
-    product_pattern = re.compile(r'^\s*(\d{8,13})\s+(.+?)\s+([\d.,]+)\s*$', re.MULTILINE)
+    product_pattern = re.compile(r'^\s*(\d{{8,13}})\s+(.+?)\s+([\d.,]+)\s*, re.MULTILINE)
     qty_price_pattern = re.compile(r'^(\d+)\s*X\s*\$([\d.,]+)')
-    offer_pattern = re.compile(r'(TMP\s*(?:OFERTA|DESCUENTO).*?)(-?[\d.,]+)\s*$', re.IGNORECASE)
+    offer_pattern = re.compile(r'(TMP\s*(?:OFERTA|DESCUENTO).*?)(-?[\d.,]+)\s*, re.IGNORECASE)
 
     lines = text.split('\n')
     for i, line in enumerate(lines):
