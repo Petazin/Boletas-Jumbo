@@ -28,6 +28,7 @@ def create_table_if_not_exists(cursor):
         boleta_id VARCHAR(255),
         filename VARCHAR(255), 
         Fecha DATE,
+        Hora TIME,  # Nueva columna para la hora
         codigo_SKU VARCHAR(255),
         Cantidad_unidades INT, 
         Valor_Unitario DECIMAL(15, 2),
@@ -49,14 +50,14 @@ def file_was_processed(cursor, filename):
     cursor.execute(check_query, (filename,))
     return cursor.fetchone() is not None
 
-def insert_boleta_data(cursor, boleta_id, filename, products_data):
+def insert_boleta_data(cursor, boleta_id, filename, purchase_time, products_data):
     """Inserta una lista de productos de una boleta en la base de datos."""
     insert_query = """
     INSERT INTO boletas_data (
-        boleta_id, filename, Fecha, codigo_SKU, Cantidad_unidades, Valor_Unitario, Cantidad_comprada_X_Valor_Unitario,
+        boleta_id, filename, Fecha, Hora, codigo_SKU, Cantidad_unidades, Valor_Unitario, Cantidad_comprada_X_Valor_Unitario,
         Descripcion_producto, Total_a_pagar_producto,
         Descripcion_Oferta, Cantidad_reducida_del_total, Categoria
-    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
     ON DUPLICATE KEY UPDATE
         Cantidad_unidades=VALUES(Cantidad_unidades), Valor_Unitario=VALUES(Valor_Unitario),
         Cantidad_comprada_X_Valor_Unitario=VALUES(Cantidad_comprada_X_Valor_Unitario),
@@ -70,6 +71,7 @@ def insert_boleta_data(cursor, boleta_id, filename, products_data):
                 boleta_id,
                 filename,
                 product['Fecha'],
+                purchase_time, # Usar la hora extraída del PDF
                 product['codigo_SKU'],
                 product['Cantidad_unidades'],
                 product['Valor_Unitario'],
@@ -105,11 +107,11 @@ def main():
 
                 pdf_path = os.path.join(BOLETAS_DIR, pdf_file)
                 # Llamar al módulo parser para obtener los datos del PDF
-                boleta_id, _, products_data = process_pdf(pdf_path)
+                boleta_id, _, purchase_time, products_data = process_pdf(pdf_path)
 
                 if boleta_id and products_data:
                     # Si se obtuvieron datos, insertarlos en la base de datos
-                    insert_boleta_data(cursor, boleta_id, pdf_file, products_data)
+                    insert_boleta_data(cursor, boleta_id, pdf_file, purchase_time, products_data)
                     conn.commit() # Guardar los datos de la boleta actual
                     logging.info(f"Datos de {pdf_file} insertados correctamente.")
                 else:

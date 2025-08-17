@@ -4,8 +4,7 @@
 import logging
 import os
 import re
-from datetime import datetime
-import PyPDF2
+from datetime import datetime, time # Importar time también
 
 from product_categorizer import categorize_product
 
@@ -25,8 +24,8 @@ def process_pdf(pdf_path):
         pdf_path (str): La ruta completa al archivo PDF que se va a procesar.
 
     Returns:
-        tuple: Una tupla con (boleta_id, purchase_date, products_data).
-               Retorna (None, None, []) si ocurre un error o no se encuentran datos.
+        tuple: Una tupla con (boleta_id, purchase_date, purchase_time, products_data).
+               Retorna (None, None, None, []) si ocurre un error o no se encuentran datos.
     """
     logging.info(f"Procesando: {pdf_path}")
     text = ""
@@ -42,7 +41,7 @@ def process_pdf(pdf_path):
                     text += extracted_text.replace('\x00', '') + "\n"
     except Exception as e:
         logging.error(f"Error al leer PDF {pdf_path}: {e}")
-        return None, None, []
+        return None, None, None, []
 
     # --- Extracción de ID de Boleta ---
     # Busca el patrón "BOLETA ELECTRONICA N°..." para obtener el número.
@@ -50,30 +49,51 @@ def process_pdf(pdf_path):
     boleta_id = boleta_id_match.group(1) if boleta_id_match else None
     if not boleta_id:
         logging.warning(f"No se pudo extraer el ID de boleta de {pdf_path}. Saltando.")
-        return None, None, []
+        return None, None, None, []
 
-    # --- Extracción de Fecha ---
-    # Intento 1: Buscar la fecha con el formato "dd-mm-yyyy" cerca del texto de puntos.
-    date_match = re.search(r"SALDO\s+DE\s+PUNTOS\s+AL\s*(\d{2}[-/]\d{2}[-/]\d{4})", text)
+    # --- Extracción de Fecha y Hora (Nuevo método prioritario) ---
+    # Busca el patrón "FECHA HORA LOCAL" seguido de la fecha (DD/MM/YY) y la hora (HH:MM)
+    # Usamos re.DOTALL para que el '.' incluya saltos de línea si es necesario.
+    date_time_match = re.search(r"FECHA\s+HORA LOCAL.*?(\d{2}/\d{2}/\d{2})\s+(\d{2}:\d{2})", text, re.DOTALL)
     purchase_date = None
-    if date_match:
+    purchase_time = None
+
+    if date_time_match:
+        date_str = date_time_match.group(1)
+        time_str = date_time_match.group(2)
         try:
-            purchase_date = datetime.strptime(date_match.group(1), "%d-%m-%Y").date()
+            # Convertir DD/MM/YY a DD-MM-YYYY. Asumimos que YY es 20YY.
+            day, month, year_short = date_str.split('/')
+            year_full = f"20{year_short}" # Asumiendo que el año es del siglo 21
+            purchase_date = datetime.strptime(f"{day}-{month}-{year_full}", "%d-%m-%Y").date()
+            purchase_time = datetime.strptime(time_str, "%H:%M").time()
         except ValueError:
-            pass # Si el formato es incorrecto, se intentará el siguiente método.
-    
-    # Intento 2: Si falla lo anterior, intentar deducir la fecha desde el nombre del archivo.
+            logging.warning(f"Formato de fecha/hora inesperado en {pdf_path} para el nuevo patrón.")
+            pass # Si falla, se intentarn los mtodos antiguos.
+
+    # --- Extracción de Fecha (Métodos antiguos como fallback) ---
+    # Si el nuevo método no encontró la fecha, intentar con los métodos anteriores.
     if not purchase_date:
-        filename_match = re.match(r"(\d{4})(\d{2})\.pdf", os.path.basename(pdf_path))
-        if filename_match:
+        # Intento 1 (antiguo): Buscar la fecha con el formato "dd-mm-yyyy" cerca del texto de puntos.
+        date_match_old = re.search(r"SALDO\s+DE\s+PUNTOS\s+AL\s*(\d{2}[-/]\d{2}[-/]\d{4})", text)
+        if date_match_old:
             try:
-                purchase_date = datetime(int(filename_match.group(1)), int(filename_match.group(2)), 1).date()
+                purchase_date = datetime.strptime(date_match_old.group(1), "%d-%m-%Y").date()
             except ValueError:
                 pass
 
     if not purchase_date:
+        # Intento 2 (antiguo): Si falla lo anterior, intentar deducir la fecha desde el nombre del archivo.
+        filename_match = re.match(r"v\d+jmch-\d+_(\d{13})\.pdf", os.path.basename(pdf_path))
+        if filename_match:
+            # El timestamp en el nombre del archivo es en milisegundos desde la época.
+            timestamp_ms = int(filename_match.group(1))
+            purchase_date = datetime.fromtimestamp(timestamp_ms / 1000).date()
+
+
+    if not purchase_date:
         logging.warning(f"No se pudo extraer la fecha de {pdf_path}. Saltando.")
-        return boleta_id, None, []
+        return boleta_id, None, None, [] # Retornar None para la hora también
 
     # --- Extracción de Productos ---
     products = {}
@@ -121,6 +141,7 @@ def process_pdf(pdf_path):
             else:
                 products[sku] = {
                     'Fecha': purchase_date,
+                    'Hora': purchase_time, # Nuevo campo para la hora
                     'codigo_SKU': sku,
                     'Cantidad_unidades': quantity,
                     'Valor_Unitario': unit_price,
@@ -132,4 +153,4 @@ def process_pdf(pdf_path):
                     'Categoria': categorize_product(description.strip())
                 }
 
-    return boleta_id, purchase_date, list(products.values())
+    return boleta_id, purchase_date, purchase_time, list(products.values())

@@ -1,77 +1,77 @@
-2025-08-14 18:39:24,515 - INFO - ====== WebDriver manager ======
-2025-08-14 18:39:25,060 - INFO - Get LATEST chromedriver version for google-chrome
-2025-08-14 18:39:25,097 - INFO - Get LATEST chromedriver version for google-chrome
-2025-08-14 18:39:25,129 - INFO - Driver [C:\Users\Petazo\.wdm\drivers\chromedriver\win64\139.0.7258.68\chromedriver-win32/chromedriver.exe] found in cache
-2025-08-14 18:39:26,181 - INFO - Abriendo la página de login de Jumbo.cl...
-2025-08-14 18:39:28,832 - INFO - ==================================================================
-2025-08-14 18:39:28,832 - INFO - ACCIÓN REQUERIDA: Por favor, inicia sesión manualmente.
-2025-08-14 18:39:28,832 - INFO - Una vez dentro, vuelve a esta ventana y presiona 'Enter'.
-2025-08-14 18:39:28,832 - INFO - ==================================================================
-2025-08-14 18:39:51,658 - INFO - Continuando con el proceso de descarga...
-2025-08-14 18:39:53,033 - INFO - --- Procesando Página 1 ---
-2025-08-14 18:39:58,630 - INFO - Se encontraron 5 pedidos en la página 1.
-2025-08-14 18:39:58,639 - INFO - Procesando pedido: v207167311jmch-01
-2025-08-14 18:39:58,640 - INFO - Descargando pedido v207167311jmch-01...
-2025-08-14 18:40:03,715 - INFO - Procesando pedido: v206619021jmch-01
-2025-08-14 18:40:03,715 - INFO - El pedido v206619021jmch-01 ya existe. Saltando.
-2025-08-14 18:40:03,725 - INFO - Procesando pedido: v205403043jmch-01
-2025-08-14 18:40:03,725 - INFO - El pedido v205403043jmch-01 ya existe. Saltando.
-2025-08-14 18:40:03,734 - INFO - Procesando pedido: v205402874jmch-01
-2025-08-14 18:40:03,734 - INFO - El pedido v205402874jmch-01 ya existe. Saltando.
-2025-08-14 18:40:03,744 - INFO - Procesando pedido: v205401953jmch-01
-2025-08-14 18:40:03,744 - INFO - El pedido v205401953jmch-01 ya existe. Saltando.
-2025-08-14 18:40:03,744 - INFO - Buscando el botón de 'Siguiente Página'...
-2025-08-14 18:40:04,827 - INFO - Pasando a la página 2...
-2025-08-14 18:40:04,828 - INFO - --- Procesando Página 2 ---
-2025-08-14 18:40:09,886 - INFO - Se encontraron 5 pedidos en la página 2.
-2025-08-14 18:40:09,896 - INFO - Procesando pedido: v203035005jmch-01
-2025-08-14 18:40:09,896 - INFO - El pedido v203035005jmch-01 ya existe. Saltando.
-2025-08-14 18:40:09,906 - INFO - Procesando pedido: v200752583jmch-01
-2025-08-14 18:40:09,906 - INFO - El pedido v200752583jmch-01 ya existe. Saltando.
-2025-08-14 18:40:09,917 - INFO - Procesando pedido: v200599146jmch-01
-2025-08-14 18:40:09,917 - INFO - El pedido v200599146jmch-01 ya existe. Saltando.
-2025-08-14 18:40:09,927 - INFO - Procesando pedido: v200179984jmch-01
-2025-08-14 18:40:09,928 - INFO - El pedido v200179984jmch-01 ya existe. Saltando.
-2025-08-14 18:40:09,938 - INFO - Procesando pedido: v160710437jmch-01
-2025-08-14 18:40:09,938 - INFO - El pedido v160710437jmch-01 ya existe. Saltando.
-2025-08-14 18:40:09,938 - INFO - Buscando el botón de 'Siguiente Página'...
-2025-08-14 18:40:11,016 - INFO - Pasando a la página 3...
-2025-08-14 18:40:11,017 - INFO - --- Procesando Página 3 ---
-2025-08-14 18:40:16,072 - INFO - Se encontraron 5 pedidos en la página 3.
-2025-08-14 18:40:16,081 - INFO - Procesando pedido: v158151611jmch-01
-2025-08-14 18:40:16,082 - INFO - El pedido v158151611jmch-01 ya existe. Saltando.
-2025-08-14 18:40:16,090 - INFO - Procesando pedido: v156450350jmch-01
-2025-08-14 18:40:16,091 - INFO - El pedido v156450350jmch-01 ya existe. Saltando.
-2025-08-14 18:40:16,100 - INFO - Procesando pedido: v155188070jmch-01
-2025-08-14 18:40:16,100 - INFO - El pedido v155188070jmch-01 ya existe. Saltando.
-2025-08-14 18:40:16,109 - INFO - Procesando pedido: v154557773jmch-01
-2025-08-14 18:40:16,110 - INFO - El pedido v154557773jmch-01 ya existe. Saltando.
-2025-08-14 18:40:16,119 - INFO - Procesando pedido: v152462137jmch-01
-2025-08-14 18:40:16,119 - INFO - El pedido v152462137jmch-01 ya existe. Saltando.
-2025-08-14 18:40:16,120 - INFO - Buscando el botón de 'Siguiente Página'...
-2025-08-14 18:40:17,198 - INFO - Pasando a la página 4...
-2025-08-14 18:40:17,198 - INFO - --- Procesando Página 4 ---
-2025-08-14 18:40:22,255 - INFO - Se encontraron 5 pedidos en la página 4.
-2025-08-14 18:40:22,265 - INFO - Procesando pedido: v152409156jmch-01
-2025-08-14 18:40:22,265 - INFO - El pedido v152409156jmch-01 ya existe. Saltando.
-2025-08-14 18:40:22,275 - INFO - Procesando pedido: v150870435jmch-01
-2025-08-14 18:40:22,275 - INFO - El pedido v150870435jmch-01 ya existe. Saltando.
-2025-08-14 18:40:22,284 - INFO - Procesando pedido: v148790616jmch-01
-2025-08-14 18:40:22,284 - INFO - El pedido v148790616jmch-01 ya existe. Saltando.
-2025-08-14 18:40:22,295 - INFO - Procesando pedido: v145967758jmch-01
-2025-08-14 18:40:22,295 - INFO - El pedido v145967758jmch-01 ya existe. Saltando.
-2025-08-14 18:40:22,304 - INFO - Procesando pedido: v144112494jmch-01
-2025-08-14 18:40:22,304 - INFO - El pedido v144112494jmch-01 ya existe. Saltando.
-2025-08-14 18:40:22,304 - INFO - Buscando el botón de 'Siguiente Página'...
-2025-08-14 18:40:23,387 - INFO - Pasando a la página 5...
-2025-08-14 18:40:23,387 - INFO - --- Procesando Página 5 ---
-2025-08-14 18:40:28,432 - INFO - Se encontraron 2 pedidos en la página 5.
-2025-08-14 18:40:28,441 - INFO - Procesando pedido: v143039755jmch-01
-2025-08-14 18:40:28,441 - INFO - El pedido v143039755jmch-01 ya existe. Saltando.
-2025-08-14 18:40:28,450 - INFO - Procesando pedido: v140036176jmch-01
-2025-08-14 18:40:28,451 - INFO - El pedido v140036176jmch-01 ya existe. Saltando.
-2025-08-14 18:40:28,451 - INFO - Buscando el botón de 'Siguiente Página'...
-2025-08-14 18:40:29,511 - INFO - Pasando a la página 6...
-2025-08-14 18:40:29,511 - INFO - --- Procesando Página 6 ---
-2025-08-14 18:40:34,561 - WARNING - Página vacía o repetida detectada. Terminando el proceso.
-2025-08-14 18:40:34,562 - INFO - Proceso finalizado. El navegador se cerrará en 20 segundos.
+2025-08-17 14:02:32,310 - INFO - ====== WebDriver manager ======
+2025-08-17 14:02:33,031 - INFO - Get LATEST chromedriver version for google-chrome
+2025-08-17 14:02:33,065 - INFO - Get LATEST chromedriver version for google-chrome
+2025-08-17 14:02:33,094 - INFO - Driver [C:\Users\Petazo\.wdm\drivers\chromedriver\win64\139.0.7258.68\chromedriver-win32/chromedriver.exe] found in cache
+2025-08-17 14:02:34,835 - INFO - Abriendo la página de login de Jumbo.cl...
+2025-08-17 14:02:36,585 - INFO - ==================================================================
+2025-08-17 14:02:36,585 - INFO - ACCIÓN REQUERIDA: Por favor, inicia sesión manualmente en la ventana de Chrome.
+2025-08-17 14:02:36,585 - INFO - Una vez que hayas iniciado sesión, vuelve a esta ventana y presiona 'Enter'.
+2025-08-17 14:02:36,585 - INFO - ==================================================================
+2025-08-17 14:02:56,435 - INFO - Continuando con el proceso de descarga...
+2025-08-17 14:02:57,775 - INFO - --- Procesando Página 1 ---
+2025-08-17 14:03:03,356 - INFO - Se encontraron 5 pedidos en la página 1.
+2025-08-17 14:03:03,366 - INFO - Procesando pedido: v207167311jmch-01
+2025-08-17 14:03:03,366 - INFO - Descargando pedido v207167311jmch-01...
+2025-08-17 14:03:08,454 - INFO - Procesando pedido: v206619021jmch-01
+2025-08-17 14:03:08,455 - INFO - El pedido v206619021jmch-01 ya existe. Saltando.
+2025-08-17 14:03:08,465 - INFO - Procesando pedido: v205403043jmch-01
+2025-08-17 14:03:08,465 - INFO - El pedido v205403043jmch-01 ya existe. Saltando.
+2025-08-17 14:03:08,477 - INFO - Procesando pedido: v205402874jmch-01
+2025-08-17 14:03:08,477 - INFO - El pedido v205402874jmch-01 ya existe. Saltando.
+2025-08-17 14:03:08,489 - INFO - Procesando pedido: v205401953jmch-01
+2025-08-17 14:03:08,489 - INFO - El pedido v205401953jmch-01 ya existe. Saltando.
+2025-08-17 14:03:08,490 - INFO - Buscando el botón de 'Siguiente Página'...
+2025-08-17 14:03:09,577 - INFO - Pasando a la página 2...
+2025-08-17 14:03:09,577 - INFO - --- Procesando Página 2 ---
+2025-08-17 14:03:14,640 - INFO - Se encontraron 5 pedidos en la página 2.
+2025-08-17 14:03:14,650 - INFO - Procesando pedido: v203035005jmch-01
+2025-08-17 14:03:14,650 - INFO - El pedido v203035005jmch-01 ya existe. Saltando.
+2025-08-17 14:03:14,661 - INFO - Procesando pedido: v200752583jmch-01
+2025-08-17 14:03:14,661 - INFO - El pedido v200752583jmch-01 ya existe. Saltando.
+2025-08-17 14:03:14,671 - INFO - Procesando pedido: v200599146jmch-01
+2025-08-17 14:03:14,671 - INFO - El pedido v200599146jmch-01 ya existe. Saltando.
+2025-08-17 14:03:14,682 - INFO - Procesando pedido: v200179984jmch-01
+2025-08-17 14:03:14,683 - INFO - El pedido v200179984jmch-01 ya existe. Saltando.
+2025-08-17 14:03:14,694 - INFO - Procesando pedido: v160710437jmch-01
+2025-08-17 14:03:14,694 - INFO - El pedido v160710437jmch-01 ya existe. Saltando.
+2025-08-17 14:03:14,694 - INFO - Buscando el botón de 'Siguiente Página'...
+2025-08-17 14:03:15,784 - INFO - Pasando a la página 3...
+2025-08-17 14:03:15,784 - INFO - --- Procesando Página 3 ---
+2025-08-17 14:03:20,846 - INFO - Se encontraron 5 pedidos en la página 3.
+2025-08-17 14:03:20,856 - INFO - Procesando pedido: v158151611jmch-01
+2025-08-17 14:03:20,856 - INFO - El pedido v158151611jmch-01 ya existe. Saltando.
+2025-08-17 14:03:20,866 - INFO - Procesando pedido: v156450350jmch-01
+2025-08-17 14:03:20,866 - INFO - El pedido v156450350jmch-01 ya existe. Saltando.
+2025-08-17 14:03:20,876 - INFO - Procesando pedido: v155188070jmch-01
+2025-08-17 14:03:20,876 - INFO - El pedido v155188070jmch-01 ya existe. Saltando.
+2025-08-17 14:03:20,886 - INFO - Procesando pedido: v154557773jmch-01
+2025-08-17 14:03:20,886 - INFO - El pedido v154557773jmch-01 ya existe. Saltando.
+2025-08-17 14:03:20,896 - INFO - Procesando pedido: v152462137jmch-01
+2025-08-17 14:03:20,896 - INFO - El pedido v152462137jmch-01 ya existe. Saltando.
+2025-08-17 14:03:20,896 - INFO - Buscando el botón de 'Siguiente Página'...
+2025-08-17 14:03:21,977 - INFO - Pasando a la página 4...
+2025-08-17 14:03:21,978 - INFO - --- Procesando Página 4 ---
+2025-08-17 14:03:27,042 - INFO - Se encontraron 5 pedidos en la página 4.
+2025-08-17 14:03:27,052 - INFO - Procesando pedido: v152409156jmch-01
+2025-08-17 14:03:27,052 - INFO - El pedido v152409156jmch-01 ya existe. Saltando.
+2025-08-17 14:03:27,063 - INFO - Procesando pedido: v150870435jmch-01
+2025-08-17 14:03:27,063 - INFO - El pedido v150870435jmch-01 ya existe. Saltando.
+2025-08-17 14:03:27,073 - INFO - Procesando pedido: v148790616jmch-01
+2025-08-17 14:03:27,073 - INFO - El pedido v148790616jmch-01 ya existe. Saltando.
+2025-08-17 14:03:27,083 - INFO - Procesando pedido: v145967758jmch-01
+2025-08-17 14:03:27,084 - INFO - El pedido v145967758jmch-01 ya existe. Saltando.
+2025-08-17 14:03:27,094 - INFO - Procesando pedido: v144112494jmch-01
+2025-08-17 14:03:27,094 - INFO - El pedido v144112494jmch-01 ya existe. Saltando.
+2025-08-17 14:03:27,094 - INFO - Buscando el botón de 'Siguiente Página'...
+2025-08-17 14:03:28,176 - INFO - Pasando a la página 5...
+2025-08-17 14:03:28,176 - INFO - --- Procesando Página 5 ---
+2025-08-17 14:03:33,223 - INFO - Se encontraron 2 pedidos en la página 5.
+2025-08-17 14:03:33,239 - INFO - Procesando pedido: v143039755jmch-01
+2025-08-17 14:03:33,239 - INFO - El pedido v143039755jmch-01 ya existe. Saltando.
+2025-08-17 14:03:33,260 - INFO - Procesando pedido: v140036176jmch-01
+2025-08-17 14:03:33,261 - INFO - Descargando pedido v140036176jmch-01...
+2025-08-17 14:03:38,308 - INFO - Buscando el botón de 'Siguiente Página'...
+2025-08-17 14:03:39,375 - INFO - Pasando a la página 6...
+2025-08-17 14:03:39,375 - INFO - --- Procesando Página 6 ---
+2025-08-17 14:03:44,432 - WARNING - Página vacía o repetida detectada. Terminando el proceso.
+2025-08-17 14:03:44,432 - INFO - Proceso finalizado. El navegador se cerrará en 20 segundos.
