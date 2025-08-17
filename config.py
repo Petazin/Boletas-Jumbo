@@ -15,7 +15,8 @@ DB_CONFIG = {
     'host': 'localhost',       # Dirección del servidor de la base de datos
     'user': 'root',            # Usuario de la base de datos
     'password': '123456789',   # Contraseña del usuario
-    'database': 'Boletas'       # Nombre de la base de datos a la que se conectará
+    'database': 'Boletas',       # Nombre de la base de datos a la que se conectará
+    'allow_public_key_retrieval': True # Opción para permitir la recuperación de la clave pública
 }
 
 # --- Rutas de Directorios y Archivos ---
