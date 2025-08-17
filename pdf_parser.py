@@ -5,6 +5,7 @@ import logging
 import os
 import re
 from datetime import datetime, time # Importar time también
+import PyPDF2 # Importar PyPDF2
 
 from product_categorizer import categorize_product
 
