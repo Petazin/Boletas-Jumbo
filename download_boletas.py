@@ -10,12 +10,8 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import NoSuchElementException, TimeoutException
 from webdriver_manager.chrome import ChromeDriverManager
 
-# --- CONFIGURACIÓN ---
-DOWNLOAD_DIR = r"c:\Users\Petazo\Desktop\Boletas Jumbo"
-MIS_COMPRAS_URL = "https://www.jumbo.cl/mis-compras"
-LOG_FILE = os.path.join(DOWNLOAD_DIR, "download_boletas.log")
-
-# --- FIN DE LA CONFIGURACIÓN ---
+# Importar desde el archivo de configuración central
+from config import BOLETAS_DIR, MIS_COMPRAS_URL, LOGIN_URL, DOWNLOAD_LOG_FILE
 
 def setup_logging():
     """Configura el sistema de logging."""
@@ -23,7 +19,7 @@ def setup_logging():
         level=logging.INFO,
         format='%(asctime)s - %(levelname)s - %(message)s',
         handlers=[
-            logging.FileHandler(LOG_FILE, mode='w'),
+            logging.FileHandler(DOWNLOAD_LOG_FILE, mode='w'),
             logging.StreamHandler()
         ]
     )
@@ -32,7 +28,7 @@ def setup_driver():
     """Configura el navegador Chrome."""
     chrome_options = Options()
     chrome_options.add_argument("--disable-notifications")
-    prefs = {"download.default_directory": DOWNLOAD_DIR, "download.prompt_for_download": False}
+    prefs = {"download.default_directory": BOLETAS_DIR, "download.prompt_for_download": False}
     chrome_options.add_experimental_option("prefs", prefs)
     
     service = Service(ChromeDriverManager().install())
@@ -42,7 +38,7 @@ def setup_driver():
 def get_downloaded_filenames():
     """Obtiene una lista de los nombres de archivo PDF en el directorio de descargas."""
     try:
-        files = os.listdir(DOWNLOAD_DIR)
+        files = os.listdir(BOLETAS_DIR)
         return [f for f in files if f.endswith('.pdf')]
     except FileNotFoundError:
         return []
@@ -55,7 +51,7 @@ def main():
     
     try:
         logging.info("Abriendo la página de login de Jumbo.cl...")
-        driver.get("https://www.jumbo.cl/login")
+        driver.get(LOGIN_URL)
         
         logging.info("==================================================================")
         logging.info("ACCIÓN REQUERIDA: Por favor, inicia sesión manualmente.")
@@ -74,7 +70,7 @@ def main():
             
             try:
                 wait.until(EC.presence_of_element_located((By.XPATH, "//p[contains(text(),'Número de pedido:')]")))
-                time.sleep(4)
+                time.sleep(4) # Espera explícita para que cargue el contenido dinámico
 
                 order_id_elements = driver.find_elements(By.XPATH, "//p[contains(text(),'Número de pedido:')]")
                 current_page_content = tuple(elem.text for elem in order_id_elements)
@@ -88,6 +84,7 @@ def main():
                 logging.info(f"Se encontraron {len(order_id_elements)} pedidos en la página {page_number}.")
 
                 for i in range(len(order_id_elements)):
+                    # Volver a encontrar los elementos para evitar StaleElementReferenceException
                     current_order_p = driver.find_elements(By.XPATH, "//p[contains(text(),'Número de pedido:')]")[i]
                     order_id = current_order_p.text.split(':')[1].strip()
                     logging.info(f"Procesando pedido: {order_id}")
@@ -100,8 +97,8 @@ def main():
                         logging.info(f"Descargando pedido {order_id}...")
                         download_button = current_order_p.find_element(By.XPATH, "./following::button[.//span[contains(text(),'Consultar boleta')]][1]")
                         driver.execute_script("arguments[0].click();", download_button)
-                        time.sleep(5)
-                        downloaded_files.append(order_id)
+                        time.sleep(5) # Espera para que la descarga se complete
+                        downloaded_files.append(order_id) # Actualizar la lista localmente
                     except Exception as e:
                         logging.error(f"No se pudo procesar la descarga para el pedido {order_id}: {e}")
 
@@ -113,7 +110,6 @@ def main():
             try:
                 logging.info("Buscando el botón de 'Siguiente Página'...")
                 next_page_button = driver.find_element(By.XPATH, "(//div[@data-testid='icon-container'])[last()]")
-                # Mover el botón a la vista para asegurar que no esté obstruido
                 driver.execute_script("arguments[0].scrollIntoView(true);", next_page_button)
                 time.sleep(1)
                 
@@ -130,7 +126,6 @@ def main():
         logging.info("Proceso finalizado. El navegador se cerrará en 20 segundos.")
         time.sleep(20)
         driver.quit()
-
 
 if __name__ == "__main__":
     main()

@@ -5,16 +5,8 @@ from datetime import datetime
 import PyPDF2
 import mysql.connector
 
-# --- Configuración de la Base de Datos ---
-DB_CONFIG = {
-    'host': 'localhost',
-    'user': 'root',
-    'password': '123456789',
-    'database': 'Boletas'
-}
-
-# --- Directorio de las Boletas ---
-BOLETAS_DIR = r"c:\Users\Petazo\Desktop\Boletas Jumbo"
+# Importar desde el archivo de configuración central
+from config import DB_CONFIG, BOLETAS_DIR, PROCESS_LOG_FILE
 
 # --- Función para categorizar productos ---
 def categorize_product(description):
@@ -134,11 +126,8 @@ def process_pdf(pdf_path):
         return boleta_id, None, []
 
     products = {}
-    # Regex mejorado para capturar SKU, descripción y total en una línea
     product_pattern = re.compile(r'^\s*(\d{8,13})\s+(.+?)\s+([\d.,]+)\s*$', re.MULTILINE)
-    # Regex para capturar cantidad y precio unitario de la línea anterior
     qty_price_pattern = re.compile(r'^(\d+)\s*X\s*\$([\d.,]+)')
-    # Regex para capturar descuentos en la línea siguiente
     offer_pattern = re.compile(r'(TMP\s*(?:OFERTA|DESCUENTO).*?)(-?[\d.,]+)\s*$', re.IGNORECASE)
 
     lines = text.split('\n')
@@ -153,14 +142,12 @@ def process_pdf(pdf_path):
             offer_desc = None
             discount = 0.0
 
-            # Buscar cantidad y precio unitario en la línea anterior
             if i > 0:
                 qty_price_match = qty_price_pattern.search(lines[i-1])
                 if qty_price_match:
                     quantity = int(qty_price_match.group(1))
                     unit_price = parse_chilean_number(qty_price_match.group(2))
 
-            # Buscar oferta en la línea siguiente
             if i + 1 < len(lines):
                 offer_match = offer_pattern.search(lines[i+1])
                 if offer_match:
@@ -188,13 +175,12 @@ def process_pdf(pdf_path):
 
     return boleta_id, purchase_date, list(products.values())
 
-# --- Main Execution ---
 def main():
     logging.basicConfig(
         level=logging.INFO,
         format='%(asctime)s - %(levelname)s - %(message)s',
         handlers=[
-            logging.FileHandler("process_boletas.log", mode='w'),
+            logging.FileHandler(PROCESS_LOG_FILE, mode='w'),
             logging.StreamHandler()
         ]
     )
@@ -234,7 +220,6 @@ def main():
             boleta_id, purchase_date, products_data = process_pdf(pdf_path)
 
             if boleta_id and purchase_date and products_data:
-                # Usar el nombre del archivo como un proxy para saber si ya fue procesado
                 check_query = "SELECT 1 FROM boletas_data WHERE filename = %s LIMIT 1"
                 cursor.execute(check_query, (os.path.basename(pdf_path),))
                 if cursor.fetchone():
