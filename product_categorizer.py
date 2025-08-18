@@ -15,46 +15,45 @@ def categorize_product(description):
     
     # El orden de las condiciones es importante para evitar falsos positivos.
     # Se debe ir de lo más específico a lo más general.
-    # Por ejemplo, "VINO" debe estar antes que "BEBIDAS" para que un vino no se clasifique como una bebida genérica.
 
     # Mascotas
     if any(keyword in description for keyword in ['GATO', 'PERRO', 'WHISK', 'PEDIGREE', 'CAT CHOW', 'DOG CHOW', 'SNACK GATO']):
         return "Mascotas"
 
     # Higiene Personal
-    if any(keyword in description for keyword in ['JABON', 'SHAMPOO', 'ACONDICIONADOR', 'PASTA DENTAL', 'COLGATE', 'PEPSODENT', 'DESODORANTE', 'REXONA', 'NIVEA', 'LADYSOFT', 'HIGIEN', 'ENJUAGUE BUCAL', 'PLAX', 'DEO']):
+    if any(keyword in description for keyword in ['JABON', 'SHAMPOO', 'ACONDICIONADOR', 'PASTA DENTAL', 'COLGATE', 'PEPSODENT', 'DESODORANTE', 'REXONA', 'NIVEA', 'LADYSOFT', 'HIGIEN', 'ENJUAGUE BUCAL', 'PLAX', 'DEO', 'CEPILLO', 'ORAL', 'SENSODYNE', 'PROTEX', 'GILLETTE', 'SCHICK']):
         return "Higiene Personal"
     
     # Productos de Limpieza y Hogar
-    if any(keyword in description for keyword in ['DETERGENTE', 'LAVALOZA', 'LIMPIADOR', 'CLORO', 'LYSOFORM', 'POETT', 'CIF', 'QUIX', 'PATO', 'RAID', 'VIRUTEX', 'ESPONJA', 'PANO', 'SUAVIZANTE', 'COMFORT', 'TOALLITA', 'DESINF', 'FILM', 'ALUSA', 'BOLSA', 'SERVILLET', 'PAPEL HIGIENICO', 'TOALLA', 'P.FAV', 'SCOTT', 'CONFORT']):
+    if any(keyword in description for keyword in ['DETERGENTE', 'LAVALOZA', 'LIMPIADOR', 'CLORO', 'LYSOFORM', 'POETT', 'CIF', 'QUIX', 'PATO', 'RAID', 'VIRUTEX', 'ESPONJA', 'PANO', 'SUAVIZANTE', 'COMFORT', 'TOALLITA', 'DESINF', 'FILM', 'ALUSA', 'BOLSA', 'SERVILLET', 'PAPEL HIGIENICO', 'TOALLA', 'P.FAV', 'SCOTT', 'CONFORT', 'PACK ALUPLAST']):
         return "Productos de Limpieza y Hogar"
 
     # Carnes y Embutidos
-    if any(keyword in description for keyword in ['CARNE', 'POLLO', 'PAVO', 'CERDO', 'VACUNO', 'HAMBURGUESA', 'SALCHI', 'JAMON', 'LONGANIZA', 'PECHUGA']):
+    if any(keyword in description for keyword in ['CARNE', 'POLLO', 'PAVO', 'CERDO', 'VACUNO', 'HAMBURGUESA', 'SALCHI', 'JAMON', 'LONGANIZA', 'PECHUGA', 'TOCINO', 'VIENESA', 'PATE', 'LOMO', 'COSTILLAR', 'CHORIZO']):
         return "Carnes y Embutidos"
 
-    # Pescados y Mariscos (se prioriza sobre "Bebidas" para evitar conflicto con "AGUA")
+    # Pescados y Mariscos
     if any(keyword in description for keyword in ['PESCADO', 'MARISCO', 'ATUN', 'JUREL', 'SALMON']):
         return "Pescados y Mariscos"
 
     # Vinos y Licores
-    if any(keyword in description for keyword in ['VINO', 'CERVEZA', 'PISCO', 'RON', 'WHISKY', 'GIN', 'VODKA', 'LICOR', 'ESPUMANTE', 'DRAMBUIE']):
+    if any(keyword in description for keyword in ['VINO', 'CERVEZA', 'PISCO', 'RON', 'WHISKY', 'GIN', 'VODKA', 'LICOR', 'ESPUMANTE', 'DRAMBUIE', 'CERV', 'PILS', 'SOUR', 'CHARD', 'MERLOT', 'CARMEN', 'CAB']):
         return "Vinos y Licores"
 
     # Lácteos y Huevos
-    if any(keyword in description for keyword in ['LECHE', 'YOGUR', 'YOG', 'QUESO', 'MANTEQUILLA', 'CREMA', 'HUEVO', 'LACTEO', 'POSTRE', 'CHANDELLE']):
+    if any(keyword in description for keyword in ['LECHE', 'YOGUR', 'YOG', 'QUESO', 'MANTEQUILLA', 'CREMA', 'HUEVO', 'LACTEO', 'POSTRE', 'CHANDELLE', 'COLUN', 'GAUDA', 'CREAM CHEESE', 'RALLADO']):
         return "Lácteos y Huevos"
 
-    # Pastas (se prioriza sobre "Cereales" por la palabra "HARINA")
+    # Pastas
     if any(keyword in description for keyword in ['PASTA', 'SPAGHETTI', 'TALLARIN', 'FIDEO', 'LASAÑA', 'CANUTO', 'ESPIRALES', 'CORBATA', 'MOSTACCIOLI', 'RIGATONI', 'QUIFAROS']):
         return "Pastas"
 
     # Aceites y Condimentos
-    if any(keyword in description for keyword in ['ACEITE', 'SALSA', 'CONDIMENTO', 'MAYONESA', 'KETCHUP', 'MOSTAZA', 'VINAGRE', 'SAL', 'OREGANO', 'CURCUMA', 'HELLMANNS', 'MAY', 'SAZONADOR']):
+    if any(keyword in description for keyword in ['ACEITE', 'SALSA', 'CONDIMENTO', 'MAYONESA', 'KETCHUP', 'MOSTAZA', 'VINAGRE', 'SAL', 'OREGANO', 'CURCUMA', 'HELLMANNS', 'MAY', 'SAZONADOR', 'PIMIENTA', 'COMINO', 'AJO', 'CEBOLLA EN POLVO', 'MERQUEN', 'ACETO', 'BALSAMICO']):
         return "Aceites y Condimentos"
 
     # Snacks y Dulces
-    if any(keyword in description for keyword in ['SNACK', 'GALLETA', 'GALL', 'CHOCOLATE', 'CARAMELO', 'PAPAS FRITAS', 'PAPA', 'LAYS', 'MANI', 'OREO', 'CHIPS', 'MANJARATE', 'CRACKER', 'CRACKELET']):
+    if any(keyword in description for keyword in ['SNACK', 'GALLETA', 'GALL', 'CHOCOLATE', 'CARAMELO', 'PAPAS FRITAS', 'PAPA', 'LAYS', 'MANI', 'OREO', 'CHIPS', 'MANJARATE', 'CRACKER', 'CRACKELET', 'PEPIN', 'ANTIPASTO', 'CHUCRUT', 'TABLA', 'DORITOS', 'RAMITAS', 'SUFLÉ', 'FRUTOS SECOS', 'ALMENDRAS', 'NUECES', 'PASAS']):
         return "Snacks y Dulces"
 
     # Panadería y Pastelería
@@ -72,13 +71,17 @@ def categorize_product(description):
     # Congelados
     if any(keyword in description for keyword in ['CONGELADO', 'HELADO', 'PIZZA']):
         return "Congelados"
+        
+    # Frutas y Verduras
+    if any(keyword in description for keyword in ['PLATANO', 'CHAMPINON', 'LECHUGA']):
+        return "Frutas y Verduras"
 
-    # Conservas
-    if any(keyword in description for keyword in ['CONSERVA', 'DURAZNO', 'PIÑA']):
-        return "Conservas"
+    # Sopas y Caldos
+    if any(keyword in description for keyword in ['SOPA']):
+        return "Sopas y Caldos"
 
     # Té, Café y Azúcar
-    if any(keyword in description for keyword in ['TE', 'CAFE', 'AZUCAR', 'ENDULZANTE', 'HIERBA', 'MATE', 'ALUSWEET', 'NESCAFE']):
+    if any(keyword in description for keyword in ['TE', 'CAFE', 'AZUCAR', 'ENDULZANTE', 'HIERBA', 'MATE', 'ALUSWEET', 'NESCAFE', 'STEVIA', 'SUCRALOSA', 'AGAVE', 'GOLD', 'DOLCE GUSTO']):
         return "Té, Café y Azúcar"
         
     # Si ninguna de las condiciones anteriores se cumple, se asigna la categoría por defecto.
