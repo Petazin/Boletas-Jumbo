@@ -25,7 +25,7 @@ def categorize_product(description):
         return "Higiene Personal"
     
     # Productos de Limpieza y Hogar
-    if any(keyword in description for keyword in ['DETERGENTE', 'LAVALOZA', 'LIMPIADOR', 'CLORO', 'LYSOFORM', 'POETT', 'CIF', 'QUIX', 'PATO', 'RAID', 'VIRUTEX', 'ESPONJA', 'PANO', 'SUAVIZANTE', 'COMFORT', 'TOALLITA', 'DESINF', 'FILM', 'ALUSA', 'BOLSA', 'SERVILLET', 'PAPEL HIGIENICO', 'TOALLA', 'P.FAV', 'SCOTT', 'CONFORT', 'PACK ALUPLAST']):
+    if any(keyword in description for keyword in ['DETERGENTE', 'LAVALOZA', 'LIMPIADOR', 'CLORO', 'LYSOFORM', 'POETT', 'CIF', 'QUIX', 'PATO', 'RAID', 'VIRUTEX', 'ESPONJA', 'PANO', 'SUAVIZANTE', 'COMFORT', 'TOALLITA', 'DESINF', 'FILM', 'ALUSA', 'BOLSA', 'SERVILLET', 'PAPEL HIGIENICO', 'TOALLA', 'P.FAV', 'SCOTT', 'CONFORT', 'PACK ALUPLAST', 'VIRUT', 'BOLS', 'FUZOL']):
         return "Productos de Limpieza y Hogar"
 
     # Carnes y Embutidos
@@ -41,19 +41,19 @@ def categorize_product(description):
         return "Vinos y Licores"
 
     # Lácteos y Huevos
-    if any(keyword in description for keyword in ['LECHE', 'YOGUR', 'YOG', 'QUESO', 'MANTEQUILLA', 'CREMA', 'HUEVO', 'LACTEO', 'POSTRE', 'CHANDELLE', 'COLUN', 'GAUDA', 'CREAM CHEESE', 'RALLADO']):
+    if any(keyword in description for keyword in ['LECHE', 'YOGUR', 'YOG', 'QUESO', 'MANTEQUILLA', 'CREMA', 'HUEVO', 'LACTEO', 'POSTRE', 'CHANDELLE', 'COLUN', 'GAUDA', 'CREAM CHEESE', 'RALLADO', 'ALPES', 'CHAMYTO', 'CAMEM']):
         return "Lácteos y Huevos"
 
     # Pastas
-    if any(keyword in description for keyword in ['PASTA', 'SPAGHETTI', 'TALLARIN', 'FIDEO', 'LASAÑA', 'CANUTO', 'ESPIRALES', 'CORBATA', 'MOSTACCIOLI', 'RIGATONI', 'QUIFAROS']):
+    if any(keyword in description for keyword in ['PASTA', 'SPAGHETTI', 'TALLARIN', 'FIDEO', 'LASAÑA', 'CANUTO', 'ESPIRALES', 'CORBATA', 'MOSTACCIOLI', 'RIGATONI', 'QUIFAROS', 'SPAG', 'TRATTORIA']):
         return "Pastas"
 
     # Aceites y Condimentos
-    if any(keyword in description for keyword in ['ACEITE', 'SALSA', 'CONDIMENTO', 'MAYONESA', 'KETCHUP', 'MOSTAZA', 'VINAGRE', 'SAL', 'OREGANO', 'CURCUMA', 'HELLMANNS', 'MAY', 'SAZONADOR', 'PIMIENTA', 'COMINO', 'AJO', 'CEBOLLA EN POLVO', 'MERQUEN', 'ACETO', 'BALSAMICO']):
+    if any(keyword in description for keyword in ['ACEITE', 'SALSA', 'CONDIMENTO', 'MAYONESA', 'KETCHUP', 'MOSTAZA', 'VINAGRE', 'SAL', 'OREGANO', 'CURCUMA', 'HELLMANNS', 'MAY', 'SAZONADOR', 'PIMIENTA', 'COMINO', 'AJO', 'CEBOLLA EN POLVO', 'MERQUEN', 'ACETO', 'BALSAMICO', 'HELLM', 'OLIVA']):
         return "Aceites y Condimentos"
 
     # Snacks y Dulces
-    if any(keyword in description for keyword in ['SNACK', 'GALLETA', 'GALL', 'CHOCOLATE', 'CARAMELO', 'PAPAS FRITAS', 'PAPA', 'LAYS', 'MANI', 'OREO', 'CHIPS', 'MANJARATE', 'CRACKER', 'CRACKELET', 'PEPIN', 'ANTIPASTO', 'CHUCRUT', 'TABLA', 'DORITOS', 'RAMITAS', 'SUFLÉ', 'FRUTOS SECOS', 'ALMENDRAS', 'NUECES', 'PASAS']):
+    if any(keyword in description for keyword in ['SNACK', 'GALLETA', 'GALL', 'CHOCOLATE', 'CARAMELO', 'PAPAS FRITAS', 'PAPA', 'LAYS', 'MANI', 'OREO', 'CHIPS', 'MANJARATE', 'CRACKER', 'CRACKELET', 'PEPIN', 'ANTIPASTO', 'CHUCRUT', 'TABLA', 'DORITOS', 'RAMITAS', 'SUFLÉ', 'FRUTOS SECOS', 'ALMENDRAS', 'NUECES', 'PASAS', 'GELAT', 'GELATINA']):
         return "Snacks y Dulces"
 
     # Panadería y Pastelería
@@ -61,11 +61,11 @@ def categorize_product(description):
         return "Panadería y Pastelería"
 
     # Cereales y Legumbres
-    if any(keyword in description for keyword in ['CEREAL', 'ARROZ', 'QUINOA', 'AVENA', 'LENTEJA', 'GARBANZO', 'POROTO', 'HARINA', 'ARVEJAS']):
+    if any(keyword in description for keyword in ['CEREAL', 'ARROZ', 'QUINOA', 'AVENA', 'LENTEJA', 'GARBANZO', 'POROTO', 'HARINA', 'ARVEJAS', 'LENT']):
         return "Cereales y Legumbres"
 
     # Bebidas y Jugos
-    if any(keyword in description for keyword in ['BEBIDA', 'JUGO', 'GASEOSA', 'AGUA', 'NECTAR', 'ZUMO', 'ENERGETICA', 'LIVEAN']):
+    if any(keyword in description for keyword in ['BEBIDA', 'JUGO', 'GASEOSA', 'AGUA', 'NECTAR', 'ZUMO', 'ENERGETICA', 'LIVEAN', 'VIVO']):
         return "Bebidas y Jugos"
 
     # Congelados
@@ -81,7 +81,7 @@ def categorize_product(description):
         return "Sopas y Caldos"
 
     # Té, Café y Azúcar
-    if any(keyword in description for keyword in ['TE', 'CAFE', 'AZUCAR', 'ENDULZANTE', 'HIERBA', 'MATE', 'ALUSWEET', 'NESCAFE', 'STEVIA', 'SUCRALOSA', 'AGAVE', 'GOLD', 'DOLCE GUSTO']):
+    if any(keyword in description for keyword in ['TE', 'CAFE', 'AZUCAR', 'ENDULZANTE', 'HIERBA', 'MATE', 'ALUSWEET', 'NESCAFE', 'STEVIA', 'SUCRALOSA', 'AGAVE', 'GOLD', 'DOLCE GUSTO', 'MOLID', 'GRANO', 'EARL GREY']):
         return "Té, Café y Azúcar"
         
     # Si ninguna de las condiciones anteriores se cumple, se asigna la categoría por defecto.
