@@ -66,12 +66,19 @@ def main():
         logging.info("Abriendo la página de login de Jumbo.cl...")
         driver.get(LOGIN_URL)
         
-        # --- Intervención Manual Requerida ---
+        # --- Espera de Login Manual ---
+        login_wait = WebDriverWait(driver, 180) # Espera hasta 3 minutos
         logging.info("==================================================================")
         logging.info("ACCIÓN REQUERIDA: Por favor, inicia sesión manualmente en la ventana de Chrome.")
-        logging.info("Una vez que hayas iniciado sesión, vuelve a esta ventana y presiona 'Enter'.")
+        logging.info("El script esperará automáticamente a que inicies sesión...")
         logging.info("==================================================================")
-        input("Presiona Enter aquí para continuar... ")
+        try:
+            login_indicator = (By.XPATH, "//a[@href='/mis-tarjetas']")
+            login_wait.until(EC.presence_of_element_located(login_indicator))
+            logging.info("¡Login detectado exitosamente!")
+        except TimeoutException:
+            logging.error("No se detectó el inicio de sesión en el tiempo esperado (3 minutos). Abortando.")
+            raise # Lanza la excepción para terminar el script
         
         logging.info("Continuando con el proceso de descarga...")
         driver.get(MIS_COMPRAS_URL)
