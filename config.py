@@ -21,9 +21,15 @@ DB_CONFIG = {
 
 # --- Rutas de Directorios y Archivos ---
 
-# Directorio donde se descargan y se buscan las boletas en formato PDF.
-# Por defecto, es el mismo directorio donde está el proyecto.
-BOLETAS_DIR = BASE_DIR
+# Directorio donde se descargan temporalmente las boletas antes de ser procesadas.
+# Usado por Selenium para guardar los archivos con su nombre original.
+DOWNLOADS_DIR = BASE_DIR
+
+# Directorio donde se almacenarán las boletas organizadas por fuente.
+ORGANIZED_DIR = os.path.join(BASE_DIR, 'descargas', 'Jumbo')
+
+# Fuente de datos actual
+CURRENT_SOURCE = "Jumbo"
 
 # Nombre y ruta del archivo CSV que se generará con los datos exportados.
 EXPORT_CSV_FILE = os.path.join(BASE_DIR, 'boletas_data.csv')

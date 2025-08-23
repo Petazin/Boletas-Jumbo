@@ -4,6 +4,8 @@
 import time
 import logging
 import os
+import shutil
+from datetime import datetime
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.service import Service
@@ -14,7 +16,14 @@ from selenium.common.exceptions import NoSuchElementException, TimeoutException
 from webdriver_manager.chrome import ChromeDriverManager
 
 # Importar desde el archivo de configuración central
-from config import BOLETAS_DIR, MIS_COMPRAS_URL, LOGIN_URL, DOWNLOAD_LOG_FILE
+from config import (
+    DOWNLOADS_DIR, ORGANIZED_DIR, MIS_COMPRAS_URL, 
+    LOGIN_URL, DOWNLOAD_LOG_FILE, CURRENT_SOURCE
+)
+from database_utils import (
+    create_download_history_table, get_downloaded_order_ids, insert_download_history
+)
+from pdf_parser import process_pdf
 
 def setup_logging():
     """Configura el sistema de logging para este script."""
@@ -22,9 +31,7 @@ def setup_logging():
         level=logging.INFO,
         format='%(asctime)s - %(levelname)s - %(message)s',
         handlers=[
-            # Guardar logs en un archivo
             logging.FileHandler(DOWNLOAD_LOG_FILE, mode='w'),
-            # Mostrar logs en la consola
             logging.StreamHandler()
         ]
     )
@@ -32,42 +39,96 @@ def setup_logging():
 def setup_driver():
     """Configura e inicializa el navegador Chrome con Selenium."""
     chrome_options = Options()
-    # Deshabilitar notificaciones emergentes de Chrome
     chrome_options.add_argument("--disable-notifications")
-    # Configurar preferencias para la descarga de archivos
     prefs = {
-        "download.default_directory": BOLETAS_DIR, # Directorio de descarga
-        "download.prompt_for_download": False # No preguntar antes de descargar
+        "download.default_directory": DOWNLOADS_DIR,
+        "download.prompt_for_download": False
     }
     chrome_options.add_experimental_option("prefs", prefs)
     
-    # Instalar y configurar el driver de Chrome automáticamente
     service = Service(ChromeDriverManager().install())
     driver = webdriver.Chrome(service=service, options=chrome_options)
     return driver
 
-def get_downloaded_filenames():
-    """Obtiene una lista de los nombres de archivo PDF ya existentes en el directorio."""
+def process_downloaded_file(order_id):
+    """Procesa el archivo PDF recién descargado.
+
+    Esta función se encarga de:
+    1. Encontrar el último archivo PDF descargado en el directorio temporal.
+    2. Extraer la información relevante del PDF usando el `pdf_parser`.
+    3. Calcular el monto total y la cantidad de items.
+    4. Generar un nuevo nombre de archivo descriptivo (incluyendo fecha).
+    5. Mover el archivo a la carpeta de destino organizada.
+    6. Registrar toda la información en la tabla `download_history`.
+
+    Args:
+        order_id (str): El ID del pedido asociado al archivo descargado.
+    """
     try:
-        files = os.listdir(BOLETAS_DIR)
-        # Filtrar para devolver solo los archivos PDF
-        return [f for f in files if f.endswith('.pdf')]
-    except FileNotFoundError:
-        return []
+        # Esperar un momento para que el archivo se descargue completamente
+        time.sleep(5)
+        # Encontrar el archivo más reciente en el directorio de descargas
+        files = os.listdir(DOWNLOADS_DIR)
+        pdf_files = [f for f in files if f.endswith('.pdf')]
+        if not pdf_files:
+            logging.error(f"No se encontró ningún archivo PDF para el pedido {order_id}")
+            return
+
+        latest_file = max(pdf_files, key=lambda f: os.path.getmtime(os.path.join(DOWNLOADS_DIR, f)))
+        original_filepath = os.path.join(DOWNLOADS_DIR, latest_file)
+
+        # Extraer datos del PDF
+        boleta_id, purchase_date, purchase_time, products_data = process_pdf(original_filepath)
+        if not boleta_id:
+            logging.error(f"No se pudieron extraer datos del PDF para el pedido {order_id}")
+            return
+
+        total_amount = sum(p['Total_a_pagar_producto'] for p in products_data)
+        item_count = len(products_data)
+
+        # Crear el nuevo nombre de archivo
+        date_str = purchase_date.strftime('%Y-%m-%d')
+        new_filename = f"{order_id}_{date_str}.pdf"
+        
+        # Crear el directorio de destino si no existe
+        os.makedirs(ORGANIZED_DIR, exist_ok=True)
+        new_filepath = os.path.join(ORGANIZED_DIR, new_filename)
+
+        # Mover y renombrar el archivo
+        shutil.move(original_filepath, new_filepath)
+        logging.info(f"Archivo movido y renombrado a: {new_filepath}")
+
+        # Insertar en la base de datos
+        insert_download_history(
+            order_id=order_id,
+            source=CURRENT_SOURCE,
+            purchase_date=purchase_date,
+            download_date=datetime.now(),
+            original_filename=latest_file,
+            new_filename=new_filename,
+            file_path=new_filepath,
+            total_amount=total_amount,
+            item_count=item_count,
+            status='Downloaded'
+        )
+
+    except Exception as e:
+        logging.error(f"Error procesando el archivo descargado para el pedido {order_id}: {e}")
 
 def main():
     """Función principal para orquestar la descarga de las boletas."""
     setup_logging()
+    # Asegurarse de que la tabla de historial exista
+    create_download_history_table()
+    
     driver = setup_driver()
-    # Configurar una espera explícita (máximo 20 segundos)
     wait = WebDriverWait(driver, 20)
     
     try:
         logging.info("Abriendo la página de login de Jumbo.cl...")
         driver.get(LOGIN_URL)
         
-        # --- Espera de Login Manual ---
-        login_wait = WebDriverWait(driver, 180) # Espera hasta 3 minutos
+        login_wait = WebDriverWait(driver, 180)
         logging.info("==================================================================")
         logging.info("ACCIÓN REQUERIDA: Por favor, inicia sesión manualmente en la ventana de Chrome.")
         logging.info("El script esperará automáticamente a que inicies sesión...")
@@ -78,54 +139,49 @@ def main():
             logging.info("¡Login detectado exitosamente!")
         except TimeoutException:
             logging.error("No se detectó el inicio de sesión en el tiempo esperado (3 minutos). Abortando.")
-            raise # Lanza la excepción para terminar el script
+            raise
         
         logging.info("Continuando con el proceso de descarga...")
         driver.get(MIS_COMPRAS_URL)
         
         page_number = 1
-        processed_pages_content = set() # Para detectar si una página se repite (bug de la web)
+        processed_pages_content = set()
 
         while True:
             logging.info(f"--- Procesando Página {page_number} ---")
             
             try:
-                # Esperar a que al menos un número de pedido esté presente en la página
                 wait.until(EC.presence_of_element_located((By.XPATH, "//p[contains(text(),'Número de pedido:')]")))
-                time.sleep(4) # Pausa adicional para asegurar que todo el contenido dinámico cargue
+                time.sleep(4)
 
-                # Obtener todos los elementos de pedido en la página actual
                 order_id_elements = driver.find_elements(By.XPATH, "//p[contains(text(),'Número de pedido:')]")
                 current_page_content = tuple(elem.text for elem in order_id_elements)
 
-                # Si la página no tiene pedidos o es idéntica a una ya procesada, terminar.
                 if not current_page_content or current_page_content in processed_pages_content:
                     logging.warning("Página vacía o repetida detectada. Terminando el proceso.")
                     break
                 processed_pages_content.add(current_page_content)
 
-                downloaded_files = get_downloaded_filenames()
+                downloaded_order_ids = get_downloaded_order_ids()
                 logging.info(f"Se encontraron {len(order_id_elements)} pedidos en la página {page_number}.")
 
                 for i in range(len(order_id_elements)):
-                    # Volver a buscar los elementos en cada iteración para evitar errores de "StaleElementReferenceException"
                     current_order_p = driver.find_elements(By.XPATH, "//p[contains(text(),'Número de pedido:')]")[i]
                     order_id = current_order_p.text.split(':')[1].strip()
                     logging.info(f"Procesando pedido: {order_id}")
 
-                    # Verificar si ya existe un PDF que contenga el ID del pedido
-                    if any(order_id in fname for fname in downloaded_files):
-                        logging.info(f"El pedido {order_id} ya existe. Saltando.")
+                    if order_id in downloaded_order_ids:
+                        logging.info(f"El pedido {order_id} ya existe en la base de datos. Saltando.")
                         continue
                     
                     try:
                         logging.info(f"Descargando pedido {order_id}...")
-                        # Buscar el botón de "Consultar boleta" asociado al pedido actual
                         download_button = current_order_p.find_element(By.XPATH, "./following::button[.//span[contains(text(),'Consultar boleta')]][1]")
-                        # Usar JavaScript para hacer clic, es más robusto que el clic directo
                         driver.execute_script("arguments[0].click();", download_button)
-                        time.sleep(5) # Esperar a que la descarga se inicie y complete
-                        downloaded_files.append(order_id) # Añadir a la lista para no volver a descargarlo en esta misma sesión
+                        
+                        # Procesar el archivo recién descargado
+                        process_downloaded_file(order_id)
+
                     except Exception as e:
                         logging.error(f"No se pudo procesar la descarga para el pedido {order_id}: {e}")
 
@@ -133,11 +189,9 @@ def main():
                 logging.info("No se encontraron más pedidos. Se asume fin de la lista.")
                 break
 
-            # --- Paginación ---
             try:
                 logging.info("Buscando el botón de 'Siguiente Página'...")
                 next_page_button = driver.find_element(By.XPATH, "(//div[@data-testid='icon-container'])[last()]")
-                # Mover el botón a la vista para asegurar que no esté obstruido por otros elementos
                 driver.execute_script("arguments[0].scrollIntoView(true);", next_page_button)
                 time.sleep(1)
                 

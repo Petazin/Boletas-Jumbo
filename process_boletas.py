@@ -6,7 +6,7 @@ import os
 import mysql.connector
 
 # Importar módulos y configuración del proyecto
-from config import BOLETAS_DIR, PROCESS_LOG_FILE
+from config import ORGANIZED_DIR, PROCESS_LOG_FILE
 from database_utils import db_connection
 from pdf_parser import process_pdf
 
@@ -44,11 +44,31 @@ def create_table_if_not_exists(cursor):
     cursor.execute(create_table_query)
     logging.info("Tabla 'boletas_data' verificada/creada exitosamente.")
 
-def file_was_processed(cursor, filename):
-    """Verifica en la base de datos si un archivo PDF ya ha sido procesado."""
-    check_query = "SELECT 1 FROM boletas_data WHERE filename = %s LIMIT 1"
-    cursor.execute(check_query, (filename,))
-    return cursor.fetchone() is not None
+def get_files_to_process(cursor):
+    """Obtiene de la base de datos la lista de archivos que necesitan ser procesados.
+
+    Busca en la tabla `download_history` todos los registros con estado 'Downloaded'.
+
+    Args:
+        cursor: El cursor de la base de datos para ejecutar la consulta.
+
+    Returns:
+        list: Una lista de tuplas, donde cada tupla contiene (file_path, order_id).
+    """
+    query = "SELECT file_path, order_id FROM download_history WHERE status = 'Downloaded'"
+    cursor.execute(query)
+    return cursor.fetchall()
+
+def update_status(cursor, order_id, status):
+    """Actualiza el estado de un registro en la tabla de historial de descargas.
+
+    Args:
+        cursor: El cursor de la base de datos.
+        order_id (str): El ID del pedido a actualizar.
+        status (str): El nuevo estado a asignar (ej. 'Processed', 'Error').
+    """
+    query = "UPDATE download_history SET status = %s WHERE order_id = %s"
+    cursor.execute(query, (status, order_id))
 
 def insert_boleta_data(cursor, boleta_id, filename, purchase_time, products_data):
     """Inserta una lista de productos de una boleta en la base de datos."""
@@ -90,37 +110,36 @@ def main():
     """Función principal que orquesta el proceso de leer PDFs, procesarlos y guardar los datos."""
     setup_logging()
     try:
-        # Utiliza el manejador de contexto para una conexión segura a la BD
         with db_connection() as conn:
             cursor = conn.cursor()
             create_table_if_not_exists(cursor)
-            conn.commit() # Guardar la creación de la tabla
+            conn.commit()
 
-            # Obtener la lista de archivos PDF en el directorio
-            pdf_files = [f for f in os.listdir(BOLETAS_DIR) if f.endswith('.pdf')]
+            files_to_process = get_files_to_process(cursor)
             
-            for pdf_file in pdf_files:
-                # Primero, verificar si el archivo ya fue procesado para evitar trabajo innecesario
-                if file_was_processed(cursor, pdf_file):
-                    logging.info(f"Archivo {pdf_file} ya procesado. Saltando.")
+            for pdf_path, order_id in files_to_process:
+                if not os.path.exists(pdf_path):
+                    logging.warning(f"El archivo {pdf_path} no se encontró. Saltando.")
+                    update_status(cursor, order_id, 'Error - File not found')
+                    conn.commit()
                     continue
 
-                pdf_path = os.path.join(BOLETAS_DIR, pdf_file)
-                # Llamar al módulo parser para obtener los datos del PDF
+                pdf_file = os.path.basename(pdf_path)
                 boleta_id, _, purchase_time, products_data = process_pdf(pdf_path)
 
                 if boleta_id and products_data:
-                    # Si se obtuvieron datos, insertarlos en la base de datos
                     insert_boleta_data(cursor, boleta_id, pdf_file, purchase_time, products_data)
-                    conn.commit() # Guardar los datos de la boleta actual
+                    update_status(cursor, order_id, 'Processed')
+                    conn.commit()
                     logging.info(f"Datos de {pdf_file} insertados correctamente.")
                 else:
+                    update_status(cursor, order_id, 'Error - Parsing failed')
+                    conn.commit()
                     logging.warning(f"No se pudo procesar completamente {pdf_file}. Saltando.")
 
         logging.info("\nProceso completado. Revisa tu base de datos MySQL.")
 
     except mysql.connector.Error:
-        # Este error ya es logueado por database_utils, aquí solo se añade contexto.
         logging.error("El script terminó debido a un error con la base de datos.")
     except Exception as e:
         logging.error(f"Ocurrió un error inesperado en el proceso principal: {e}")
