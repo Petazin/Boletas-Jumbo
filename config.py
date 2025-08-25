@@ -58,6 +58,6 @@ REGEX_PATTERNS = {
     "SALDO_PUNTOS": r"SALDO\s+DE\s+PUNTOS\s+AL\s*(\d{2}[-/]\d{2}[-/]\d{4})",
     "NOMBRE_ARCHIVO_PDF": r"v\d+jmch-\d+_(\d{13})\.pdf",
     "PRODUCTO": r"^\s*(\d{8,13})\s+(.+?)\s+([\d.,]+)\s*$",
-    "CANTIDAD_PRECIO": r"^(\d+)\s*X\s*\$([\d.,]+)",
+    "CANTIDAD_PRECIO": r"^\s*(\d+)\s*X\s*\$([\d.,]+)",
     "OFERTA_DESCUENTO": r"(TMP\s*(?:OFERTA|DESCUENTO).*?)(-?[\d.,]+)\s*$",
 }
