@@ -6,6 +6,7 @@ import os
 import re
 from datetime import datetime  # Importar solo datetime
 import pypdf  # Importar pypdf
+import config # Importar configuración centralizada
 
 from product_categorizer import categorize_product
 
@@ -55,7 +56,7 @@ def process_pdf(pdf_path):
     # --- Extracción de ID de Boleta ---
     # Busca el patrón "BOLETA ELECTRONICA N°..." para obtener el número.
     boleta_id_match = re.search(
-        r"BOLETA\s*ELECTRONICA\s*N\D*(\d+)", text, re.IGNORECASE
+        config.REGEX_PATTERNS["BOLETA_NUMERO"], text, re.IGNORECASE
     )
     boleta_id = boleta_id_match.group(1) if boleta_id_match else None
     if not boleta_id:
@@ -66,7 +67,7 @@ def process_pdf(pdf_path):
     # Busca el patrón "FECHA HORA LOCAL" seguido de la fecha (DD/MM/YY) y la hora (HH:MM)
     # Usamos re.DOTALL para que el '.' incluya saltos de línea si es necesario.
     date_time_match = re.search(
-        r"FECHA\s+HORA LOCAL.*?(\d{2}/\d{2}/\d{2})\s+(\d{2}:\d{2})", text, re.DOTALL
+        config.REGEX_PATTERNS["FECHA_HORA"], text, re.DOTALL
     )
     purchase_date = None
     purchase_time = None
@@ -93,7 +94,7 @@ def process_pdf(pdf_path):
     if not purchase_date:
         # Intento 1 (antiguo): Buscar la fecha con el formato "dd-mm-yyyy" cerca del texto de puntos.
         date_match_old = re.search(
-            r"SALDO\s+DE\s+PUNTOS\s+AL\s*(\d{2}[-/]\d{2}[-/]\d{4})", text
+            config.REGEX_PATTERNS["SALDO_PUNTOS"], text
         )
         if date_match_old:
             try:
@@ -106,7 +107,7 @@ def process_pdf(pdf_path):
     if not purchase_date:
         # Intento 2 (antiguo): Si falla lo anterior, intentar deducir la fecha desde el nombre del archivo.
         filename_match = re.match(
-            r"v\d+jmch-\d+_(\d{13})\.pdf", os.path.basename(pdf_path)
+            config.REGEX_PATTERNS["NOMBRE_ARCHIVO_PDF"], os.path.basename(pdf_path)
         )
         if filename_match:
             # El timestamp en el nombre del archivo es en milisegundos desde la época.
@@ -122,13 +123,13 @@ def process_pdf(pdf_path):
     # Expresiones regulares pre-compiladas para eficiencia.
     # 1. Patrón para la línea principal del producto (SKU, Descripción, Total)
     product_pattern = re.compile(
-        r"^\s*(\d{8,13})\s+(.+?)\s+([\d.,]+)\s*$", re.MULTILINE
+        config.REGEX_PATTERNS["PRODUCTO"], re.MULTILINE
     )
     # 2. Patrón para la línea de cantidad y precio unitario (ej. "3 X $1.990")
-    qty_price_pattern = re.compile(r"^(\d+)\s*X\s*\$([\d.,]+)")
+    qty_price_pattern = re.compile(config.REGEX_PATTERNS["CANTIDAD_PRECIO"])
     # 3. Patrón para la línea de descuento u oferta.
     offer_pattern = re.compile(
-        r"(TMP\s*(?:OFERTA|DESCUENTO).*?)(-?[\d.,]+)\s*$", re.IGNORECASE
+        config.REGEX_PATTERNS["OFERTA_DESCUENTO"], re.IGNORECASE
     )
 
     lines = text.split("\n")

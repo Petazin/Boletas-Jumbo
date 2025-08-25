@@ -46,3 +46,15 @@ PROCESS_LOG_FILE = os.path.join(BASE_DIR, "process_boletas.log")
 # URLs utilizadas por el script de descarga (Selenium).
 MIS_COMPRAS_URL = "https://www.jumbo.cl/mis-compras"
 LOGIN_URL = "https://www.jumbo.cl/login"
+
+# --- Patrones de Expresiones Regulares (Regex) ---
+# Centralización de patrones regex utilizados para la extracción de datos de PDFs.
+REGEX_PATTERNS = {
+    "BOLETA_NUMERO": r"BOLETA\s*ELECTRONICA\s*N\D*(\d+)",
+    "FECHA_HORA": r"FECHA\s+HORA LOCAL.*?(\d{2}/\d{2}/\d{2})\s+(\d{2}:\d{2})",
+    "SALDO_PUNTOS": r"SALDO\s+DE\s+PUNTOS\s+AL\s*(\d{2}[-/]\d{2}[-/]\d{4})",
+    "NOMBRE_ARCHIVO_PDF": r"v\d+jmch-\d+_(\d{13})\.pdf",
+    "PRODUCTO": r"^\s*(\d{8,13})\s+(.+?)\s+([\d.,]+)\s*$",
+    "CANTIDAD_PRECIO": r"^(\d+)\s*X\s*\$([\d.,]+)",
+    "OFERTA_DESCUENTO": r"(TMP\s*(?:OFERTA|DESCUENTO).*?)(-?[\d.,]+)\s*$",
+}
