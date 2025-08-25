@@ -87,4 +87,12 @@ Este es el proceso que seguiré para gestionar los cambios en el repositorio.
     > *   `[x]` **Revisar variables locales no utilizadas (`F841`) en `tests/test_pdf_parser.py`.**
     > *   `[x]` **Completar pruebas unitarias para `pdf_parser.py` (mocking avanzado de `pypdf.PdfReader`).**
 
+*   **Diseño de Base de Datos Escalable:**
+    *   `[ ]` **Revisar y Validar Esquema:** Confirmar que el esquema actual (`create_new_tables.sql`) es adecuado para el escalamiento y las necesidades futuras.
+    *   `[ ]` **Implementar Ingestión Robusta de XLS:** Desarrollar un mecanismo de parsing configurable para archivos XLS de bancos, que no dependa de índices fijos.
+    *   `[ ]` **Procesamiento de Datos Bancarios:** Implementar la lógica para transformar los datos crudos de `bank_account_transactions_raw` y `credit_card_transactions_raw` a la tabla `transactions`.
+    *   `[ ]` **Manejo de Duplicados y Actualizaciones:** Implementar lógica para identificar y manejar transacciones duplicadas y actualizaciones de datos.
+    *   `[ ]` **Optimización de Consultas:** Revisar y optimizar las consultas SQL para asegurar un rendimiento eficiente a medida que la base de datos crece.
+    *   `[ ]` **Estrategia de Backup y Recuperación:** Definir e implementar una estrategia de backup y recuperación para la base de datos.
+
 ---

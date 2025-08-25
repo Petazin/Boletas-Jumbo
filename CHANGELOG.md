@@ -1,6 +1,12 @@
 # Historial de Cambios
 
 ## 2025-08-25
+- **docs(roadmap)**: Actualiza `GEMINI.md` con un roadmap detallado para el diseño de bases de datos escalables.
+- **feat(ingestion)**: Implementa la ingesta de extractos bancarios XLS y mejora la robustez del código.
+    - Se creó `ingest_bank_statements.py` para automatizar la búsqueda y procesamiento de archivos XLS de bancos.
+    - Se corrigió la duplicación de código en `bank_ingestion.py`.
+
+## 2025-08-25
 - **docs(changelog)**: Actualiza CHANGELOG y README con mejoras de calidad (1682bc8)
 - **refactor(code-quality)**: Mejora la calidad del código y el formato (bbb3e4c)
 - **docs(roadmap)**: Actualiza estado de tareas completadas (b526b7b)
@@ -13,8 +19,7 @@ Se añadió un archivo `__init__.py` vacío a la carpeta `tests` para asegurar q
 
 - Se añadió una prueba unitaria para la función `parse_chilean_number`.
 - Se corrigió el orden de los parámetros de los mocks en las pruebas existentes.
-- Se ajustó la expresión regular `CANTIDAD_PRECIO` en `config.py` para manejar espacios en blanco iniciales, resolviendo un error de aserción en `test_process_pdf_success`.
-- Se configuró `conftest.py` para asegurar la correcta importación de módulos en el entorno de pruebas. (5485913)
+- Se ajustó la expresión regular `CANTIDAD_PRECIO` en `config.py` para manejar espacios en blanco iniciales, resolviendo un error de aserción en `test_process_pdf_success`.n- Se configuró `conftest.py` para asegurar la correcta importación de módulos en el entorno de pruebas. (5485913)
 - **Docs**: Actualizar estado del roadmap en GEMINI.md (1979088)
 - **Mejora**: Formato de mensajes de log en `download_boletas.py`
 

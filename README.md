@@ -68,6 +68,8 @@ El proyecto sigue una arquitectura modular, donde cada archivo tiene una respons
 
 *   **`config.py`**: **Módulo central de configuración.** Contiene todas las constantes, credenciales de la base de datos, rutas a directorios, URLs importantes y expresiones regulares (regex) utilizadas en el parsing. Es la única ubicación donde deberías necesitar realizar cambios de configuración.
 *   **`database_utils.py`**: **Utilidad para la base de datos.** Encapsula la lógica de conexión y desconexión a la base de datos MySQL, asegurando una gestión segura y centralizada de las conexiones.
+*   **`bank_ingestion.py`**: **Módulo de ingesta de datos bancarios.** Contiene la lógica para parsear archivos XLS de extractos bancarios (cuentas corrientes, tarjetas de crédito) y almacenar los datos crudos en las tablas `bank_statement_metadata_raw`, `bank_account_transactions_raw` y `credit_card_transactions_raw`.
+*   **`ingest_bank_statements.py`**: **Script orquestador de ingesta bancaria.** Recorre los directorios de descargas de bancos, identifica los archivos XLS de extractos y coordina su procesamiento utilizando `bank_ingestion.py`.
 *   **`product_categorizer.py`**: **Módulo de lógica de negocio.** Contiene la función `categorize_product` que asigna una categoría predefinida a cada producto basándose en palabras clave y reglas específicas.
 *   **`pdf_parser.py`**: **Módulo de extracción y parsing.** Su responsabilidad principal es leer un archivo PDF, extraer su texto y parsearlo utilizando expresiones regulares para obtener datos estructurados de la boleta (ID de boleta, fecha, hora y una lista detallada de productos).
 *   **`download_boletas.py`**: **Script de automatización de descarga.** Orquesta el proceso de descarga de boletas en formato PDF desde el sitio web de Jumbo utilizando Selenium. Gestiona el inicio de sesión y la navegación para obtener los archivos.
@@ -76,30 +78,22 @@ El proyecto sigue una arquitectura modular, donde cada archivo tiene una respons
 *   **`get_otros_productos.py`**: **Script auxiliar.** Diseñado para extraer información adicional de productos que no son directamente parte de la boleta principal, como productos de ofertas o promociones especiales. (Si aplica, detallar su integración).
 *   **`cuarentena_pdfs/`**: **Directorio de cuarentena.** Los PDFs que no pueden ser procesados correctamente por `pdf_parser.py` son movidos a esta carpeta para una revisión manual, evitando que detengan el flujo de procesamiento principal.
 *   **`descargas/Jumbo/`**: **Directorio de descarga.** Aquí se guardan los PDFs de las boletas descargadas exitosamente.
+*   **`descargas/Banco/`**: **Directorio de descarga de extractos bancarios.** Aquí se guardan los archivos XLS de extractos bancarios descargados.
 *   **`tests/`**: **Directorio de pruebas unitarias.** Contiene las pruebas automatizadas desarrolladas con `pytest` para asegurar la funcionalidad y robustez de los componentes críticos del proyecto, especialmente `pdf_parser.py`.
 
-### Esquema de la Base de Datos (`boletas_data`)
+### Esquema de la Base de Datos
 
-La tabla `boletas_data` almacena la información detallada de cada producto de las boletas procesadas. Su esquema es el siguiente:
+El proyecto ahora utiliza un esquema de base de datos más completo y escalable para manejar diversos tipos de transacciones y fuentes de datos. Las tablas principales incluyen:
 
-```sql
-CREATE TABLE IF NOT EXISTS boletas_data (
-    boleta_id VARCHAR(255),             -- Identificador único de la boleta
-    filename VARCHAR(255),              -- Nombre del archivo PDF de la boleta
-    Fecha DATE,                         -- Fecha de la compra
-    Hora TIME,                          -- Hora de la compra
-    codigo_SKU VARCHAR(255),            -- Código SKU del producto
-    Cantidad_unidades INT,              -- Cantidad de unidades compradas
-    Valor_Unitario DECIMAL(15, 2),      -- Precio unitario del producto
-    Cantidad_comprada_X_Valor_Unitario VARCHAR(255), -- Cantidad comprada por valor unitario (puede ser una cadena si incluye texto)
-    Descripcion_producto TEXT,          -- Descripción completa del producto
-    Total_a_pagar_producto DECIMAL(15, 2), -- Total pagado por este producto (después de descuentos)
-    Descripcion_Oferta TEXT,            -- Descripción de la oferta aplicada al producto
-    Cantidad_reducida_del_total DECIMAL(15, 2), -- Cantidad reducida del total debido a ofertas
-    Categoria VARCHAR(255),             -- Categoría asignada al producto
-    PRIMARY KEY (boleta_id, codigo_SKU) -- Clave primaria compuesta para evitar duplicados
-);
-```
+*   **`sources`**: Registra las fuentes de datos (ej. bancos, supermercados, tarjetas de crédito).
+*   **`main_categories` y `sub_categories`**: Permiten una categorización jerárquica de ingresos y gastos.
+*   **`bank_statement_metadata_raw`**: Almacena metadatos de los extractos bancarios.
+*   **`bank_account_transactions_raw`**: Contiene los datos crudos de transacciones de cuentas bancarias.
+*   **`credit_card_transactions_raw`**: Contiene los datos crudos de transacciones de tarjetas de crédito.
+*   **`transactions`**: Tabla centralizada para todas las transacciones procesadas, con enlaces a categorías y fuentes.
+*   **`transaction_items`**: Detalle de los ítems dentro de una transacción (ej. productos de una boleta de supermercado).
+
+Para el esquema completo y detallado, por favor, consulta el archivo `create_new_tables.sql`.
 
 ### Uso Detallado y Flujo de Trabajo
 
@@ -148,19 +142,18 @@ La Fase 1 ha sido sometida a un proceso de mejora continua para aumentar su robu
 
 La Fase 2 del proyecto se centrará en expandir la aplicación a un gestor financiero completo. El objetivo es crear una herramienta que permita analizar cualquier tipo de boleta o cartola, categorizar tanto gastos como ingresos, y proporcionar un control detallado del presupuesto mensual.
 
+**Avances Recientes:**
+Se ha iniciado la implementación del **Diseño de Base de Datos Escalable** y la **Ingesta de Extractos Bancarios**. Esto incluye la definición de un esquema de base de datos más robusto y modular (ver `create_new_tables.sql`) y la creación de scripts para procesar archivos XLS de bancos.
+
 El roadmap detallado para la Fase 2, incluyendo el diseño de una base de datos escalable, soporte multi-origen, manejo de ingresos, categorización jerárquica, dashboards financieros y un sistema de alertas, se encuentra documentado en el archivo `GEMINI.md` del proyecto.
-
-## Fase 2: Gestor Integral de Finanzas Personales - Planificada
-
-La Fase 2 del proyecto se centrará en expandir la aplicación a un gestor financiero completo. El objetivo es crear una herramienta que permita analizar cualquier tipo de boleta o cartola, categorizar tanto gastos como ingresos, y proporcionar un control detallado del presupuesto mensual.
 
 El roadmap detallado para la Fase 2 incluye:
 
-*   `[ ]` **Diseño de Base de Datos Escalable (¡Nuevo!):** Modificar la estructura de la base de datos para soportar múltiples orígenes de datos (bancos, tiendas), tipos de transacciones (ingresos/egresos) y la nueva categorización jerárquica.
+*   `[ ]` **Diseño de Base de Datos Escalable:** Modificar la estructura de la base de datos para soportar múltiples orígenes de datos (bancos, tiendas), tipos de transacciones (ingresos/egresos) y la nueva categorización jerárquica. (¡En progreso!)
 *   `[ ]` **Soporte Multi-Origen:** Añadir la capacidad de procesar boletas y cartolas de bancos, otras tiendas, tarjetas de crédito, etc.
-*   `[ ]` **Manejo de Ingresos (¡Nuevo!):** Implementar la lógica para identificar y registrar transacciones de ingresos.
+*   `[ ]` **Manejo de Ingresos:** Implementar la lógica para identificar y registrar transacciones de ingresos.
 *   `[ ]` **Categorización Jerárquica:** Implementar un sistema de dos niveles: Categorías principales (ej. "Vivienda", "Transporte", "Alimentación") y sub-categorías (ej. "Supermercado", "Restaurantes", "Metro").
 *   `[ ]` **Organización de Archivos:** Clasificar los archivos PDF/CSV descargados en carpetas según su origen.
-*   `[ ]` **Dashboard Financiero (¡Nuevo!):** Crear un panel principal que muestre el balance mensual (ingresos vs. gastos), gráficos por categoría y alertas.
+*   `[ ]` **Dashboard Financiero:** Crear un panel principal que muestre el balance mensual (ingresos vs. gastos), gráficos por categoría y alertas.
 *   `[ ]` **Sistema de Alertas y Presupuestos:** Crear notificaciones para gastos no categorizados, consumos que superen un límite predefinido, etc.
 *   `[ ]` **Interfaz Gráfica (GUI) Unificada:** Evolucionar la GUI de la Fase 1 para que soporte todas las nuevas funcionalidades (múltiples orígenes, ingresos, dashboard, etc.).
