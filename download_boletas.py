@@ -60,23 +60,9 @@ def setup_driver():
 
 
 def process_downloaded_file(order_id):
-    """Procesa el archivo PDF recién descargado.
-
-    Esta función se encarga de:
-    1. Encontrar el último archivo PDF descargado en el directorio temporal.
-    2. Extraer la información relevante del PDF usando el `pdf_parser`.
-    3. Calcular el monto total y la cantidad de items.
-    4. Generar un nuevo nombre de archivo descriptivo (incluyendo fecha).
-    5. Mover el archivo a la carpeta de destino organizada.
-    6. Registrar toda la información en la tabla `download_history`.
-
-    Args:
-        order_id (str): El ID del pedido asociado al archivo descargado.
-    """
+    """Procesa el archivo PDF recién descargado."""
     try:
-        # Esperar un momento para que el archivo se descargue completamente
         time.sleep(5)
-        # Encontrar el archivo más reciente en el directorio de descargas
         files = os.listdir(DOWNLOADS_DIR)
         pdf_files = [f for f in files if f.endswith(".pdf")]
         if not pdf_files:
@@ -90,7 +76,6 @@ def process_downloaded_file(order_id):
         )
         original_filepath = os.path.join(DOWNLOADS_DIR, latest_file)
 
-        # Extraer datos del PDF
         boleta_id, purchase_date, purchase_time, products_data = process_pdf(
             original_filepath
         )
@@ -103,19 +88,15 @@ def process_downloaded_file(order_id):
         total_amount = sum(p["Total_a_pagar_producto"] for p in products_data)
         item_count = len(products_data)
 
-        # Crear el nuevo nombre de archivo
         date_str = purchase_date.strftime("%Y-%m-%d")
         new_filename = f"{order_id}_{date_str}.pdf"
 
-        # Crear el directorio de destino si no existe
         os.makedirs(ORGANIZED_DIR, exist_ok=True)
         new_filepath = os.path.join(ORGANIZED_DIR, new_filename)
 
-        # Mover y renombrar el archivo
         shutil.move(original_filepath, new_filepath)
         logging.info(f"Archivo movido y renombrado a: {new_filepath}")
 
-        # Insertar en la base de datos
         insert_download_history(
             order_id=order_id,
             source=CURRENT_SOURCE,
@@ -138,7 +119,6 @@ def process_downloaded_file(order_id):
 def main():
     """Función principal para orquestar la descarga de las boletas."""
     setup_logging()
-    # Asegurarse de que la tabla de historial exista
     create_download_history_table()
 
     driver = setup_driver()
@@ -227,7 +207,10 @@ def main():
 
                     try:
                         logging.info(f"Descargando pedido {order_id}...")
-                        xpath = "./following::button[.//span[contains(text(),'Consultar boleta')]][1]"
+                        xpath = (
+                            "./following::button"
+                            "[.//span[contains(text(),'Consultar boleta')]][1]"
+                        )
                         download_button = current_order_p.find_element(
                             By.XPATH, xpath
                         )
@@ -235,15 +218,13 @@ def main():
                             "arguments[0].click();", download_button
                         )
 
-                        # Procesar el archivo recién descargado
                         process_downloaded_file(order_id)
 
                     except Exception as e:
-                        msg = (
-                            f"No se pudo procesar la descarga para el pedido {order_id}: "
-                            f"{e}"
+                        logging.error(
+                            f"No se pudo procesar la descarga para el pedido "
+                            f"{order_id}: {e}"
                         )
-                        logging.error(msg)
 
             except TimeoutException:
                 logging.info(

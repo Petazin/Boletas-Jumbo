@@ -2,10 +2,10 @@ import sys
 import os
 import pytest
 
+
 @pytest.fixture(scope='session', autouse=True)
 def add_project_root_to_path():
     print("\n--- conftest.py: add_project_root_to_path fixture started ---")
-    original_sys_path = list(sys.path) # Make a copy to compare later
 
     project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
     print(f"Project root calculated: {project_root}")

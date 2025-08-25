@@ -3,14 +3,8 @@
 
 
 def categorize_product(description):
-    """Asigna una categoría a un producto basándose en palabras clave en su descripción.
-    """
-    # Convertir la descripción a mayúsculas para hacer la búsqueda
-    # insensible a mayúsculas/minúsculas.
+    """Asigna una categoría a un producto basándose en palabras clave."""
     description = description.upper()
-
-    # El orden de las condiciones es importante para evitar falsos positivos.
-    # Se debe ir de lo más específico a lo más general.
 
     # Mascotas
     if any(
@@ -341,5 +335,5 @@ def categorize_product(description):
     ):
         return "Té, Café y Azúcar"
 
-    # Si ninguna de las condiciones anteriores se cumple, se asigna la categoría por defecto.
+    # Si no se cumplen las condiciones, se asigna la categoría por defecto.
     return "Otros"

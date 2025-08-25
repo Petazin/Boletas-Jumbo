@@ -24,7 +24,7 @@ def setup_logging():
 
 
 def create_table_if_not_exists(cursor):
-    """Verifica y, si es necesario, crea la tabla 'boletas_data' en la base de datos."""
+    """Verifica y, si es necesario, crea la tabla 'boletas_data'."""
     create_table_query = """
     CREATE TABLE IF NOT EXISTS boletas_data (
         boleta_id VARCHAR(255),
@@ -48,16 +48,7 @@ def create_table_if_not_exists(cursor):
 
 
 def get_files_to_process(cursor):
-    """Obtiene de la base de datos la lista de archivos que necesitan ser procesados.
-
-    Busca en la tabla `download_history` todos los registros con estado 'Downloaded'.
-
-    Args:
-        cursor: El cursor de la base de datos para ejecutar la consulta.
-
-    Returns:
-        list: Una lista de tuplas, donde cada tupla contiene (file_path, order_id).
-    """
+    """Obtiene de la BD la lista de archivos que necesitan ser procesados."""
     query = (
         "SELECT file_path, order_id FROM download_history WHERE status = 'Downloaded'"
     )
@@ -66,13 +57,7 @@ def get_files_to_process(cursor):
 
 
 def update_status(cursor, order_id, status):
-    """Actualiza el estado de un registro en la tabla de historial de descargas.
-
-    Args:
-        cursor: El cursor de la base de datos.
-        order_id (str): El ID del pedido a actualizar.
-        status (str): El nuevo estado a asignar (ej. 'Processed', 'Error').
-    """
+    """Actualiza el estado de un registro en la tabla de historial."""
     query = "UPDATE download_history SET status = %s WHERE order_id = %s"
     cursor.execute(query, (status, order_id))
 
@@ -115,12 +100,14 @@ def insert_boleta_data(cursor, boleta_id, filename, purchase_time, products_data
             )
             cursor.execute(insert_query, data_tuple)
         except mysql.connector.Error as err:
+            sku = product.get('codigo_SKU', 'N/A')
             logging.error(
-                f"Error al insertar SKU {product.get('codigo_SKU', 'N/A')} de {filename}: {err}"
+                f"Error al insertar SKU {sku} de {filename}: {err}"
             )
 
+
 def main():
-    """Función principal que orquesta el proceso de leer PDFs, procesarlos y guardar los datos."""
+    """Función principal que orquesta el proceso de leer y procesar PDFs."""
     setup_logging()
     try:
         with db_connection() as conn:
@@ -155,7 +142,6 @@ def main():
                     msg = f"No se pudo procesar completamente {pdf_file}. Saltando."
                     logging.warning(msg)
 
-        
         logging.info("Proceso completado. Revisa tu base de datos MySQL.")
 
     except mysql.connector.Error:
