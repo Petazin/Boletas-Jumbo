@@ -80,11 +80,10 @@ El flujo de trabajo se ejecuta en tres pasos, en el siguiente orden:
 
 Aunque la Fase 1 es funcional, se ha identificado un roadmap de mejoras para aumentar su robustez, mantenibilidad y rendimiento. La prioridad de implementación es la siguiente:
 
-1.  `[ ]` **Crear Pruebas Unitarias:** Desarrollar un conjunto de pruebas automatizadas (con `pytest`) para `pdf_parser.py` y otros componentes críticos. Esto asegurará que los cambios futuros no rompan la funcionalidad existente.
-    *   `[ ]` **Pendiente:** Resolver el mockeo avanzado de `pypdf.PdfReader` para las pruebas unitarias de `process_pdf`.
+1.  `[x]` **Crear Pruebas Unitarias:** Desarrollar un conjunto de pruebas automatizadas (con `pytest`) para `pdf_parser.py` y otros componentes críticos. Esto asegurará que los cambios futuros no rompan la funcionalidad existente.
 2.  `[ ]` **Calidad del Código:** Implementar herramientas como `pylint` o `flake8` para asegurar un estilo de codificación consistente y detectar posibles problemas en el código.
-3.  `[ ]` **Centralizar Configuración:** Mover todas las expresiones regulares (regex), nombres de tablas y estados desde el código Python hacia el archivo `config.py` para facilitar futuras modificaciones.
-4.  `[ ]` **Mejorar Validación y Manejo de Errores:**
+3.  `[x]` **Centralizar Configuración:** Mover todas las expresiones regulares (regex), nombres de tablas y estados desde el código Python hacia el archivo `config.py` para facilitar futuras modificaciones.
+4.  `[x]` **Mejorar Validación y Manejo de Errores:**
     *   Implementar una "cuarentena" para los PDFs que fallen, moviéndolos a una carpeta separada para análisis manual.
     *   Añadir comprobaciones de coherencia en los datos extraídos (ej. `Cantidad * Precio ≈ Total`) para detectar errores de parsing.
 5.  `[ ]` **Optimizar Rendimiento:** Investigar y aplicar procesamiento en paralelo (`multiprocessing`) en `process_boletas.py` para acelerar la ingesta de un gran volumen de boletas.

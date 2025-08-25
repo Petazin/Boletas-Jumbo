@@ -79,11 +79,11 @@ Este es el proceso que seguiré para gestionar los cambios en el repositorio.
 *   **Lista de Tareas:**
     > *   `[x]` **Centralizar Configuración:** Mover regex y constantes a `config.py`.
     > *   `[x]` **Mejorar Validación y Errores:** Implementar cuarentena de PDFs y `sanity checks`.
-    > *   `[~]` **Crear Pruebas Unitarias:** Desarrollar pruebas con `pytest`.
+    > *   `[x]` **Crear Pruebas Unitarias:** Desarrollar pruebas con `pytest`.
     > *   `[ ]` **Optimizar Rendimiento:** Aplicar `multiprocessing` para el procesamiento de boletas.
     > *   `[x]` **Corregir errores de formato y espaciado en `download_boletas.py` (requiere intervención manual).**
-    > *   `[ ]` **Corregir errores de importación no al inicio del archivo (`E402`) en `tests/test_pdf_parser.py`.**
-    > *   `[ ]` **Revisar variables locales no utilizadas (`F841`) en `tests/test_pdf_parser.py`.**
-    > *   `[~]` **Completar pruebas unitarias para `pdf_parser.py` (mocking avanzado de `pypdf.PdfReader`).**
+    > *   `[x]` **Corregir errores de importación no al inicio del archivo (`E402`) en `tests/test_pdf_parser.py`.**
+    > *   `[x]` **Revisar variables locales no utilizadas (`F841`) en `tests/test_pdf_parser.py`.**
+    > *   `[x]` **Completar pruebas unitarias para `pdf_parser.py` (mocking avanzado de `pypdf.PdfReader`).**
 
 ---
