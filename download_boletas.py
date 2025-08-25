@@ -153,8 +153,8 @@ def main():
             "=================================================================="
         )
         logging.info(
-            "ACCIÓN REQUERIDA: Por favor, inicia sesión manualmente en la ventana de "
-            "Chrome."
+            "ACCIÓN REQUERIDA: Por favor, inicia sesión manualmente "
+            "en la ventana de Chrome."
         )
         logging.info("El script esperará automáticamente a que inicies sesión...")
         logging.info(
@@ -166,8 +166,8 @@ def main():
             logging.info("¡Login detectado exitosamente!")
         except TimeoutException:
             logging.error(
-                "No se detectó el inicio de sesión en el tiempo esperado (3 minutos). "
-                "Abortando."
+                "No se detectó el inicio de sesión en el tiempo esperado "
+                "(3 minutos). Abortando."
             )
             raise
 
