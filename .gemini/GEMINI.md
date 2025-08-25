@@ -25,6 +25,7 @@ Estas son las reglas prácticas y directas que gobernarán mi ejecución en cual
 2.  **Idioma:** Todo el contenido que genere (código, comentarios, mensajes de commit, comunicación) será estrictamente en **español**.
 3.  **Comentarios Claros:** Cualquier cambio lógico o complejo en el código será comentado claramente en español, explicando el "porqué" de la implementación, no solo el "qué".
 4.  **Verificación Post-Cambio:** Inmediatamente después de modificar el código, ejecutaré las herramientas de calidad del proyecto (como linters y pruebas), si existen, para asegurar que no he introducido errores.
+5.  **Estrategia de Depuración:** Si un error se repite dos o más veces durante la ejecución de una tarea, aplicaré inmediatamente una estrategia de depuración exhaustiva para entender y solucionar el problema de raíz.
 
 **B. Ciclo de Commits y Sincronización (Git)**
 
@@ -54,6 +55,9 @@ Este es el proceso que seguiré para gestionar los cambios en el repositorio.
 
 *   **Idioma Preferido:**
     > Español, tanto para la comunicación como para los mensajes de commit de Git.
+
+*   **Entorno de Desarrollo:**
+    > El proyecto está programado y optimizado para ejecutarse en un entorno Windows.
 
 *   **Gestor de Paquetes y Dependencias:**
     > Usar `pip` y el archivo `requirements.txt`. No se deben añadir nuevas librerías sin una justificación clara.
