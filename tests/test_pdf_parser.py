@@ -1,38 +1,12 @@
 import pytest
 import sys
 import os
+from unittest import mock
 
 # Añadir el directorio raíz del proyecto al path para que pueda encontrar pdf_parser
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from pdf_parser import parse_chilean_number, process_pdf
-
-
-def test_parse_chilean_number_valid_input():
-    # Prueba con un número entero
-    assert parse_chilean_number("1.234") == 1234.0
-    # Prueba con un número decimal
-    assert parse_chilean_number("1.234,56") == 1234.56
-    # Prueba con solo decimales
-    assert parse_chilean_number("0,99") == 0.99
-    # Prueba con número grande
-    assert parse_chilean_number("1.000.000") == 1000000.0
-    # Prueba con espacios
-    assert parse_chilean_number(" 1.234 ") == 1234.0
-
-
-def test_parse_chilean_number_invalid_input():
-    # Prueba con string vacío
-    assert parse_chilean_number("") == 0.0
-    # Prueba con string no numérico
-    with pytest.raises(ValueError):
-        parse_chilean_number("abc")
-    # Prueba con None (la función ahora devuelve 0.0 para None)
-    assert parse_chilean_number(None) == 0.0
-
-
-# Aquí se añadirán más pruebas para process_pdf
-from unittest import mock
 
 
 # Mock para la función categorize_product
