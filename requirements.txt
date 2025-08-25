@@ -1,5 +1,8 @@
 selenium
 webdriver-manager
-PyPDF2
+pypdf
 mysql-connector-python
 pandas
+pytest 
+flake8 
+black

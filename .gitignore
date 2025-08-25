@@ -128,3 +128,6 @@ cython_debug/
 
 # Boletas PDF
 *.pdf
+
+# Gemini context file
+gemini.md

@@ -6,12 +6,15 @@ import mysql.connector
 from contextlib import contextmanager
 from config import DB_CONFIG
 
+
 @contextmanager
 def db_connection():
     """Gestiona la conexión a la base de datos como un manejador de contexto."""
     conn = None
     try:
-        logging.info(f"Abriendo conexión a la base de datos '{DB_CONFIG.get('database')}'...")
+        logging.info(
+            f"Abriendo conexión a la base de datos '{DB_CONFIG.get('database')}'..."
+        )
         conn = mysql.connector.connect(**DB_CONFIG)
         yield conn
     except mysql.connector.Error as err:
@@ -22,9 +25,10 @@ def db_connection():
             logging.info("Cerrando conexión a la base de datos.")
             conn.close()
 
+
 def create_download_history_table():
     """Crea la tabla 'download_history' si no existe.
-    
+
     Esta tabla es fundamental para llevar un registro de todos los archivos descargados,
     evitar duplicados y gestionar el estado del procesamiento.
     """
@@ -49,6 +53,7 @@ def create_download_history_table():
         conn.commit()
         logging.info("Tabla 'download_history' asegurada.")
 
+
 def get_downloaded_order_ids():
     """Obtiene una lista de todos los order_id de la tabla 'download_history'.
 
@@ -61,7 +66,19 @@ def get_downloaded_order_ids():
         cursor.execute(query)
         return [item[0] for item in cursor.fetchall()]
 
-def insert_download_history(order_id, source, purchase_date, download_date, original_filename, new_filename, file_path, total_amount, item_count, status):
+
+def insert_download_history(
+    order_id,
+    source,
+    purchase_date,
+    download_date,
+    original_filename,
+    new_filename,
+    file_path,
+    total_amount,
+    item_count,
+    status,
+):
     """Inserta un nuevo registro en la tabla 'download_history'.
 
     Args:
@@ -79,11 +96,24 @@ def insert_download_history(order_id, source, purchase_date, download_date, orig
     with db_connection() as conn:
         cursor = conn.cursor()
         query = """
-        INSERT INTO download_history 
-        (order_id, source, purchase_date, download_date, original_filename, new_filename, file_path, total_amount, item_count, status)
+        INSERT INTO download_history (
+            order_id, source, purchase_date, download_date, original_filename,
+            new_filename, file_path, total_amount, item_count, status
+        )
         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         """
-        values = (order_id, source, purchase_date, download_date, original_filename, new_filename, file_path, total_amount, item_count, status)
+        values = (
+            order_id,
+            source,
+            purchase_date,
+            download_date,
+            original_filename,
+            new_filename,
+            file_path,
+            total_amount,
+            item_count,
+            status,
+        )
         cursor.execute(query, values)
         conn.commit()
         logging.info(f"Registro de descarga para el pedido {order_id} guardado.")
