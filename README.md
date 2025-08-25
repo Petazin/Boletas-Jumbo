@@ -81,7 +81,7 @@ El flujo de trabajo se ejecuta en tres pasos, en el siguiente orden:
 Aunque la Fase 1 es funcional, se ha identificado un roadmap de mejoras para aumentar su robustez, mantenibilidad y rendimiento. La prioridad de implementación es la siguiente:
 
 1.  `[x]` **Crear Pruebas Unitarias:** Desarrollar un conjunto de pruebas automatizadas (con `pytest`) para `pdf_parser.py` y otros componentes críticos. Esto asegurará que los cambios futuros no rompan la funcionalidad existente.
-2.  `[ ]` **Calidad del Código:** Implementar herramientas como `pylint` o `flake8` para asegurar un estilo de codificación consistente y detectar posibles problemas en el código.
+2.  `[x]` **Calidad del Código:** Implementar herramientas como `pylint` o `flake8` para asegurar un estilo de codificación consistente y detectar posibles problemas en el código.
 3.  `[x]` **Centralizar Configuración:** Mover todas las expresiones regulares (regex), nombres de tablas y estados desde el código Python hacia el archivo `config.py` para facilitar futuras modificaciones.
 4.  `[x]` **Mejorar Validación y Manejo de Errores:**
     *   Implementar una "cuarentena" para los PDFs que fallen, moviéndolos a una carpeta separada para análisis manual.
