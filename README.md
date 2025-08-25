@@ -149,3 +149,18 @@ La Fase 1 ha sido sometida a un proceso de mejora continua para aumentar su robu
 La Fase 2 del proyecto se centrará en expandir la aplicación a un gestor financiero completo. El objetivo es crear una herramienta que permita analizar cualquier tipo de boleta o cartola, categorizar tanto gastos como ingresos, y proporcionar un control detallado del presupuesto mensual.
 
 El roadmap detallado para la Fase 2, incluyendo el diseño de una base de datos escalable, soporte multi-origen, manejo de ingresos, categorización jerárquica, dashboards financieros y un sistema de alertas, se encuentra documentado en el archivo `GEMINI.md` del proyecto.
+
+## Fase 2: Gestor Integral de Finanzas Personales - Planificada
+
+La Fase 2 del proyecto se centrará en expandir la aplicación a un gestor financiero completo. El objetivo es crear una herramienta que permita analizar cualquier tipo de boleta o cartola, categorizar tanto gastos como ingresos, y proporcionar un control detallado del presupuesto mensual.
+
+El roadmap detallado para la Fase 2 incluye:
+
+*   `[ ]` **Diseño de Base de Datos Escalable (¡Nuevo!):** Modificar la estructura de la base de datos para soportar múltiples orígenes de datos (bancos, tiendas), tipos de transacciones (ingresos/egresos) y la nueva categorización jerárquica.
+*   `[ ]` **Soporte Multi-Origen:** Añadir la capacidad de procesar boletas y cartolas de bancos, otras tiendas, tarjetas de crédito, etc.
+*   `[ ]` **Manejo de Ingresos (¡Nuevo!):** Implementar la lógica para identificar y registrar transacciones de ingresos.
+*   `[ ]` **Categorización Jerárquica:** Implementar un sistema de dos niveles: Categorías principales (ej. "Vivienda", "Transporte", "Alimentación") y sub-categorías (ej. "Supermercado", "Restaurantes", "Metro").
+*   `[ ]` **Organización de Archivos:** Clasificar los archivos PDF/CSV descargados en carpetas según su origen.
+*   `[ ]` **Dashboard Financiero (¡Nuevo!):** Crear un panel principal que muestre el balance mensual (ingresos vs. gastos), gráficos por categoría y alertas.
+*   `[ ]` **Sistema de Alertas y Presupuestos:** Crear notificaciones para gastos no categorizados, consumos que superen un límite predefinido, etc.
+*   `[ ]` **Interfaz Gráfica (GUI) Unificada:** Evolucionar la GUI de la Fase 1 para que soporte todas las nuevas funcionalidades (múltiples orígenes, ingresos, dashboard, etc.).
