@@ -1,105 +1,151 @@
 # Proyecto de Finanzas Personales
 
-## Visión del Proyecto
+## Visión General del Proyecto
 
-El objetivo final es construir una aplicación integral para la gestión de finanzas personales. El desarrollo se dividirá en dos fases principales:
+El objetivo final de este proyecto es construir una aplicación integral para la gestión de finanzas personales. Esta aplicación permitirá a los usuarios tener un control total sobre sus ingresos y gastos de forma automatizada, conectándose a diversas fuentes (bancos, tiendas), procesando la información, categorizándola inteligentemente y presentándola en un dashboard interactivo con alertas y presupuestos.
 
-1.  **Fase 1:** Perfeccionar un analizador de boletas de supermercado (Jumbo) para extraer y analizar datos de consumo.
-2.  **Fase 2:** Expandir la aplicación para que sea un gestor financiero completo, capaz de procesar cualquier tipo de boleta o cartola, controlar gastos e ingresos, y ayudar a mantener un presupuesto mensual saludable.
+El desarrollo se ha dividido en dos fases principales:
+
+1.  **Fase 1 (Completada):** Perfeccionar un motor de análisis de boletas de supermercado (Jumbo) para extraer y analizar datos de consumo de forma automatizada. Esta fase se centró en construir y optimizar la base de extracción y estructuración de datos.
+2.  **Fase 2 (Planificada):** Expandir la aplicación para que sea un gestor financiero completo, capaz de procesar cualquier tipo de boleta o cartola, controlar gastos e ingresos, y ayudar a mantener un presupuesto mensual saludable.
 
 ---
 
-## Fase 1: Analizador de Boletas de Supermercado (Jumbo)
+## Fase 1: Analizador de Boletas de Supermercado (Jumbo) - Completada
+
+### Descripción General
+
+La Fase 1 de este proyecto se ha completado con éxito. Se ha desarrollado un motor robusto y eficiente para la extracción y análisis automatizado de datos de boletas de supermercado Jumbo. Este motor es capaz de descargar boletas en formato PDF, parsear su contenido para extraer información estructurada de productos y transacciones, y almacenar estos datos en una base de datos MySQL para su posterior análisis. La fase incluyó mejoras significativas en la robustez, mantenibilidad y rendimiento del sistema.
 
 ### Requisitos Previos
 
-*   Python 3.x
-*   Git
-*   Un servidor de base de datos MySQL
+Para ejecutar este proyecto, necesitarás lo siguiente:
+
+*   **Python 3.x:** Se recomienda utilizar la última versión estable de Python 3.
+*   **Git:** Para clonar el repositorio.
+*   **Un servidor de base de datos MySQL:** Asegúrate de que esté instalado y en funcionamiento.
+*   **Google Chrome:** Necesario para la descarga automatizada de boletas a través de Selenium.
 
 ### Instalación y Configuración
 
+Sigue estos pasos para configurar el proyecto en tu entorno local:
+
 1.  **Clonar el Repositorio:**
+    Abre tu terminal o línea de comandos y ejecuta:
     ```bash
     git clone https://github.com/Petazin/Boletas-Jumbo.git
     cd Boletas-Jumbo
     ```
 
-2.  **Instalar Dependencias:**
-    Se recomienda crear un entorno virtual primero. Luego, instalar todas las librerías necesarias con el siguiente comando:
+2.  **Crear y Activar un Entorno Virtual (Recomendado):**
+    Es una buena práctica aislar las dependencias del proyecto.
+    ```bash
+    python -m venv venv
+    # En Windows:
+    .\venv\Scripts\activate
+    # En macOS/Linux:
+    source venv/bin/activate
+    ```
+
+3.  **Instalar Dependencias:**
+    Con el entorno virtual activado, instala todas las librerías necesarias:
     ```bash
     pip install -r requirements.txt
     ```
 
-3.  **Configurar la Base de Datos:**
+4.  **Configurar la Base de Datos:**
     *   Asegúrate de que tu servidor MySQL esté en funcionamiento.
-    *   Crea una base de datos. El nombre por defecto es `Boletas`.
-    *   Abre el archivo `config.py` y edita el diccionario `DB_CONFIG` con tu `host`, `user`, `password` y `database` si son diferentes a los valores por defecto.
+    *   Crea una base de datos. El nombre por defecto esperado por la aplicación es `Boletas`. Puedes crearla con un cliente MySQL o desde la línea de comandos:
+        ```sql
+        CREATE DATABASE Boletas;
+        ```
+    *   **Configura las credenciales de la base de datos:** Abre el archivo `config.py` y edita el diccionario `DB_CONFIG` con tu `host`, `user`, `password` y `database` si son diferentes a los valores por defecto.
+    *   **Configura las rutas de archivos:** En `config.py`, ajusta `DOWNLOAD_PATH`, `QUARANTINE_PATH` y `PROCESS_LOG_FILE` según tus preferencias.
 
-### Estructura del Proyecto
+### Estructura del Proyecto y Arquitectura
 
-El proyecto ha sido refactorizado para tener una arquitectura modular, donde cada archivo tiene una responsabilidad única:
+El proyecto sigue una arquitectura modular, donde cada archivo tiene una responsabilidad única, facilitando la mantenibilidad y escalabilidad:
 
-*   **`config.py`**: Módulo central de configuración. Contiene las credenciales de la base de datos, las rutas a directorios y archivos de log, y URLs importantes. **Es el único archivo que deberías necesitar modificar para la configuración.**
+*   **`config.py`**: **Módulo central de configuración.** Contiene todas las constantes, credenciales de la base de datos, rutas a directorios, URLs importantes y expresiones regulares (regex) utilizadas en el parsing. Es la única ubicación donde deberías necesitar realizar cambios de configuración.
+*   **`database_utils.py`**: **Utilidad para la base de datos.** Encapsula la lógica de conexión y desconexión a la base de datos MySQL, asegurando una gestión segura y centralizada de las conexiones.
+*   **`product_categorizer.py`**: **Módulo de lógica de negocio.** Contiene la función `categorize_product` que asigna una categoría predefinida a cada producto basándose en palabras clave y reglas específicas.
+*   **`pdf_parser.py`**: **Módulo de extracción y parsing.** Su responsabilidad principal es leer un archivo PDF, extraer su texto y parsearlo utilizando expresiones regulares para obtener datos estructurados de la boleta (ID de boleta, fecha, hora y una lista detallada de productos).
+*   **`download_boletas.py`**: **Script de automatización de descarga.** Orquesta el proceso de descarga de boletas en formato PDF desde el sitio web de Jumbo utilizando Selenium. Gestiona el inicio de sesión y la navegación para obtener los archivos.
+*   **`process_boletas.py`**: **Script orquestador de procesamiento.** Coordina el flujo de trabajo principal: lee los PDFs descargados, utiliza `pdf_parser.py` para extraer los datos, y `database_utils.py` para insertar o actualizar la información de los productos en la base de datos. Incorpora `multiprocessing` para un procesamiento eficiente en paralelo.
+*   **`export_data.py`**: **Script de exportación.** Se conecta a la base de datos (a través de `database_utils.py`) y exporta la tabla `boletas_data` a un archivo CSV (`boletas_data.csv`) para análisis externo o integración con otras herramientas.
+*   **`get_otros_productos.py`**: **Script auxiliar.** Diseñado para extraer información adicional de productos que no son directamente parte de la boleta principal, como productos de ofertas o promociones especiales. (Si aplica, detallar su integración).
+*   **`cuarentena_pdfs/`**: **Directorio de cuarentena.** Los PDFs que no pueden ser procesados correctamente por `pdf_parser.py` son movidos a esta carpeta para una revisión manual, evitando que detengan el flujo de procesamiento principal.
+*   **`descargas/Jumbo/`**: **Directorio de descarga.** Aquí se guardan los PDFs de las boletas descargadas exitosamente.
+*   **`tests/`**: **Directorio de pruebas unitarias.** Contiene las pruebas automatizadas desarrolladas con `pytest` para asegurar la funcionalidad y robustez de los componentes críticos del proyecto, especialmente `pdf_parser.py`.
 
-*   **`database_utils.py`**: Utilidad para la base de datos. Gestiona la conexión y desconexión de la base de datos de forma segura y centralizada.
+### Esquema de la Base de Datos (`boletas_data`)
 
-*   **`product_categorizer.py`**: Módulo de lógica de negocio. Contiene la función `categorize_product` que asigna una categoría a cada producto basándose en palabras clave.
+La tabla `boletas_data` almacena la información detallada de cada producto de las boletas procesadas. Su esquema es el siguiente:
 
-*   **`pdf_parser.py`**: Módulo de extracción. Su única responsabilidad es leer un archivo PDF, extraer el texto y parsearlo con expresiones regulares para devolver datos estructurados (ID de boleta, fecha y lista de productos).
+```sql
+CREATE TABLE IF NOT EXISTS boletas_data (
+    boleta_id VARCHAR(255),             -- Identificador único de la boleta
+    filename VARCHAR(255),              -- Nombre del archivo PDF de la boleta
+    Fecha DATE,                         -- Fecha de la compra
+    Hora TIME,                          -- Hora de la compra
+    codigo_SKU VARCHAR(255),            -- Código SKU del producto
+    Cantidad_unidades INT,              -- Cantidad de unidades compradas
+    Valor_Unitario DECIMAL(15, 2),      -- Precio unitario del producto
+    Cantidad_comprada_X_Valor_Unitario VARCHAR(255), -- Cantidad comprada por valor unitario (puede ser una cadena si incluye texto)
+    Descripcion_producto TEXT,          -- Descripción completa del producto
+    Total_a_pagar_producto DECIMAL(15, 2), -- Total pagado por este producto (después de descuentos)
+    Descripcion_Oferta TEXT,            -- Descripción de la oferta aplicada al producto
+    Cantidad_reducida_del_total DECIMAL(15, 2), -- Cantidad reducida del total debido a ofertas
+    Categoria VARCHAR(255),             -- Categoría asignada al producto
+    PRIMARY KEY (boleta_id, codigo_SKU) -- Clave primaria compuesta para evitar duplicados
+);
+```
 
-*   **`download_boletas.py`**: Script orquestador. Inicia el proceso de descarga de boletas usando Selenium. Utiliza la configuración de `config.py`.
+### Uso Detallado y Flujo de Trabajo
 
-*   **`process_boletas.py`**: Script orquestador. Coordina el proceso de lectura de los PDFs. Llama a `pdf_parser.py` para extraer los datos y a `database_utils.py` para guardarlos en la base de datos.
+El proceso de extracción y almacenamiento de datos de boletas sigue un flujo de trabajo secuencial de tres pasos. Asegúrate de ejecutar cada script en el orden indicado:
 
-*   **`export_data.py`**: Script orquestador. Se conecta a la base de datos (usando `database_utils.py`) y exporta la tabla `boletas_data` a un archivo CSV (`boletas_data.csv`).
-
-### Uso
-
-El flujo de trabajo se ejecuta en tres pasos, en el siguiente orden:
-
-1.  **Descargar las Boletas:**
+1.  **Descargar las Boletas (`download_boletas.py`):**
+    Este script automatiza la descarga de tus boletas desde el sitio web de Jumbo.
     ```bash
     python download_boletas.py
     ```
-    *Se abrirá una ventana de Chrome. Deberás iniciar sesión manualmente en Jumbo.cl. Una vez hecho, presiona Enter en la terminal para continuar con la descarga automática.*
+    *   **Proceso:** Al ejecutarlo, se abrirá una ventana de Google Chrome controlada por Selenium. Deberás iniciar sesión manualmente en Jumbo.cl con tus credenciales. Una vez que hayas iniciado sesión y la página principal esté cargada, regresa a la terminal y presiona `Enter` para que el script continúe con la descarga automática de las boletas disponibles.
+    *   **Registro:** Las boletas descargadas se registran en la tabla `download_history` de la base de datos con un estado `Downloaded`. Esto permite al sistema saber qué archivos deben ser procesados.
 
-2.  **Procesar y Guardar en Base de Datos:**
+2.  **Procesar y Guardar en Base de Datos (`process_boletas.py`):**
+    Este script lee los PDFs descargados, extrae la información y la guarda en tu base de datos MySQL.
     ```bash
     python process_boletas.py
     ```
-    *Este script leerá todos los PDFs, los procesará y guardará los productos en tu base de datos MySQL.*
+    *   **Proceso:** El script identifica los archivos PDF con estado `Downloaded` en la base de datos. Utiliza `multiprocessing` para procesar múltiples PDFs en paralelo, lo que acelera significativamente la ingesta de grandes volúmenes de boletas. Cada PDF es parseado para extraer detalles de la boleta y de cada producto.
+    *   **Manejo de Errores:** Si un PDF no puede ser procesado correctamente (ej. archivo corrupto, formato inesperado), el archivo se moverá automáticamente al directorio `cuarentena_pdfs/` para una revisión manual. El estado en la base de datos se actualizará a `Error - Parsing failed` o `Error - File not found`.
+    *   **Actualizaciones:** Si se intenta insertar un producto que ya existe (identificado por `boleta_id` y `codigo_SKU`), la base de datos actualizará automáticamente los campos relevantes (`Cantidad_unidades`, `Valor_Unitario`, etc.) gracias a la cláusula `ON DUPLICATE KEY UPDATE`.
 
-3.  **Exportar a CSV (Opcional):**
+3.  **Exportar a CSV (Opcional) (`export_data.py`):**
+    Si necesitas los datos en un formato de archivo plano para análisis externo o para usar con otras herramientas, este script generará un archivo CSV.
     ```bash
     python export_data.py
     ```
-    *Si deseas tener los datos en un archivo plano, este script generará `boletas_data.csv`.*
+    *   **Salida:** Este script se conectará a tu base de datos y exportará todo el contenido de la tabla `boletas_data` a un archivo llamado `boletas_data.csv` en el directorio raíz del proyecto.
 
-### Roadmap de Mejoras (Fase 1)
+### Mejoras Implementadas en Fase 1
 
-Aunque la Fase 1 es funcional, se ha identificado un roadmap de mejoras para aumentar su robustez, mantenibilidad y rendimiento. La prioridad de implementación es la siguiente:
+La Fase 1 ha sido sometida a un proceso de mejora continua para aumentar su robustez, mantenibilidad y rendimiento. Las siguientes tareas clave han sido completadas:
 
-1.  `[x]` **Crear Pruebas Unitarias:** Desarrollar un conjunto de pruebas automatizadas (con `pytest`) para `pdf_parser.py` y otros componentes críticos. Esto asegurará que los cambios futuros no rompan la funcionalidad existente.
-2.  `[x]` **Calidad del Código:** Implementar herramientas como `pylint` o `flake8` para asegurar un estilo de codificación consistente y detectar posibles problemas en el código.
-3.  `[x]` **Centralizar Configuración:** Mover todas las expresiones regulares (regex), nombres de tablas y estados desde el código Python hacia el archivo `config.py` para facilitar futuras modificaciones.
-4.  `[x]` **Mejorar Validación y Manejo de Errores:**
-    *   Implementar una "cuarentena" para los PDFs que fallen, moviéndolos a una carpeta separada para análisis manual.
-    *   Añadir comprobaciones de coherencia en los datos extraídos (ej. `Cantidad * Precio ≈ Total`) para detectar errores de parsing.
-5.  `[ ]` **Optimizar Rendimiento:** Investigar y aplicar procesamiento en paralelo (`multiprocessing`) en `process_boletas.py` para acelerar la ingesta de un gran volumen de boletas.
-6.  `[ ]` **Documentación:** Ampliar el archivo `README.md` con instrucciones y ejemplos más detallados sobre el uso y la arquitectura del proyecto.
+*   **Centralización de Configuración:** Todas las constantes, credenciales, rutas y expresiones regulares se han consolidado en `config.py`, facilitando la gestión y modificación del proyecto.
+*   **Mejora de Validación y Manejo de Errores:** Se implementó un sistema de "cuarentena" para PDFs que fallan en el procesamiento, y se añadieron "sanity checks" para validar la coherencia de los datos extraídos.
+*   **Creación de Pruebas Unitarias:** Se desarrolló un conjunto exhaustivo de pruebas automatizadas utilizando `pytest` para `pdf_parser.py` y otros componentes críticos, asegurando la fiabilidad del código.
+*   **Optimización de Rendimiento:** Se aplicó `multiprocessing` en `process_boletas.py` para paralelizar el procesamiento de boletas, mejorando significativamente la velocidad de ingesta de datos.
+*   **Correcciones de Formato y Espaciado:** Se realizaron ajustes para asegurar la consistencia del estilo de código y la legibilidad.
+*   **Correcciones de Importación:** Se resolvieron problemas de importaciones no ubicadas al inicio de los archivos (`E402`).
+*   **Revisión de Variables No Utilizadas:** Se eliminaron variables locales no utilizadas (`F841`) para limpiar el código.
+*   **Completar Pruebas Unitarias para `pdf_parser.py`:** Se implementó un mocking avanzado de `pypdf.PdfReader` para asegurar una cobertura completa y fiable de las pruebas del parser de PDFs.
 
 ---
 
-## Fase 2: Gestor Integral de Finanzas Personales
+## Fase 2: Gestor Integral de Finanzas Personales - Planificada
 
-*   **Objetivo:** "Una aplicación que sirva para analizar cualquier boleta o cartola, categorizando los gastos inicialmente, pero también los ingresos, de tal manera de llevar un control de gastos y evitar gastar más de lo que ingresa por mes."
-*   **Roadmap (Fase 2):**
-    *   `[ ]` **Diseño de Base de Datos Escalable (¡Nuevo!):** Modificar la estructura de la base de datos para soportar múltiples orígenes de datos (bancos, tiendas), tipos de transacciones (ingresos/egresos) y la nueva categorización jerárquica.
-    *   `[ ]` **Soporte Multi-Origen:** Añadir la capacidad de procesar boletas y cartolas de bancos, otras tiendas, tarjetas de crédito, etc.
-    *   `[ ]` **Manejo de Ingresos (¡Nuevo!):** Implementar la lógica para identificar y registrar transacciones de ingresos.
-    *   `[ ]` **Categorización Jerárquica:** Implementar un sistema de dos niveles: Categorías principales (ej. "Vivienda", "Transporte", "Alimentación") y sub-categorías (ej. "Supermercado", "Restaurantes", "Metro").
-    *   `[ ]` **Organización de Archivos:** Clasificar los archivos PDF/CSV descargados en carpetas según su origen.
-    *   `[ ]` **Dashboard Financiero (¡Nuevo!):** Crear un panel principal que muestre el balance mensual (ingresos vs. gastos), gráficos por categoría y alertas.
-    *   `[ ]` **Sistema de Alertas y Presupuestos:** Crear notificaciones para gastos no categorizados, consumos que superen un límite predefinido, etc.
-    *   `[ ]` **Interfaz Gráfica (GUI) Unificada:** Evolucionar la GUI de la Fase 1 para que soporte todas las nuevas funcionalidades (múltiples orígenes, ingresos, dashboard, etc.).
+La Fase 2 del proyecto se centrará en expandir la aplicación a un gestor financiero completo. El objetivo es crear una herramienta que permita analizar cualquier tipo de boleta o cartola, categorizar tanto gastos como ingresos, y proporcionar un control detallado del presupuesto mensual.
+
+El roadmap detallado para la Fase 2, incluyendo el diseño de una base de datos escalable, soporte multi-origen, manejo de ingresos, categorización jerárquica, dashboards financieros y un sistema de alertas, se encuentra documentado en el archivo `GEMINI.md` del proyecto.
