@@ -81,7 +81,7 @@ Este es el proceso que seguiré para gestionar los cambios en el repositorio.
     > *   `[x]` **Centralizar Configuración:** Mover regex y constantes a `config.py`.
     > *   `[x]` **Mejorar Validación y Errores:** Implementar cuarentena de PDFs y `sanity checks`.
     > *   `[x]` **Crear Pruebas Unitarias:** Desarrollar pruebas con `pytest`.
-    > *   `[ ]` **Optimizar Rendimiento:** Aplicar `multiprocessing` para el procesamiento de boletas.
+    > *   `[x]` **Optimizar Rendimiento:** Aplicar `multiprocessing` para el procesamiento de boletas.
     > *   `[x]` **Corregir errores de formato y espaciado en `download_boletas.py` (requiere intervención manual).**
     > *   `[x]` **Corregir errores de importación no al inicio del archivo (`E402`) en `tests/test_pdf_parser.py`.**
     > *   `[x]` **Revisar variables locales no utilizadas (`F841`) en `tests/test_pdf_parser.py`.**
