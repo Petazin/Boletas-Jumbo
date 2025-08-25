@@ -4,6 +4,7 @@
 import logging
 import os
 import mysql.connector
+import multiprocessing
 
 # Importar módulos y configuración del proyecto
 from config import PROCESS_LOG_FILE
@@ -69,7 +70,7 @@ def insert_boleta_data(cursor, boleta_id, filename, purchase_time, products_data
         boleta_id, filename, Fecha, Hora, codigo_SKU, Cantidad_unidades,
         Valor_Unitario, Cantidad_comprada_X_Valor_Unitario,
         Descripcion_producto, Total_a_pagar_producto,
-        Descripcion_Oferta, Cantidad_reducida_del_del_total, Categoria
+        Descripcion_Oferta, Cantidad_reducida_del_total, Categoria
     ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
     ON DUPLICATE KEY UPDATE
         Cantidad_unidades=VALUES(Cantidad_unidades),
@@ -106,6 +107,22 @@ def insert_boleta_data(cursor, boleta_id, filename, purchase_time, products_data
             )
 
 
+def _process_single_pdf_task(args):
+    pdf_path, order_id = args
+    try:
+        if not os.path.exists(pdf_path):
+            return order_id, "Error - File not found", None, None, None
+
+        boleta_id, purchase_date, purchase_time, products_data = process_pdf(pdf_path)
+
+        if boleta_id and products_data:
+            return order_id, "Processed", boleta_id, purchase_time, products_data
+        else:
+            return order_id, "Error - Parsing failed", None, None, None
+    except Exception as e:
+        return order_id, f"Error - Unexpected: {e}", None, None, None
+
+
 def main():
     """Función principal que orquesta el proceso de leer y procesar PDFs."""
     setup_logging()
@@ -116,31 +133,34 @@ def main():
             conn.commit()
 
             files_to_process = get_files_to_process(cursor)
+            file_path_map = {order_id: file_path for file_path, order_id in files_to_process}
 
-            for pdf_path, order_id in files_to_process:
-                msg = f"El archivo {pdf_path} no se encontró. Saltando."
-                if not os.path.exists(pdf_path):
-                    logging.warning(msg)
-                    update_status(cursor, order_id, "Error - File not found")
-                    conn.commit()
-                    continue
+            # Use multiprocessing Pool to process PDFs in parallel
+            with multiprocessing.Pool() as pool:
+                results = pool.imap_unordered(_process_single_pdf_task, files_to_process)
 
-                pdf_file = os.path.basename(pdf_path)
-                boleta_id, _, purchase_time, products_data = process_pdf(pdf_path)
+                for order_id, status, boleta_id, purchase_time, products_data in results:
+                    # Get original filename for logging
+                    pdf_file = os.path.basename(file_path_map[order_id])
 
-                if boleta_id and products_data:
-                    insert_boleta_data(
-                        cursor, boleta_id, pdf_file, purchase_time, products_data
-                    )
-                    update_status(cursor, order_id, "Processed")
-                    conn.commit()
-                    msg = f"Datos de {pdf_file} insertados correctamente."
-                    logging.info(msg)
-                else:
-                    update_status(cursor, order_id, "Error - Parsing failed")
-                    conn.commit()
-                    msg = f"No se pudo procesar completamente {pdf_file}. Saltando."
-                    logging.warning(msg)
+                    if status == "Processed":
+                        insert_boleta_data(
+                            cursor,
+                            boleta_id,
+                            pdf_file,
+                            purchase_time,
+                            products_data
+                        )
+                        update_status(cursor, order_id, "Processed")
+                        conn.commit()
+                        msg = f"Datos de {pdf_file} insertados correctamente."
+                        logging.info(msg)
+                    else:
+                        update_status(cursor, order_id, status)
+                        conn.commit()
+                        msg = (f"No se pudo procesar completamente {pdf_file}. "
+                               f"Estado: {status}. Saltando.")
+                        logging.warning(msg)
 
         logging.info("Proceso completado. Revisa tu base de datos MySQL.")
 
