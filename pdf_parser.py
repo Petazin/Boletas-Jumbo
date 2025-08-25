@@ -6,6 +6,7 @@ import os
 import re
 from datetime import datetime  # Importar solo datetime
 import pypdf  # Importar pypdf
+import shutil # Importar shutil para mover archivos
 import config # Importar configuración centralizada
 
 from product_categorizer import categorize_product
@@ -21,6 +22,17 @@ def parse_chilean_number(num_str):
     # y luego reemplaza la coma decimal por punto.
     num_str = str(num_str).replace(".", "").replace(" ", "").replace(",", ".")
     return float(num_str)
+
+def quarantine_pdf(pdf_path, error_message):
+    """Mueve un PDF a un directorio de cuarentena y registra el error."""
+    logging.error(f"PDF en cuarentena: {pdf_path}. Razón: {error_message}")
+    quarantine_dir = config.QUARANTINE_DIR
+    os.makedirs(quarantine_dir, exist_ok=True)
+    try:
+        shutil.move(pdf_path, os.path.join(quarantine_dir, os.path.basename(pdf_path)))
+        logging.info(f"PDF movido a cuarentena: {os.path.basename(pdf_path)}")
+    except Exception as e:
+        logging.error(f"Error al mover PDF a cuarentena {pdf_path}: {e}")
 
 
 def process_pdf(pdf_path):
@@ -50,7 +62,11 @@ def process_pdf(pdf_path):
                     text += extracted_text.replace("\x00", "") + "\n"
 
     except Exception as e:
-        logging.error(f"Error al leer PDF {pdf_path}: {e}")
+        quarantine_pdf(pdf_path, f"Error al leer PDF: {e}")
+        return None, None, None, []
+
+    if not text.strip():
+        quarantine_pdf(pdf_path, "PDF vacío o ilegible.")
         return None, None, None, []
 
     # --- Extracción de ID de Boleta ---
@@ -60,7 +76,7 @@ def process_pdf(pdf_path):
     )
     boleta_id = boleta_id_match.group(1) if boleta_id_match else None
     if not boleta_id:
-        logging.warning(f"No se pudo extraer el ID de boleta de {pdf_path}. Saltando.")
+        quarantine_pdf(pdf_path, "No se pudo extraer el ID de boleta.")
         return None, None, None, []
 
     # --- Extracción de Fecha y Hora (Nuevo método prioritario) ---
@@ -115,8 +131,8 @@ def process_pdf(pdf_path):
             purchase_date = datetime.fromtimestamp(timestamp_ms / 1000).date()
 
     if not purchase_date:
-        logging.warning(f"No se pudo extraer la fecha de {pdf_path}. Saltando.")
-        return boleta_id, None, None, []  # Retornar None para la hora también
+        quarantine_pdf(pdf_path, "No se pudo extraer la fecha de compra.")
+        return None, None, None, []  # Return None for all if date is critical
 
     # --- Extracción de Productos ---
     products = {}
@@ -179,5 +195,9 @@ def process_pdf(pdf_path):
                     "Cantidad_reducida_del_total": discount,
                     "Categoria": categorize_product(description.strip()),
                 }
+
+    if not products:
+        quarantine_pdf(pdf_path, "No se pudieron extraer productos del PDF.")
+        return None, None, None, []
 
     return boleta_id, purchase_date, purchase_time, list(products.values())

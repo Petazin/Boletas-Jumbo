@@ -30,6 +30,9 @@ DOWNLOADS_DIR = BASE_DIR
 # Directorio donde se almacenarán las boletas organizadas por fuente.
 ORGANIZED_DIR = os.path.join(BASE_DIR, "descargas", "Jumbo")
 
+# Directorio donde se moverán los PDFs que no puedan ser procesados correctamente.
+QUARANTINE_DIR = os.path.join(BASE_DIR, "cuarentena_pdfs")
+
 # Fuente de datos actual
 CURRENT_SOURCE = "Jumbo"
 
