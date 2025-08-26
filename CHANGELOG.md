@@ -1,5 +1,14 @@
 # Historial de Cambios
 
+## 2025-08-26
+- **feat(ingestion)**: Implementa un sistema robusto de ingesta de cartolas bancarias en formato PDF.
+    - Se creó el script `ingest_pdf_bank_statement.py` para procesar múltiples archivos PDF de cartolas del Banco de Chile.
+    - La extracción de datos se realiza mediante un parseo manual basado en coordenadas, resistente a errores de formato del PDF.
+    - Se implementó un sistema de detección de duplicados basado en el hash (SHA-256) del contenido del archivo, evitando la re-ingesta de datos.
+    - El sistema ahora puede procesar un directorio completo de archivos PDF, omitiendo los que ya han sido registrados en la base de datos.
+- **refactor(db)**: Reestructura la tabla de metadatos (`bank_statement_metadata_raw`) para añadir la columna `file_hash` con un índice `UNIQUE`, asegurando la integridad de los datos.
+- **chore(cleanup)**: Elimina scripts de un solo uso (`alter_table.py`, `verify_bank_data.py`).
+
 ## 2025-08-25
 - **docs(roadmap)**: Actualiza `GEMINI.md` con un roadmap detallado para el diseño de bases de datos escalables.
 - **feat(ingestion)**: Implementa la ingesta de extractos bancarios XLS y mejora la robustez del código.

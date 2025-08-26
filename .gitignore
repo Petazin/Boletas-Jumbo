@@ -1,146 +1,29 @@
-# Byte-compiled / optimized / dll files
-__pycache__/
-*.pyc
-*.pyd
-*.pyo
-*.dll
 
-# Distribution / packaging
-.Python
-build/
-develop-eggs/
-dist/
-downloads/*
-!downloads/Banco/banco de chile/cuenta corriente/
-!downloads/Banco/banco de chile/linea de crédito/
-!downloads/Banco/banco de chile/tarjeta de credito/internacional/
-!downloads/Banco/banco de chile/tarjeta de credito/nacional/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-share/python-wheels/
-*.egg-info/
-.installed.cfg
-*.md5
-*.pyz
-*.whl
-*.zip
-*.tar.gz
-
-# Environments
-.env
-.venv
-env/
+# Archivos de entorno virtual
 venv/
-ENV/
-env.bak/
-venv.bak/
 
-# Editors
-.vscode/
-.idea/
-*.sublime-project
-*.sublime-workspace
-*.komodoproject
-
-# MyPy
-.mypy_cache/
-.dmypy.json
-dmypy.json
-
-# pytest
-.pytest_cache/
-
-# Sphinx documentation
-docs/_build/
-
-# Jupyter Notebook
-.ipynb_checkpoints
-
-# ipython
-profile_default/
-ipython_config.py
-
-# pyenv
-.python-version
-
-# pip-tools
-*.egg-info/
-.installed.cfg
-*.pyc
-_local_packages/
-
-# Celery
-celerybeat-schedule
-
-# SageMath
-.sage/
-
-# Docker
+# Archivos de caché de Python
 __pycache__/
-.dockerignore
-
-# Flask
-instance/
-.webassets-cache
-
-# Misc
-.DS_Store
-.coverage
-.cache
-.Trash
-*.log
-*.sqlite3
-*.bak
-*.swp
-*.swo
-*.tmp
-*.temp
-*.bak
-*.orig
-*.rej
-*.swo
-*.swp
 *.pyc
-*.pyo
-*.pyd
-*.so
-*.obj
-*.out
-*.exe
-*.dll
-*.lib
-*.exp
-*.com
-*.class
-*.jar
-*.war
-*.ear
-*.zip
-*.tar.gz
-*.rar
-*.7z
-*.gz
-*.bz2
-*.xz
+
+# Archivos de registro
 *.log
-*.sql
-*.csv
-*.xls
-*.xlsx
-*.db
-*.sqlite
-*.sqlite3
-*.bak
-*.tmp
-*.temp
-*.DS_Store
+
+# Archivos de configuración local (si aplica)
+config.local.py
+
+# Archivos de dependencias de VSCode
+.vscode/
+
+# Archivos del sistema operativo
+.DS_Store
 Thumbs.db
-ehthumbs.db
-Desktop.ini
-BI_analisis.pbix
+
+# Archivos de salida generados
+*.csv
+
+# Directorio de descargas
+descargas/
+
+# Archivos de Business Intelligence
+*.pbix

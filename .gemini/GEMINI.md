@@ -46,11 +46,11 @@ Este es el proceso que seguiré para gestionar los cambios en el repositorio.
     > El objetivo es crear una aplicación integral de finanzas personales que permita al usuario tener un control total sobre sus ingresos y gastos de forma automática. El sistema deberá ser capaz de conectarse a distintas fuentes (bancos, tiendas), procesar la información, categorizarla inteligentemente y presentarla en un dashboard interactivo con alertas y presupuestos.
 
 *   **Fases de Desarrollo:**
-    *   **Fase 1 (Completada):** Crear y validar el motor de análisis de documentos con un caso de uso específico: el procesamiento de boletas de supermercado Jumbo. El objetivo era construir y perfeccionar la base de extracción y estructuración de datos.
-    *   **Fase 2 (Planificada):** Expandir la aplicación para convertirla en un gestor financiero completo. Esto incluye soportar múltiples tipos de documentos (cartolas bancarias, otras boletas), manejar ingresos, implementar un sistema de categorías jerárquico y construir una interfaz de usuario con dashboards y alertas.
+    *   **Fase 1 (Completada):** Crear y validar el motor de análisis de documentos con un caso de uso específico: el procesamiento de boletas de supermercado Jumbo.
+    *   **Fase 2 (En Progreso):** Expandir la aplicación para convertirla en un gestor financiero completo. Esto incluye soportar múltiples tipos de documentos (cartolas bancarias, otras boletas), manejar ingresos, implementar un sistema de categorías jerárquico y construir una interfaz de usuario con dashboards y alertas.
 
 *   **Estado Actual:**
-    > La Fase 1 es funcional. El motor de procesamiento de boletas Jumbo está implementado y existe un roadmap de mejoras técnicas para él. La Fase 2 está en etapa de planificación.
+    > La Fase 1 es funcional. La Fase 2 ha comenzado con la implementación de un sistema robusto para la ingesta de cartolas bancarias en formato PDF, sentando las bases para el procesamiento de múltiples fuentes de datos.
 
 ### 2.2. Reglas y Preferencias del Proyecto
 
@@ -67,32 +67,28 @@ Este es el proceso que seguiré para gestionar los cambios en el repositorio.
     > Seguir el estilo estándar de Python (PEP 8). No hay un linter configurado formalmente aún.
 
 *   **Frameworks y Librerías Clave:**
-    > `PyPDF2` para la lectura de PDFs, `pandas` para la exportación de datos, `mysql-connector-python` para la base de datos, y `Selenium` para la descarga de boletas.
+    > `Selenium` para la descarga de boletas, `pdfplumber` para la lectura de PDFs, `pandas` para la manipulación de datos, y `mysql-connector-python` para la base de datos.
 
 *   **Preferencias de Commits:**
     > Los mensajes deben ser en español y explicar el 'porqué' del cambio, no solo el 'qué'.
 
 ### 2.3. Roadmap Activo y Tareas Prioritarias
 
-*   **Objetivo a Corto Plazo:**
-    > Implementar las mejoras de robustez, mantenibilidad y rendimiento para la Fase 1.
+#### Fase 1: Mejoras del Motor de Boletas (Completado)
+*   `[x]` **Centralizar Configuración:** Mover regex y constantes a `config.py`.
+*   `[x]` **Mejorar Validación y Errores:** Implementar cuarentena de PDFs y `sanity checks`.
+*   `[x]` **Crear Pruebas Unitarias:** Desarrollar pruebas con `pytest`.
+*   `[x]` **Optimizar Rendimiento:** Aplicar `multiprocessing` para el procesamiento de boletas.
+*   `[x]` **Corregir errores de formato y espaciado.**
+*   `[x]` **Corregir errores de importación (`E402`).**
+*   `[x]` **Revisar variables locales no utilizadas (`F841`).**
+*   `[x]` **Completar pruebas unitarias para `pdf_parser.py`.**
 
-*   **Lista de Tareas:**
-    > *   `[x]` **Centralizar Configuración:** Mover regex y constantes a `config.py`.
-    > *   `[x]` **Mejorar Validación y Errores:** Implementar cuarentena de PDFs y `sanity checks`.
-    > *   `[x]` **Crear Pruebas Unitarias:** Desarrollar pruebas con `pytest`.
-    > *   `[x]` **Optimizar Rendimiento:** Aplicar `multiprocessing` para el procesamiento de boletas.
-    > *   `[x]` **Corregir errores de formato y espaciado en `download_boletas.py` (requiere intervención manual).**
-    > *   `[x]` **Corregir errores de importación no al inicio del archivo (`E402`) en `tests/test_pdf_parser.py`.**
-    > *   `[x]` **Revisar variables locales no utilizadas (`F841`) en `tests/test_pdf_parser.py`.**
-    > *   `[x]` **Completar pruebas unitarias para `pdf_parser.py` (mocking avanzado de `pypdf.PdfReader`).**
-
-*   **Diseño de Base de Datos Escalable:**
-    *   `[ ]` **Revisar y Validar Esquema:** Confirmar que el esquema actual (`create_new_tables.sql`) es adecuado para el escalamiento y las necesidades futuras.
-    *   `[ ]` **Implementar Ingestión Robusta de XLS:** Desarrollar un mecanismo de parsing configurable para archivos XLS de bancos, que no dependa de índices fijos.
-    *   `[ ]` **Procesamiento de Datos Bancarios:** Implementar la lógica para transformar los datos crudos de `bank_account_transactions_raw` y `credit_card_transactions_raw` a la tabla `transactions`.
-    *   `[ ]` **Manejo de Duplicados y Actualizaciones:** Implementar lógica para identificar y manejar transacciones duplicadas y actualizaciones de datos.
-    *   `[ ]` **Optimización de Consultas:** Revisar y optimizar las consultas SQL para asegurar un rendimiento eficiente a medida que la base de datos crece.
-    *   `[ ]` **Estrategia de Backup y Recuperación:** Definir e implementar una estrategia de backup y recuperación para la base de datos.
-
----
+#### Fase 2: Gestor Financiero Integral (En Progreso)
+*   `[x]` **Implementar Ingestión Robusta de Cartolas PDF:** Desarrollar un mecanismo de parsing configurable para archivos PDF de bancos, con detección de duplicados por contenido (hash).
+*   `[ ]` **Revisar y Validar Esquema de BD:** Confirmar que el esquema actual (`create_new_tables.sql`) es adecuado para el escalamiento y las necesidades futuras.
+*   `[ ]` **Implementar Ingestión Robusta de XLS:** Re-evaluar o mejorar el mecanismo de parsing para archivos XLS de bancos.
+*   `[ ]` **Procesamiento de Datos Bancarios:** Implementar la lógica para transformar los datos crudos de `bank_account_transactions_raw` y `credit_card_transactions_raw` a la tabla `transactions`.
+*   `[ ]` **Manejo de Duplicados y Actualizaciones (Nivel Transacción):** Implementar lógica para identificar y manejar transacciones individuales duplicadas.
+*   `[ ]` **Optimización de Consultas:** Revisar y optimizar las consultas SQL para asegurar un rendimiento eficiente.
+*   `[ ]` **Estrategia de Backup y Recuperación:** Definir e implementar una estrategia de backup y recuperación para la base de datos.
