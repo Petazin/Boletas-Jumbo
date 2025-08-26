@@ -6,6 +6,11 @@
     - La extracción de datos se realiza mediante un parseo manual basado en coordenadas, resistente a errores de formato del PDF.
     - Se implementó un sistema de detección de duplicados basado en el hash (SHA-256) del contenido del archivo, evitando la re-ingesta de datos.
     - El sistema ahora puede procesar un directorio completo de archivos PDF, omitiendo los que ya han sido registrados en la base de datos.
+- **feat(ingestion)**: Implementa ingesta robusta de cartolas de tarjeta de crédito en formato XLS.
+    - Se creó el script `ingest_xls_bank_statement.py` para procesar múltiples archivos XLS de cartolas de tarjeta de crédito.
+    - Se implementó la detección dinámica de la fila de cabecera de transacciones.
+    - Se añadió el cálculo de `original_charge_date` y `installment_charge_date` a partir de la columna 'Cuotas'.
+    - Se aseguró la creación de la tabla `credit_card_transactions_raw` con el esquema adecuado.
 - **refactor(db)**: Reestructura la tabla de metadatos (`bank_statement_metadata_raw`) para añadir la columna `file_hash` con un índice `UNIQUE`, asegurando la integridad de los datos.
 - **chore(cleanup)**: Elimina scripts de un solo uso (`alter_table.py`, `verify_bank_data.py`).
 
