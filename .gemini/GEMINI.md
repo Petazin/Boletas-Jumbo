@@ -48,6 +48,7 @@ Este es el proceso que seguiré para gestionar los cambios en el repositorio.
 *   **Fases de Desarrollo:**
     *   **Fase 1 (Completada):** Crear y validar el motor de análisis de documentos con un caso de uso específico: el procesamiento de boletas de supermercado Jumbo.
     *   **Fase 2 (En Progreso):** Expandir la aplicación para convertirla en un gestor financiero completo. Esto incluye soportar múltiples tipos de documentos (cartolas bancarias, otras boletas), manejar ingresos, implementar un sistema de categorías jerárquico y construir una interfaz de usuario con dashboards y alertas.
+    *   **Fase 3 (Planificada):** Implementar un sistema genérico de ingesta de documentos, capaz de procesar cualquier tipo de PDF o documento estructurado, inferir su esquema y mapearlo a la base de datos.
 
 *   **Estado Actual:**
     > La Fase 1 es funcional. La Fase 2 ha comenzado con la implementación de un sistema robusto para la ingesta de cartolas bancarias en formato PDF, sentando las bases para el procesamiento de múltiples fuentes de datos.
@@ -85,12 +86,16 @@ Este es el proceso que seguiré para gestionar los cambios en el repositorio.
 *   `[x]` **Completar pruebas unitarias para `pdf_parser.py`.**
 
 #### Fase 2: Gestor Financiero Integral (En Progreso)
-*   `[x]` **Implementar Ingestión Robusta de Cartolas PDF:** Desarrollar un mecanismo de parsing configurable para archivos PDF de bancos, con detección de duplicados por contenido (hash).
+*   `[x]` **Implementar Ingesta Robusta de Cartolas PDF:** Desarrollar un mecanismo de parsing configurable para archivos PDF de bancos, con detección de duplicados por contenido (hash).
 *   `[ ]` **Expandir Ingesta de Cartolas PDF:** Incluir las cartolas de tarjeta de crédito (nacional e internacional) y la línea de crédito de la cuenta corriente del Banco de Chile.
 *   `[ ]` **Aplicar Hashing a Todos los Archivos Analizados:** Asegurar que cualquier archivo que se ingrese a la base de datos (no solo PDFs) tenga su hash para identificación única.
+*   `[ ]` **Extracción de Datos de Diferentes Dominios:** Implementar la lógica para extraer información de los distintos dominios web donde se publican las cartolas.
 *   `[ ]` **Revisar y Validar Esquema de BD:** Confirmar que el esquema actual (`create_new_tables.sql`) es adecuado para el escalamiento y las necesidades futuras.
 *   `[ ]` **Implementar Ingestión Robusta de XLS:** Re-evaluar o mejorar el mecanismo de parsing para archivos XLS de bancos.
 *   `[ ]` **Procesamiento de Datos Bancarios:** Implementar la lógica para transformar los datos crudos de `bank_account_transactions_raw` y `credit_card_transactions_raw` a la tabla `transactions`.
 *   `[ ]` **Manejo de Duplicados y Actualizaciones (Nivel Transacción):** Implementar lógica para identificar y manejar transacciones individuales duplicadas.
 *   `[ ]` **Optimización de Consultas:** Revisar y optimizar las consultas SQL para asegurar un rendimiento eficiente.
 *   `[ ]` **Estrategia de Backup y Recuperación:** Definir e implementar una estrategia de backup y recuperación para la base de datos.
+
+#### Fase 3: Sistema Genérico de Ingesta de Documentos (Planificada)
+*   `[ ]` **Implementar Sistema Genérico de Ingesta:** Desarrollar un sistema capaz de procesar cualquier tipo de PDF o documento estructurado, inferir su esquema y mapearlo a la base de datos de forma flexible.
