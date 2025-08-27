@@ -7,7 +7,7 @@ El objetivo final de este proyecto es construir una aplicación integral para la
 El desarrollo se ha dividido en dos fases principales:
 
 1.  **Fase 1 (Completada):** Perfeccionar un motor de análisis de boletas de supermercado (Jumbo) para extraer y analizar datos de consumo de forma automatizada.
-2.  **Fase 2 (En progreso):** Expandir la aplicación para que sea un gestor financiero completo, capaz de procesar múltiples tipos de documentos (boletas, cartolas bancarias), controlar gastos e ingresos, y ayudar a mantener un presupuesto mensual saludable.
+2.  **Fase 2 (En progreso):** Expandir la aplicación a un gestor financiero completo, con capacidad para procesar múltiples tipos de documentos (boletas, cartolas bancarias en PDF y XLS), controlar gastos e ingresos, y ayudar a mantener un presupuesto mensual saludable.
 
 ---
 
@@ -18,7 +18,9 @@ El proyecto sigue una arquitectura modular, donde cada archivo tiene una respons
 *   **`config.py`**: Módulo central de configuración con constantes, credenciales, rutas y expresiones regulares.
 *   **`database_utils.py`**: Utilidad para la gestión centralizada de la conexión a la base de datos MySQL.
 *   **`ingest_pdf_bank_statement.py`**: Script para procesar cartolas bancarias en formato PDF. Extrae transacciones de múltiples archivos, calcula un hash único para cada uno para evitar duplicados y los inserta en la base de datos.
-*   **`ingest_xls_bank_statement.py`**: **(Nuevo)** Script para procesar cartolas bancarias en formato XLS. Extrae transacciones de múltiples archivos, calcula un hash único para cada uno para evitar duplicados y los inserta en la base de datos.
+*   **`ingest_xls_national_cc.py`**: Script para procesar cartolas de tarjeta de crédito nacional en formato XLS. Extrae transacciones, calcula un hash único para evitar duplicados y los inserta en la base de datos.
+*   **`ingest_xls_international_cc.py`**: Script para procesar cartolas de tarjeta de crédito internacional en formato XLS. Extrae transacciones, calcula un hash único para evitar duplicados y los inserta en la base de datos.
+
 *   **`product_categorizer.py`**: Módulo de lógica de negocio para categorizar productos de boletas.
 *   **`pdf_parser.py`**: Módulo de extracción y parsing para boletas de supermercado en PDF.
 *   **`download_boletas.py`**: Script de automatización para descargar boletas de Jumbo.cl.
@@ -63,11 +65,17 @@ El sistema tiene dos flujos de trabajo principales:
     ```
     *   **Proceso:** El script buscará todos los archivos PDF en el directorio configurado. Para cada archivo, calculará un hash único, verificará duplicados y, si es nuevo, lo procesará y guardará las transacciones en la base de datos.
 
-3.  **Procesar Cartolas XLS (`ingest_xls_bank_statement.py`):**
+3.  **Procesar Cartolas Nacionales XLS (`ingest_xls_national_cc.py`):**
     ```bash
-    python ingest_xls_bank_statement.py
+    python ingest_xls_national_cc.py
     ```
-    *   **Proceso:** Similar al procesamiento de PDFs, este script buscará archivos XLS/XLSX en el directorio configurado. Identificará dinámicamente la cabecera de las transacciones, extraerá los datos (incluyendo el manejo de cuotas y fechas de cargo/originales) y los insertará en la base de datos, evitando duplicados por hash.
+    *   **Proceso:** Similar al procesamiento de PDFs, este script buscará archivos XLS/XLSX en el directorio configurado para cartolas nacionales. Identificará dinámicamente la cabecera de las transacciones, extraerá los datos (incluyendo el manejo de cuotas y fechas de cargo/originales) y los insertará en la base de datos, evitando duplicados por hash.
+
+4.  **Procesar Cartolas Internacionales XLS (`ingest_xls_international_cc.py`):**
+    ```bash
+    python ingest_xls_international_cc.py
+    ```
+    *   **Proceso:** Similar al procesamiento de PDFs, este script buscará archivos XLS/XLSX en el directorio configurado para cartolas internacionales. Identificará dinámicamente la cabecera de las transacciones, extraerá los datos (incluyendo el manejo de cuotas y fechas de cargo/originales) y los insertará en la base de datos, evitando duplicados por hash.
 
 ---
 
@@ -88,12 +96,12 @@ Se está trabajando en expandir la aplicación a un gestor financiero completo.
 *   `[x]` **Diseño de Base de Datos Escalable:** Se ha definido un esquema de base de datos más robusto y modular.
 *   `[x]` **Ingesta de Cartolas Bancarias (PDF):** Se ha implementado un sistema robusto para procesar cartolas en PDF del Banco de Chile, con detección de duplicados por contenido (hash).
 *   `[x]` **Ingesta de Cartolas Bancarias (XLS):** Se ha implementado un sistema robusto para procesar cartolas de tarjeta de crédito en XLS, incluyendo manejo de cuotas y fechas de cargo/originales.
-*   `[ ]` **Expandir Ingesta de Cartolas PDF:** Incluir las cartolas de tarjeta de crédito (nacional e internacional) y la línea de crédito de la cuenta corriente del Banco de Chile.
-*   `[ ]` **Aplicar Hashing a Todos los Archivos Analizados:** Asegurar que cualquier archivo que se ingrese a la base de datos (no solo PDFs) tenga su hash para identificación única.
+*   `[x]` **Expandir Ingesta de Cartolas (PDF/XLS):** Implementada la ingesta de cartolas de tarjeta de crédito nacional e internacional (XLS).
+*   `[x]` **Aplicar Hashing a Todos los Archivos Analizados:** Asegurado que cualquier archivo que se ingrese a la base de datos (no solo PDFs) tenga su hash para identificación única.
+*   `[x]` **Revisar y Validar Esquema de BD:** Confirmado que el esquema actual (`create_new_tables.sql`) es adecuado para el escalamiento y las necesidades futuras, y se han realizado ajustes en `alter_table.py` para su compatibilidad.
 *   `[ ]` **Extracción de Datos de Diferentes Dominios:** Implementar la lógica para extraer información de los distintos dominios web donde se publican las cartolas.
 *   `[ ]` **Renombrar Archivos Procesados:** Implementar un sistema para renombrar los archivos PDF/XLS procesados con un formato estandarizado (ej. `[TipoDocumento]_[Cuenta]_[Fecha]_[HashCorto].pdf`).
-*   `[ ]` **Revisar y Validar Esquema de BD:** Confirmar que el esquema actual (`create_new_tables.sql`) es adecuado para el escalamiento y las necesidades futuras.
-*   `[ ]` **Implementar Ingesta Robusta de XLS:** Re-evaluar o mejorar el mecanismo de parsing para archivos XLS de bancos.
+*   `[ ]` **Implementar Ingestión Robusta de XLS:** Re-evaluar o mejorar el mecanismo de parsing para archivos XLS de bancos.
 *   `[ ]` **Procesamiento de Datos Bancarios:** Implementar la lógica para transformar los datos crudos de `bank_account_transactions_raw` y `credit_card_transactions_raw` a la tabla `transactions`.
 *   `[ ]` **Manejo de Duplicados y Actualizaciones (Nivel Transacción):** Implementar lógica para identificar y manejar transacciones individuales duplicadas.
 *   `[ ]` **Optimización de Consultas:** Revisar y optimizar las consultas SQL para asegurar un rendimiento eficiente.

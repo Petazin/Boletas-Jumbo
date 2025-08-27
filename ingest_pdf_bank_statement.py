@@ -60,10 +60,10 @@ def insert_metadata(conn, source_id, pdf_path, file_hash):
     """Inserta los metadatos del archivo (incluyendo su hash) en la base de datos."""
     cursor = conn.cursor()
     query = """
-    INSERT INTO bank_statement_metadata_raw (source_id, file_path, status, file_hash)
+    INSERT INTO bank_statement_metadata_raw (source_id, original_filename, file_hash, document_type)
     VALUES (%s, %s, %s, %s)
     """
-    values = (source_id, pdf_path, 'processed', file_hash)
+    values = (source_id, pdf_path, file_hash, 'Bank Statement')
     cursor.execute(query, values)
     conn.commit()
     return cursor.lastrowid

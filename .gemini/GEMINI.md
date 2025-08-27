@@ -51,7 +51,7 @@ Este es el proceso que seguiré para gestionar los cambios en el repositorio.
     *   **Fase 3 (Planificada):** Implementar un sistema genérico de ingesta de documentos, capaz de procesar cualquier tipo de PDF o documento estructurado, inferir su esquema y mapearlo a la base de datos.
 
 *   **Estado Actual:**
-    > La Fase 1 es funcional. La Fase 2 ha comenzado con la implementación de un sistema robusto para la ingesta de cartolas bancarias en formato PDF, sentando las bases para el procesamiento de múltiples fuentes de datos.
+    > La Fase 1 es funcional. La Fase 2 ha avanzado significativamente con la implementación robusta de la ingesta de cartolas bancarias, incluyendo PDFs de cuenta corriente y archivos XLS de tarjetas de crédito nacionales e internacionales. Esto sienta las bases para el procesamiento de múltiples fuentes de datos y la expansión del gestor financiero.
 
 ### 2.2. Reglas y Preferencias del Proyecto
 
@@ -87,11 +87,11 @@ Este es el proceso que seguiré para gestionar los cambios en el repositorio.
 
 #### Fase 2: Gestor Financiero Integral (En Progreso)
 *   `[x]` **Implementar Ingesta Robusta de Cartolas PDF:** Desarrollar un mecanismo de parsing configurable para archivos PDF de bancos, con detección de duplicados por contenido (hash).
-*   `[ ]` **Expandir Ingesta de Cartolas PDF:** Incluir las cartolas de tarjeta de crédito (nacional e internacional) y la línea de crédito de la cuenta corriente del Banco de Chile.
-*   `[ ]` **Aplicar Hashing a Todos los Archivos Analizados:** Asegurar que cualquier archivo que se ingrese a la base de datos (no solo PDFs) tenga su hash para identificación única.
+*   `[x]` **Expandir Ingesta de Cartolas (PDF/XLS):** Implementada la ingesta de cartolas de tarjeta de crédito nacional e internacional (XLS).
+*   `[x]` **Aplicar Hashing a Todos los Archivos Analizados:** Asegurado que cualquier archivo que se ingrese a la base de datos (no solo PDFs) tenga su hash para identificación única.
 *   `[ ]` **Extracción de Datos de Diferentes Dominios:** Implementar la lógica para extraer información de los distintos dominios web donde se publican las cartolas.
 *   `[ ]` **Renombrar Archivos Procesados:** Implementar un sistema para renombrar los archivos PDF/XLS procesados con un formato estandarizado (ej. `[TipoDocumento]_[Cuenta]_[Fecha]_[HashCorto].pdf`).
-*   `[ ]` **Revisar y Validar Esquema de BD:** Confirmar que el esquema actual (`create_new_tables.sql`) es adecuado para el escalamiento y las necesidades futuras.
+*   `[x]` **Revisar y Validar Esquema de BD:** Confirmado que el esquema actual (`create_new_tables.sql`) es adecuado para el escalamiento y las necesidades futuras, y se han realizado ajustes en `alter_table.py` para su compatibilidad.
 *   `[ ]` **Implementar Ingestión Robusta de XLS:** Re-evaluar o mejorar el mecanismo de parsing para archivos XLS de bancos.
 *   `[ ]` **Procesamiento de Datos Bancarios:** Implementar la lógica para transformar los datos crudos de `bank_account_transactions_raw` y `credit_card_transactions_raw` a la tabla `transactions`.
 *   `[ ]` **Manejo de Duplicados y Actualizaciones (Nivel Transacción):** Implementar lógica para identificar y manejar transacciones individuales duplicadas.
