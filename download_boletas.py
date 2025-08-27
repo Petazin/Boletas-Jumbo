@@ -14,6 +14,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import NoSuchElementException, TimeoutException
 from webdriver_manager.chrome import ChromeDriverManager
+import hashlib
 
 # Importar desde el archivo de configuración central
 from config import (
@@ -25,11 +26,24 @@ from config import (
     CURRENT_SOURCE,
 )
 from database_utils import (
-    create_download_history_table,
     get_downloaded_order_ids,
     insert_download_history,
 )
 from pdf_parser import process_pdf
+
+def calculate_file_hash(file_path):
+    """
+    Calcula el hash SHA-256 de un archivo para generar una huella digital única.
+    Esto es crucial para identificar un archivo por su contenido y no por su nombre o ruta,
+    evitando así procesar duplicados.
+    """
+    sha256_hash = hashlib.sha256()
+    with open(file_path, "rb") as f:
+        # Se lee el archivo en bloques de 4KB para no sobrecargar la memoria,
+        # especialmente si se procesaran archivos muy grandes.
+        for byte_block in iter(lambda: f.read(4096), b""):
+            sha256_hash.update(byte_block)
+    return sha256_hash.hexdigest()
 
 
 def setup_logging():
@@ -76,6 +90,8 @@ def process_downloaded_file(order_id):
         )
         original_filepath = os.path.join(DOWNLOADS_DIR, latest_file)
 
+        file_hash = calculate_file_hash(original_filepath)
+
         boleta_id, purchase_date, purchase_time, products_data = process_pdf(
             original_filepath
         )
@@ -108,6 +124,7 @@ def process_downloaded_file(order_id):
             monto_total=total_amount,
             cantidad_items=item_count,
             estado="Descargado",
+            file_hash=file_hash
         )
 
     except Exception as e:
@@ -196,6 +213,9 @@ def main():
                     order_id = current_order_p.text.split(":")[1].strip()
                     logging.info(f"Procesando pedido: {order_id}")
 
+                    # Check if order_id or file_hash already exists
+                    # This requires reading the file to calculate its hash before downloading
+                    # For now, we will rely on the order_id check and the file_hash check in process_boletas.py
                     if order_id in downloaded_order_ids:
                         msg = (
                             f"El pedido {order_id} ya existe en la base de datos. "

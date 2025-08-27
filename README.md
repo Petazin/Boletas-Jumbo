@@ -46,13 +46,13 @@ El sistema tiene dos flujos de trabajo principales:
     ```bash
     python download_boletas.py
     ```
-    Inicia sesión manualmente en Jumbo.cl cuando Selenium abra Chrome. El script descargará las boletas y registrará los archivos en `download_history`.
+    Inicia sesión manualmente en Jumbo.cl cuando Selenium abra Chrome. El script descargará las boletas, calculará su hash SHA-256 y registrará los archivos en `historial_descargas`.
 
 2.  **Procesar Boletas (`process_boletas.py`):**
     ```bash
     python process_boletas.py
     ```
-    Lee los PDFs descargados, extrae los datos de productos y los guarda en la base de datos, moviendo a cuarentena los que fallan.
+    Lee los PDFs descargados, extrae los datos de productos y los guarda en la base de datos. Utiliza el hash del archivo para evitar el reprocesamiento de duplicados y mueve a cuarentena los que fallan.
 
 ### Flujo 2: Procesamiento de Cartolas Bancarias (PDF y XLS)
 
@@ -93,6 +93,7 @@ Se ha completado un motor robusto para el análisis de boletas de Jumbo, incluye
 
 Se está trabajando en expandir la aplicación a un gestor financiero completo.
 
+*   `[x]` **Implementación de Hashing para Boletas de Jumbo:** Se ha implementado un mecanismo de hashing para las boletas de Jumbo, asegurando que no se procesen archivos duplicados y mejorando la integridad de los datos.
 *   `[x]` **Traducción de la Base de Datos al Español:** Se ha traducido completamente el esquema de la base de datos (tablas y columnas) al español para facilitar la comprensión y el mantenimiento.
 *   `[x]` **Diseño de Base de Datos Escalable:** Se ha definido un esquema de base de datos más robusto y modular.
 *   `[x]` **Ingesta de Cartolas Bancarias (PDF):** Se ha implementado un sistema robusto para procesar cartolas en PDF del Banco de Chile, con detección de duplicados por contenido (hash).

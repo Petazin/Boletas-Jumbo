@@ -53,6 +53,7 @@ def insert_download_history(
     monto_total,
     cantidad_items,
     estado,
+    file_hash,
 ):
     """Inserta un nuevo registro en la tabla 'historial_descargas'.
 
@@ -67,15 +68,16 @@ def insert_download_history(
         monto_total (float): El monto total de la boleta.
         cantidad_items (int): El número de productos en la boleta.
         estado (str): El estado del procesamiento (ej. 'Descargado').
+        file_hash (str): El hash SHA-256 del archivo.
     """
     with db_connection() as conn:
         cursor = conn.cursor()
         query = """
         INSERT INTO historial_descargas (
             order_id, fuente, fecha_compra, fecha_descarga, nombre_archivo_original,
-            nuevo_nombre_archivo, ruta_archivo, monto_total, cantidad_items, estado
+            nuevo_nombre_archivo, ruta_archivo, monto_total, cantidad_items, estado, file_hash
         )
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         """
         values = (
             order_id,
@@ -88,6 +90,7 @@ def insert_download_history(
             monto_total,
             cantidad_items,
             estado,
+            file_hash,
         )
         cursor.execute(query, values)
         conn.commit()

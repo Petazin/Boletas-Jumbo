@@ -30,7 +30,7 @@ def setup_logging():
 def get_files_to_process(cursor):
     """Obtiene de la BD la lista de archivos que necesitan ser procesados."""
     query = (
-        "SELECT ruta_archivo, order_id FROM historial_descargas WHERE estado = 'Descargado'"
+        "SELECT ruta_archivo, order_id, file_hash FROM historial_descargas WHERE estado = 'Descargado'"
     )
     cursor.execute(query)
     return cursor.fetchall()
@@ -87,19 +87,19 @@ def insert_boleta_data(cursor, boleta_id, filename, purchase_time, products_data
 
 
 def _process_single_pdf_task(args):
-    pdf_path, order_id = args
+    pdf_path, order_id, file_hash = args
     try:
         if not os.path.exists(pdf_path):
-            return order_id, "Error - File not found", None, None, None
+            return order_id, "Error - File not found", None, None, None, None
 
         boleta_id, purchase_date, purchase_time, products_data = process_pdf(pdf_path)
 
         if boleta_id and products_data:
-            return order_id, "Processed", boleta_id, purchase_time, products_data
+            return order_id, "Processed", boleta_id, purchase_time, products_data, file_hash
         else:
-            return order_id, "Error - Parsing failed", None, None, None
+            return order_id, "Error - Parsing failed", None, None, None, None
     except Exception as e:
-        return order_id, f"Error - Unexpected: {e}", None, None, None
+        return order_id, f"Error - Unexpected: {e}", None, None, None, None
 
 
 def main():
@@ -112,15 +112,15 @@ def main():
             conn.commit()
 
             files_to_process = get_files_to_process(cursor)
-            file_path_map = {order_id: file_path for file_path, order_id in files_to_process}
+            file_path_map = {order_id: (file_path, file_hash) for file_path, order_id, file_hash in files_to_process}
 
             # Use multiprocessing Pool to process PDFs in parallel
             with multiprocessing.Pool() as pool:
                 results = pool.imap_unordered(_process_single_pdf_task, files_to_process)
 
-                for order_id, status, boleta_id, purchase_time, products_data in results:
+                for order_id, status, boleta_id, purchase_time, products_data, file_hash in results:
                     # Get original filename for logging
-                    pdf_file = os.path.basename(file_path_map[order_id])
+                    pdf_file = os.path.basename(file_path_map[order_id][0])
 
                     if status == "Processed":
                         insert_boleta_data(

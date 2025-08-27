@@ -130,7 +130,9 @@ CREATE TABLE IF NOT EXISTS historial_descargas (
     ruta_archivo VARCHAR(512) NOT NULL,
     monto_total DECIMAL(10, 2),
     cantidad_items INT,
-    estado VARCHAR(50) NOT NULL DEFAULT 'Descargado'
+    estado VARCHAR(50) NOT NULL DEFAULT 'Descargado',
+    file_hash VARCHAR(64) UNIQUE,
+    PRIMARY KEY (id)
 );
 
 -- Table: transacciones_jumbo
