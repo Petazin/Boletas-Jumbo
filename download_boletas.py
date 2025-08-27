@@ -85,7 +85,7 @@ def process_downloaded_file(order_id):
             )
             return
 
-        total_amount = sum(p["Total_a_pagar_producto"] for p in products_data)
+        total_amount = sum(p["precio_total_item"] for p in products_data)
         item_count = len(products_data)
 
         date_str = purchase_date.strftime("%Y-%m-%d")
@@ -99,15 +99,15 @@ def process_downloaded_file(order_id):
 
         insert_download_history(
             order_id=order_id,
-            source=CURRENT_SOURCE,
-            purchase_date=purchase_date,
-            download_date=datetime.now(),
-            original_filename=latest_file,
-            new_filename=new_filename,
-            file_path=new_filepath,
-            total_amount=total_amount,
-            item_count=item_count,
-            status="Downloaded",
+            fuente=CURRENT_SOURCE,
+            fecha_compra=purchase_date,
+            fecha_descarga=datetime.now(),
+            nombre_archivo_original=latest_file,
+            nuevo_nombre_archivo=new_filename,
+            ruta_archivo=new_filepath,
+            monto_total=total_amount,
+            cantidad_items=item_count,
+            estado="Descargado",
         )
 
     except Exception as e:
@@ -119,7 +119,6 @@ def process_downloaded_file(order_id):
 def main():
     """Función principal para orquestar la descarga de las boletas."""
     setup_logging()
-    create_download_history_table()
 
     driver = setup_driver()
     wait = WebDriverWait(driver, 20)

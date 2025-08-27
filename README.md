@@ -32,7 +32,7 @@ El proyecto sigue una arquitectura modular, donde cada archivo tiene una respons
 
 ### Esquema de la Base de Datos
 
-El proyecto utiliza un esquema de base de datos escalable para manejar diversos tipos de transacciones. Las tablas principales incluyen `sources`, `main_categories`, `sub_categories`, `bank_statement_metadata_raw`, `bank_account_transactions_raw`, `credit_card_transactions_raw`, `transactions`, y `transaction_items`. Para el esquema completo, consulta el archivo `create_new_tables.sql`.
+El proyecto utiliza un esquema de base de datos escalable y completamente en español para manejar diversos tipos de transacciones. Las tablas principales incluyen `fuentes`, `categorias_principales`, `subcategorias`, `metadatos_cartolas_bancarias_raw`, `transacciones_cuenta_bancaria_raw`, `transacciones_tarjeta_credito_raw`, `transacciones`, `items_transaccion`, `historial_descargas` y `transacciones_jumbo`. Para el esquema completo, consulta el archivo `create_new_tables.sql`.
 
 ---
 
@@ -93,6 +93,7 @@ Se ha completado un motor robusto para el análisis de boletas de Jumbo, incluye
 
 Se está trabajando en expandir la aplicación a un gestor financiero completo.
 
+*   `[x]` **Traducción de la Base de Datos al Español:** Se ha traducido completamente el esquema de la base de datos (tablas y columnas) al español para facilitar la comprensión y el mantenimiento.
 *   `[x]` **Diseño de Base de Datos Escalable:** Se ha definido un esquema de base de datos más robusto y modular.
 *   `[x]` **Ingesta de Cartolas Bancarias (PDF):** Se ha implementado un sistema robusto para procesar cartolas en PDF del Banco de Chile, con detección de duplicados por contenido (hash).
 *   `[x]` **Ingesta de Cartolas Bancarias (XLS):** Se ha implementado un sistema robusto para procesar cartolas de tarjeta de crédito en XLS, incluyendo manejo de cuotas y fechas de cargo/originales.

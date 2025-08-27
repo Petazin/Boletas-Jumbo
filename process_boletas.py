@@ -24,34 +24,13 @@ def setup_logging():
     )
 
 
-def create_table_if_not_exists(cursor):
-    """Verifica y, si es necesario, crea la tabla 'boletas_data'."""
-    create_table_query = """
-    CREATE TABLE IF NOT EXISTS boletas_data (
-        boleta_id VARCHAR(255),
-        filename VARCHAR(255),
-        Fecha DATE,
-        Hora TIME,  # Nueva columna para la hora
-        codigo_SKU VARCHAR(255),
-        Cantidad_unidades INT,
-        Valor_Unitario DECIMAL(15, 2),
-        Cantidad_comprada_X_Valor_Unitario VARCHAR(255),
-        Descripcion_producto TEXT,
-        Total_a_pagar_producto DECIMAL(15, 2),
-        Descripcion_Oferta TEXT,
-        Cantidad_reducida_del_total DECIMAL(15, 2),
-        Categoria VARCHAR(255),
-        PRIMARY KEY (boleta_id, codigo_SKU) # Clave primaria compuesta
-    )
-    """
-    cursor.execute(create_table_query)
-    logging.info("Tabla 'boletas_data' verificada/creada exitosamente.")
+
 
 
 def get_files_to_process(cursor):
     """Obtiene de la BD la lista de archivos que necesitan ser procesados."""
     query = (
-        "SELECT file_path, order_id FROM download_history WHERE status = 'Downloaded'"
+        "SELECT ruta_archivo, order_id FROM historial_descargas WHERE estado = 'Descargado'"
     )
     cursor.execute(query)
     return cursor.fetchall()
@@ -59,49 +38,49 @@ def get_files_to_process(cursor):
 
 def update_status(cursor, order_id, status):
     """Actualiza el estado de un registro en la tabla de historial."""
-    query = "UPDATE download_history SET status = %s WHERE order_id = %s"
+    query = "UPDATE historial_descargas SET estado = %s WHERE order_id = %s"
     cursor.execute(query, (status, order_id))
 
 
 def insert_boleta_data(cursor, boleta_id, filename, purchase_time, products_data):
     """Inserta una lista de productos de una boleta en la base de datos."""
     insert_query = """
-    INSERT INTO boletas_data (
-        boleta_id, filename, Fecha, Hora, codigo_SKU, Cantidad_unidades,
-        Valor_Unitario, Cantidad_comprada_X_Valor_Unitario,
-        Descripcion_producto, Total_a_pagar_producto,
-        Descripcion_Oferta, Cantidad_reducida_del_total, Categoria
+    INSERT INTO transacciones_jumbo (
+        transaccion_id, nombre_archivo, fecha_compra, hora_compra, sku, cantidad,
+        precio_unitario, cantidad_X_precio_unitario,
+        descripcion_producto, precio_total_item,
+        descripcion_oferta, monto_descuento, categoria
     ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
     ON DUPLICATE KEY UPDATE
-        Cantidad_unidades=VALUES(Cantidad_unidades),
-        Valor_Unitario=VALUES(Valor_Unitario),
-        Cantidad_comprada_X_Valor_Unitario=VALUES(Cantidad_comprada_X_Valor_Unitario),
-        Descripcion_producto=VALUES(Descripcion_producto),
-        Total_a_pagar_producto=VALUES(Total_a_pagar_producto),
-        Descripcion_Oferta=VALUES(Descripcion_Oferta),
-        Cantidad_reducida_del_total=VALUES(Cantidad_reducida_del_total),
-        Categoria=VALUES(Categoria);
+        cantidad=VALUES(cantidad),
+        precio_unitario=VALUES(precio_unitario),
+        cantidad_X_precio_unitario=VALUES(cantidad_X_precio_unitario),
+        descripcion_producto=VALUES(descripcion_producto),
+        precio_total_item=VALUES(precio_total_item),
+        descripcion_oferta=VALUES(descripcion_oferta),
+        monto_descuento=VALUES(monto_descuento),
+        categoria=VALUES(categoria);
     """
     for product in products_data:
         try:
             data_tuple = (
                 boleta_id,
                 filename,
-                product["Fecha"],
+                product["fecha_transaccion"],
                 purchase_time,  # Usar la hora extraída del PDF
-                product["codigo_SKU"],
-                product["Cantidad_unidades"],
-                product["Valor_Unitario"],
+                product["sku"],
+                product["cantidad"],
+                product["precio_unitario"],
                 product["Cantidad_comprada_X_Valor_Unitario"],
-                product["Descripcion_producto"],
-                product["Total_a_pagar_producto"],
-                product["Descripcion_Oferta"],
-                product["Cantidad_reducida_del_total"],
-                product["Categoria"],
+                product["descripcion_producto"],
+                product["precio_total_item"],
+                product["descripcion_oferta"],
+                product["monto_descuento"],
+                product["categoria"],
             )
             cursor.execute(insert_query, data_tuple)
         except mysql.connector.Error as err:
-            sku = product.get('codigo_SKU', 'N/A')
+            sku = product.get('sku', 'N/A')
             logging.error(
                 f"Error al insertar SKU {sku} de {filename}: {err}"
             )

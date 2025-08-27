@@ -143,24 +143,24 @@ def process_pdf(pdf_path):
                     discount = parse_chilean_number(discount_str)
 
             if sku in products:
-                products[sku]["Cantidad_unidades"] += quantity
-                products[sku]["Total_a_pagar_producto"] += total
-                products[sku]["Cantidad_reducida_del_total"] += discount
+                products[sku]["cantidad"] += quantity
+                products[sku]["precio_total_item"] += total
+                products[sku]["monto_descuento"] += discount
             else:
                 products[sku] = {
-                    "Fecha": purchase_date,
-                    "Hora": purchase_time,
-                    "codigo_SKU": sku,
-                    "Cantidad_unidades": quantity,
-                    "Valor_Unitario": unit_price,
+                    "fecha_transaccion": purchase_date,
+                    "hora_transaccion": purchase_time,
+                    "sku": sku,
+                    "cantidad": quantity,
+                    "precio_unitario": unit_price,
                     "Cantidad_comprada_X_Valor_Unitario": (
                         f"{quantity} X ${unit_price:.0f}"
                     ),
-                    "Descripcion_producto": description.strip(),
-                    "Total_a_pagar_producto": total,
-                    "Descripcion_Oferta": offer_desc,
-                    "Cantidad_reducida_del_total": discount,
-                    "Categoria": categorize_product(description.strip()),
+                    "descripcion_producto": description.strip(),
+                    "precio_total_item": total,
+                    "descripcion_oferta": offer_desc,
+                    "monto_descuento": discount,
+                    "categoria": categorize_product(description.strip()),
                 }
 
     if not products:

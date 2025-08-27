@@ -1,6 +1,13 @@
 # Historial de Cambios
 
 ## 2025-08-27
+- **refactor(db)**: Traduce completamente el esquema de la base de datos al español.
+    - Se han renombrado todas las tablas y columnas de la base de datos para que utilicen nombres en español, mejorando la legibilidad y mantenibilidad del proyecto.
+    - Se han actualizado todos los scripts que interactúan con la base de datos para que utilicen los nuevos nombres de tablas y columnas.
+    - Se ha centralizado la creación de todas las tablas en el archivo `create_new_tables.sql`.
+- **docs(readme, changelog)**: Actualiza la documentación para reflejar la traducción de la base de datos.
+
+## 2025-08-27
 - **fix(ingestion)**: Corrige errores de columna y sintaxis en scripts de ingesta de cartolas.
     - Se solucionó `SyntaxError` en `ingest_xls_international_cc.py`.
     - Se corrigieron errores de `Unknown column 'file_path'` en `ingest_pdf_bank_statement.py`, `ingest_xls_national_cc.py` e `ingest_xls_international_cc.py` al actualizar las funciones `insert_metadata` para usar `original_filename` y `document_type`.

@@ -26,93 +26,68 @@ def db_connection():
             conn.close()
 
 
-def create_download_history_table():
-    """Crea la tabla 'download_history' si no existe.
 
-    Esta tabla es fundamental para llevar un registro de todos los archivos descargados,
-    evitar duplicados y gestionar el estado del procesamiento.
-    """
-    with db_connection() as conn:
-        cursor = conn.cursor()
-        query = """
-        CREATE TABLE IF NOT EXISTS download_history (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            order_id VARCHAR(255) NOT NULL UNIQUE,
-            source VARCHAR(50) NOT NULL,
-            purchase_date DATE,
-            download_date DATETIME NOT NULL,
-            original_filename VARCHAR(255) NOT NULL,
-            new_filename VARCHAR(255) NOT NULL,
-            file_path VARCHAR(512) NOT NULL,
-            total_amount DECIMAL(10, 2),
-            item_count INT,
-            status VARCHAR(50) NOT NULL DEFAULT 'Downloaded'
-        )
-        """
-        cursor.execute(query)
-        conn.commit()
-        logging.info("Tabla 'download_history' asegurada.")
 
 
 def get_downloaded_order_ids():
-    """Obtiene una lista de todos los order_id de la tabla 'download_history'.
+    """Obtiene una lista de todos los order_id de la tabla 'historial_descargas'.
 
     Returns:
         list: Una lista de strings, donde cada string es un order_id.
     """
     with db_connection() as conn:
         cursor = conn.cursor()
-        query = "SELECT order_id FROM download_history"
+        query = "SELECT order_id FROM historial_descargas"
         cursor.execute(query)
         return [item[0] for item in cursor.fetchall()]
 
 
 def insert_download_history(
     order_id,
-    source,
-    purchase_date,
-    download_date,
-    original_filename,
-    new_filename,
-    file_path,
-    total_amount,
-    item_count,
-    status,
+    fuente,
+    fecha_compra,
+    fecha_descarga,
+    nombre_archivo_original,
+    nuevo_nombre_archivo,
+    ruta_archivo,
+    monto_total,
+    cantidad_items,
+    estado,
 ):
-    """Inserta un nuevo registro en la tabla 'download_history'.
+    """Inserta un nuevo registro en la tabla 'historial_descargas'.
 
     Args:
         order_id (str): El ID del pedido.
-        source (str): La fuente de la descarga (ej. 'Jumbo').
-        purchase_date (date): La fecha de la compra.
-        download_date (datetime): La fecha y hora de la descarga.
-        original_filename (str): El nombre original del archivo descargado.
-        new_filename (str): El nuevo nombre del archivo.
-        file_path (str): La ruta completa del archivo guardado.
-        total_amount (float): El monto total de la boleta.
-        item_count (int): El número de productos en la boleta.
-        status (str): El estado del procesamiento (ej. 'Downloaded').
+        fuente (str): La fuente de la descarga (ej. 'Jumbo').
+        fecha_compra (date): La fecha de la compra.
+        fecha_descarga (datetime): La fecha y hora de la descarga.
+        nombre_archivo_original (str): El nombre original del archivo descargado.
+        nuevo_nombre_archivo (str): El nuevo nombre del archivo.
+        ruta_archivo (str): La ruta completa del archivo guardado.
+        monto_total (float): El monto total de la boleta.
+        cantidad_items (int): El número de productos en la boleta.
+        estado (str): El estado del procesamiento (ej. 'Descargado').
     """
     with db_connection() as conn:
         cursor = conn.cursor()
         query = """
-        INSERT INTO download_history (
-            order_id, source, purchase_date, download_date, original_filename,
-            new_filename, file_path, total_amount, item_count, status
+        INSERT INTO historial_descargas (
+            order_id, fuente, fecha_compra, fecha_descarga, nombre_archivo_original,
+            nuevo_nombre_archivo, ruta_archivo, monto_total, cantidad_items, estado
         )
         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         """
         values = (
             order_id,
-            source,
-            purchase_date,
-            download_date,
-            original_filename,
-            new_filename,
-            file_path,
-            total_amount,
-            item_count,
-            status,
+            fuente,
+            fecha_compra,
+            fecha_descarga,
+            nombre_archivo_original,
+            nuevo_nombre_archivo,
+            ruta_archivo,
+            monto_total,
+            cantidad_items,
+            estado,
         )
         cursor.execute(query, values)
         conn.commit()

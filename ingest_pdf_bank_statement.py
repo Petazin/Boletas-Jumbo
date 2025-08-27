@@ -36,7 +36,7 @@ def is_file_processed(conn, file_hash):
     # Se usa un cursor bufferizado para asegurar que todos los resultados se traen del servidor
     # de inmediato, evitando errores de 'Unread result' al cerrar la conexión.
     cursor = conn.cursor(buffered=True)
-    query = "SELECT 1 FROM bank_statement_metadata_raw WHERE file_hash = %s"
+    query = "SELECT 1 FROM metadatos_cartolas_bancarias_raw WHERE file_hash = %s"
     cursor.execute(query, (file_hash,))
     result = cursor.fetchone() is not None
     cursor.close()
@@ -45,13 +45,13 @@ def is_file_processed(conn, file_hash):
 def get_source_id(conn, source_name='Banco de Chile'):
     """Obtiene el ID de la fuente 'Banco de Chile', creándolo si no existe."""
     cursor = conn.cursor(buffered=True)
-    query = "SELECT source_id FROM sources WHERE source_name = %s"
+    query = "SELECT fuente_id FROM fuentes WHERE nombre_fuente = %s"
     cursor.execute(query, (source_name,))
     result = cursor.fetchone()
     if result:
         return result[0]
     else:
-        insert_query = "INSERT INTO sources (source_name) VALUES (%s)"
+        insert_query = "INSERT INTO fuentes (nombre_fuente) VALUES (%s)"
         cursor.execute(insert_query, (source_name,))
         conn.commit()
         return cursor.lastrowid
@@ -60,7 +60,7 @@ def insert_metadata(conn, source_id, pdf_path, file_hash):
     """Inserta los metadatos del archivo (incluyendo su hash) en la base de datos."""
     cursor = conn.cursor()
     query = """
-    INSERT INTO bank_statement_metadata_raw (source_id, original_filename, file_hash, document_type)
+    INSERT INTO metadatos_cartolas_bancarias_raw (fuente_id, nombre_archivo_original, file_hash, tipo_documento)
     VALUES (%s, %s, %s, %s)
     """
     values = (source_id, pdf_path, file_hash, 'Bank Statement')
@@ -162,18 +162,18 @@ def parse_bank_statement_pdf(pdf_path):
         
         # Se renombran las columnas para que coincidan con la base de datos.
         column_mapping = {
-            'FECHA DIA/MES': 'transaction_date_str',
-            'DETALLE DE TRANSACCION': 'transaction_description',
-            'SUCURSAL': 'channel_or_branch',
+            'FECHA DIA/MES': 'fecha_transaccion_str',
+            'DETALLE DE TRANSACCION': 'descripcion_transaccion',
+            'SUCURSAL': 'canal_o_sucursal',
             'N° DOCTO': 'doc_number',
-            'MONTO CHEQUES O CARGOS': 'charges_pesos',
-            'MONTO DEPOSITOS O ABONOS': 'credits_pesos',
-            'SALDO': 'balance_pesos'
+            'MONTO CHEQUES O CARGOS': 'cargos_pesos',
+            'MONTO DEPOSITOS O ABONOS': 'abonos_pesos',
+            'SALDO': 'saldo_pesos'
         }
         df.rename(columns=column_mapping, inplace=True)
         
         # Se limpian y convierten los valores numéricos.
-        for col in ['charges_pesos', 'credits_pesos', 'balance_pesos']:
+        for col in ['cargos_pesos', 'abonos_pesos', 'saldo_pesos']:
             if col in df.columns:
                 df[col] = df[col].apply(parse_and_clean_value)
         
@@ -184,21 +184,21 @@ def insert_transactions(conn, metadata_id, source_id, transactions_df):
     """Inserta el DataFrame de transacciones en la base de datos."""
     cursor = conn.cursor()
     query = """
-    INSERT INTO bank_account_transactions_raw (
-        metadata_id, source_id, transaction_date_str, transaction_description, 
-        channel_or_branch, charges_pesos, credits_pesos, balance_pesos
+    INSERT INTO transacciones_cuenta_bancaria_raw (
+        metadata_id, fuente_id, fecha_transaccion_str, descripcion_transaccion, 
+        canal_o_sucursal, cargos_pesos, abonos_pesos, saldo_pesos
     ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
     """
     for _, row in transactions_df.iterrows():
         values = (
             metadata_id,
             source_id,
-            row.get('transaction_date_str'),
-            row.get('transaction_description'),
-            row.get('channel_or_branch'),
-            row.get('charges_pesos'),
-            row.get('credits_pesos'),
-            row.get('balance_pesos')
+            row.get('fecha_transaccion_str'),
+            row.get('descripcion_transaccion'),
+            row.get('canal_o_sucursal'),
+            row.get('cargos_pesos'),
+            row.get('abonos_pesos'),
+            row.get('saldo_pesos')
         )
         cursor.execute(query, values)
     conn.commit()
