@@ -93,6 +93,7 @@ Se ha completado un motor robusto para el análisis de boletas de Jumbo, incluye
 
 Se está trabajando en expandir la aplicación a un gestor financiero completo.
 
+*   `[x]` **Mejora en la Estructura de Carpetas para Estados de Cuenta Bancarios:** Se ha implementado un sistema para mover automáticamente los archivos de estados de cuenta bancarios procesados a un directorio separado, formalizando su estado y manteniendo los directorios de descarga limpios.
 *   `[x]` **Implementación de Hashing para Boletas de Jumbo:** Se ha implementado un mecanismo de hashing para las boletas de Jumbo, asegurando que no se procesen archivos duplicados y mejorando la integridad de los datos.
 *   `[x]` **Traducción de la Base de Datos al Español:** Se ha traducido completamente el esquema de la base de datos (tablas y columnas) al español para facilitar la comprensión y el mantenimiento.
 *   `[x]` **Diseño de Base de Datos Escalable:** Se ha definido un esquema de base de datos más robusto y modular.

@@ -2,10 +2,12 @@ import pandas as pd
 import os
 import logging
 import hashlib
+import shutil
 from database_utils import db_connection
 from collections import defaultdict
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
+from config import PROCESSED_BANK_STATEMENTS_DIR
 
 # Configuración de logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -222,6 +224,12 @@ def main():
                 
                 insert_credit_card_transactions(conn, metadata_id, source_id, processed_df)
                 
+                # Mover el archivo XLS procesado a la carpeta de archivos procesados
+                processed_filepath = os.path.join(PROCESSED_BANK_STATEMENTS_DIR, os.path.basename(xls_path))
+                os.makedirs(os.path.dirname(processed_filepath), exist_ok=True)
+                shutil.move(xls_path, processed_filepath)
+                logging.info(f"Archivo movido a la carpeta de procesados: {processed_filepath}")
+
                 logging.info(f"Proceso de ingesta completado con éxito para: {os.path.basename(xls_path)}")
 
             except Exception as e:

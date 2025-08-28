@@ -3,8 +3,10 @@ import pandas as pd
 import os
 import logging
 import hashlib
+import shutil
 from database_utils import db_connection
 from collections import defaultdict
+from config import PROCESSED_BANK_STATEMENTS_DIR
 
 # Configuración de logging para dar seguimiento a la ejecución del script.
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -230,6 +232,13 @@ def main():
                 source_id = get_source_id(conn)
                 metadata_id = insert_metadata(conn, source_id, pdf_path, file_hash)
                 insert_transactions(conn, metadata_id, source_id, transactions_df)
+                
+                # Mover el archivo PDF procesado a la carpeta de archivos procesados
+                processed_filepath = os.path.join(PROCESSED_BANK_STATEMENTS_DIR, os.path.basename(pdf_path))
+                os.makedirs(os.path.dirname(processed_filepath), exist_ok=True)
+                shutil.move(pdf_path, processed_filepath)
+                logging.info(f"Archivo movido a la carpeta de procesados: {processed_filepath}")
+
                 logging.info(f"Proceso de ingesta completado con éxito para: {os.path.basename(pdf_path)}")
 
             except Exception as e:

@@ -1,6 +1,12 @@
 # Historial de Cambios
 
 ## 2025-08-27
+- **refactor(files)**: Mejora la estructura de carpetas para estados de cuenta bancarios.
+    - Se añadió `PROCESSED_BANK_STATEMENTS_DIR` en `config.py` para definir la ubicación de los archivos bancarios procesados.
+    - Se modificaron los scripts `ingest_pdf_bank_statement.py`, `ingest_xls_national_cc.py` e `ingest_xls_international_cc.py` para mover los archivos procesados a este nuevo directorio, manteniendo la sub-estructura original.
+    - Esto formaliza el estado "procesado" de los archivos bancarios, dejando los directorios de descarga solo con archivos pendientes de procesar.
+
+## 2025-08-27
 - **feat(ingestion)**: Implementa mecanismo de hashing para boletas de Jumbo.
     - Se añadió una columna `file_hash` a la tabla `historial_descargas` para almacenar el hash SHA-256 de los archivos de boletas.
     - Se modificó `download_boletas.py` para calcular el hash de cada boleta descargada y guardarlo en la base de datos.
