@@ -89,6 +89,16 @@ Se ha completado un motor robusto para el análisis de boletas de Jumbo, incluye
 *   Pruebas unitarias con `pytest`.
 *   Optimización con `multiprocessing`.
 
+## Avances y Roadmap
+
+### Fase 1: Motor de Boletas (Completada)
+
+Se ha completado un motor robusto para el análisis de boletas de Jumbo, incluyendo:
+*   Centralización de la configuración.
+*   Sistema de cuarentena para PDFs con errores.
+*   Pruebas unitarias con `pytest`.
+*   Optimización con `multiprocessing` para el procesamiento de boletas.
+
 ### Fase 2: Gestor Financiero Integral (En Progreso)
 
 Se está trabajando en expandir la aplicación a un gestor financiero completo.
@@ -97,10 +107,10 @@ Se está trabajando en expandir la aplicación a un gestor financiero completo.
 *   `[x]` **Implementación de Hashing para Boletas de Jumbo:** Se ha implementado un mecanismo de hashing para las boletas de Jumbo, asegurando que no se procesen archivos duplicados y mejorando la integridad de los datos.
 *   `[x]` **Traducción de la Base de Datos al Español:** Se ha traducido completamente el esquema de la base de datos (tablas y columnas) al español para facilitar la comprensión y el mantenimiento.
 *   `[x]` **Diseño de Base de Datos Escalable:** Se ha definido un esquema de base de datos más robusto y modular.
-*   `[x]` **Ingesta de Cartolas Bancarias (PDF):** Se ha implementado un sistema robusto para procesar cartolas en PDF del Banco de Chile, con detección de duplicados por contenido (hash).
-*   `[x]` **Ingesta de Cartolas Bancarias (XLS):** Se ha implementado un sistema robusto para procesar cartolas de tarjeta de crédito en XLS, incluyendo manejo de cuotas y fechas de cargo/originales.
-*   `[x]` **Expandir Ingesta de Cartolas (PDF/XLS):** Implementada la ingesta de cartolas de tarjeta de crédito nacional e internacional (XLS).
-*   `[x]` **Aplicar Hashing a Todos los Archivos Analizados:** Asegurado que cualquier archivo que se ingrese a la base de datos (no solo PDFs) tenga su hash para identificación única.
+*   `[x]` **Ingesta de Cartolas Bancarias (PDF):** Se ha implementado un sistema robusto para procesar cartolas en PDF del Banco de Chile, con detección de duplicados por contenido (hash), utilizando el campo `document_type` y moviendo los archivos procesados.
+*   `[x]` **Ingesta de Cartolas Bancarias (XLS):** Se ha implementado un sistema robusto para procesar cartolas de tarjeta de crédito en XLS, incluyendo manejo de cuotas y fechas de cargo/originales, utilizando el campo `document_type` y moviendo los archivos procesados.
+*   `[x]` **Expandir Ingesta de Cartolas (PDF/XLS):** Implementada la ingesta de cartolas de tarjeta de crédito nacional e internacional (XLS), con soporte para `document_type` y movimiento de archivos procesados.
+*   `[x]` **Aplicar Hashing a Todos los Archivos Analizados:** Asegurado que cualquier archivo que se ingrese a la base de datos (no solo PDFs) tenga su hash para identificación única, con soporte para `document_type` y movimiento de archivos procesados.
 *   `[x]` **Revisar y Validar Esquema de BD:** Confirmado que el esquema actual (`create_new_tables.sql`) es adecuado para el escalamiento y las necesidades futuras, y se han realizado ajustes en `alter_table.py` para su compatibilidad.
 *   `[ ]` **Extracción de Datos de Diferentes Dominios:** Implementar la lógica para extraer información de los distintos dominios web donde se publican las cartolas.
 *   `[ ]` **Renombrar Archivos Procesados:** Implementar un sistema para renombrar los archivos PDF/XLS procesados con un formato estandarizado (ej. `[TipoDocumento]_[Cuenta]_[Fecha]_[HashCorto].pdf`).
@@ -109,6 +119,9 @@ Se está trabajando en expandir la aplicación a un gestor financiero completo.
 *   `[ ]` **Manejo de Duplicados y Actualizaciones (Nivel Transacción):** Implementar lógica para identificar y manejar transacciones individuales duplicadas.
 *   `[ ]` **Optimización de Consultas:** Revisar y optimizar las consultas SQL para asegurar un rendimiento eficiente.
 *   `[ ]` **Estrategia de Backup y Recuperación:** Definir e implementar una estrategia de backup y recuperación para la base de datos.
+
+### Fase 3: Sistema Genérico de Ingesta de Documentos (Planificada)
+*   `[ ]` **Implementar Sistema Genérico de Ingesta:** Desarrollar un sistema capaz de procesar cualquier tipo de PDF o documento estructurado, inferir su esquema y mapearlo a la base de datos de forma flexible.
 
 ### Fase 3: Sistema Genérico de Ingesta de Documentos (Planificada)
 *   `[ ]` **Implementar Sistema Genérico de Ingesta:** Desarrollar un sistema capaz de procesar cualquier tipo de PDF o documento estructurado, inferir su esquema y mapearlo a la base de datos de forma flexible.

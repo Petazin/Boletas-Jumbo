@@ -1,5 +1,12 @@
 # Historial de Cambios
 
+## 2025-08-28
+- **feat(ingestion)**: Implementa ingesta robusta de cartolas bancarias y mejora procesamiento de boletas.
+    - Se actualiza el esquema de la base de datos para soportar nuevos tipos de documentos y metadatos.
+    - Se mejora la ingesta de cartolas PDF y XLS (nacionales e internacionales) con el uso de `document_type` y el movimiento de archivos procesados.
+    - Se optimiza el procesamiento de boletas mediante `multiprocessing` para un procesamiento paralelo de PDFs.
+    - Se añade `archivos_procesados/` al `.gitignore`.
+
 ## 2025-08-27
 - **refactor(files)**: Mejora la estructura de carpetas para estados de cuenta bancarios.
     - Se añadió `PROCESSED_BANK_STATEMENTS_DIR` en `config.py` para definir la ubicación de los archivos bancarios procesados.
