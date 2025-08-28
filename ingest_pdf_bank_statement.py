@@ -62,7 +62,7 @@ def insert_metadata(conn, source_id, pdf_path, file_hash):
     """Inserta los metadatos del archivo (incluyendo su hash) en la base de datos."""
     cursor = conn.cursor()
     query = """
-    INSERT INTO metadatos_cartolas_bancarias_raw (fuente_id, nombre_archivo_original, file_hash, tipo_documento)
+    INSERT INTO metadatos_cartolas_bancarias_raw (fuente_id, nombre_archivo_original, file_hash, document_type)
     VALUES (%s, %s, %s, %s)
     """
     values = (source_id, pdf_path, file_hash, 'Bank Statement')

@@ -108,7 +108,6 @@ def main():
     try:
         with db_connection() as conn:
             cursor = conn.cursor()
-            create_table_if_not_exists(cursor)
             conn.commit()
 
             files_to_process = get_files_to_process(cursor)
