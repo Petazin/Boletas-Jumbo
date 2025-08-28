@@ -92,6 +92,7 @@ Este es el proceso que seguiré para gestionar los cambios en el repositorio.
 *   `[ ]` **Extracción de Datos de Diferentes Dominios:** Implementar la lógica para extraer información de los distintos dominios web donde se publican las cartolas.
 *   `[ ]` **Renombrar Archivos Procesados:** Implementar un sistema para renombrar los archivos PDF/XLS procesados con un formato estandarizado (ej. `[TipoDocumento]_[Cuenta]_[Fecha]_[HashCorto].pdf`).
 *   `[x]` **Revisar y Validar Esquema de BD:** Confirmado que el esquema actual (`create_new_tables.sql`) es adecuado para el escalamiento y las necesidades futuras, y se han realizado ajustes en `alter_table.py` para su compatibilidad.
+*   `[ ]` **Implementar Ingestión Robusta de XLS para Banco Falabella:** Desarrollar un mecanismo de parsing específico para los archivos XLS de tarjetas de crédito de Banco Falabella.
 *   `[ ]` **Implementar Ingestión Robusta de XLS:** Re-evaluar o mejorar el mecanismo de parsing para archivos XLS de bancos.
 *   `[ ]` **Procesamiento de Datos Bancarios:** Implementar la lógica para transformar los datos crudos de `bank_account_transactions_raw` y `credit_card_transactions_raw` a la tabla `transactions`.
 *   `[ ]` **Manejo de Duplicados y Actualizaciones (Nivel Transacción):** Implementar lógica para identificar y manejar transacciones individuales duplicadas.
