@@ -1,1 +1,10 @@
 archivos_procesados/
+2edcf95e-bffe-4f3d-bbdc-7558a45f7c0f.pdf
+84a49907-b98e-4853-b81c-c9fcec87d46c.xlsx
+BI_analisis.pbix
+__pycache__/
+boletas_data.csv
+descargas/
+download_boletas.log
+process_boletas.log
+tests/__pycache__/
