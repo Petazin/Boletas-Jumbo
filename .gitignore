@@ -8,3 +8,4 @@ descargas/
 download_boletas.log
 process_boletas.log
 tests/__pycache__/
+agent_activity.log

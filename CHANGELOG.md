@@ -1,5 +1,11 @@
 # Historial de Cambios
 
+## 2025-08-29
+- **feat(ingestion)**: Implementa la ingesta de cartolas de Banco Falabella.
+    - Se creó el script `ingest_xls_falabella_cc.py` para procesar archivos XLS de tarjetas de crédito de Banco Falabella.
+    - El script identifica dinámicamente la cabecera de transacciones y mapea las columnas específicas del formato.
+    - Se añadió la librería `openpyxl` a `requirements.txt` como nueva dependencia para el manejo de archivos `.xlsx`.
+
 ## 2025-08-28
 - **feat(ingestion)**: Implementa ingesta robusta de cartolas bancarias y mejora procesamiento de boletas.
     - Se actualiza el esquema de la base de datos para soportar nuevos tipos de documentos y metadatos.
