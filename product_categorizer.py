@@ -49,6 +49,31 @@ def categorize_product(description):
     ):
         return "Higiene Personal"
 
+    # Lácteos y Huevos
+    if any(
+        keyword in description
+        for keyword in [
+            "LECHE",
+            "YOGUR",
+            "YOG",
+            "QUESO",
+            "MANTEQUILLA",
+            "CREMA",
+            "HUEVO",
+            "LACTEO",
+            "POSTRE",
+            "CHANDELLE",
+            "COLUN",
+            "GAUDA",
+            "CREAM CHEESE",
+            "RALLADO",
+            "ALPES",
+            "CHAMYTO",
+            "CAMEM",
+        ]
+    ):
+        return "Lácteos y Huevos"
+
     # Productos de Limpieza y Hogar
     if any(
         keyword in description
@@ -142,31 +167,6 @@ def categorize_product(description):
         ]
     ):
         return "Vinos y Licores"
-
-    # Lácteos y Huevos
-    if any(
-        keyword in description
-        for keyword in [
-            "LECHE",
-            "YOGUR",
-            "YOG",
-            "QUESO",
-            "MANTEQUILLA",
-            "CREMA",
-            "HUEVO",
-            "LACTEO",
-            "POSTRE",
-            "CHANDELLE",
-            "COLUN",
-            "GAUDA",
-            "CREAM CHEESE",
-            "RALLADO",
-            "ALPES",
-            "CHAMYTO",
-            "CAMEM",
-        ]
-    ):
-        return "Lácteos y Huevos"
 
     # Pastas
     if any(

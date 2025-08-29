@@ -1,6 +1,8 @@
 # Historial de Cambios
 
 ## 2025-08-29
+- **fix(categorization)**: Corrige clasificación de yogures por orden de reglas.
+    - Se reordena la lógica en `product_categorizer.py` para que la categoría "Lácteos y Huevos" se verifique antes que "Productos de Limpieza", solucionando la clasificación incorrecta de yogures en bolsa.
 - **feat(ingestion)**: Implementa la ingesta de cartolas de Banco Falabella.
     - Se creó el script `ingest_xls_falabella_cc.py` para procesar archivos XLS de tarjetas de crédito de Banco Falabella.
     - El script identifica dinámicamente la cabecera de transacciones y mapea las columnas específicas del formato.
