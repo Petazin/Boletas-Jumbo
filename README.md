@@ -19,13 +19,17 @@ El proyecto sigue una arquitectura modular, donde cada archivo tiene una respons
 *   **`database_utils.py`**: Utilidad para la gestión centralizada de la conexión a la base de datos MySQL.
 *   **`ingest_pdf_bank_statement.py`**: Script para procesar cartolas bancarias en formato PDF. Extrae transacciones de múltiples archivos, calcula un hash único para cada uno para evitar duplicados y los inserta en la base de datos.
 *   **`ingest_xls_national_cc.py`**: Script para procesar cartolas de tarjeta de crédito nacional en formato XLS. Extrae transacciones, calcula un hash único para evitar duplicados y los inserta en la base de datos.
-*   **`ingest_xls_international_cc.py`**: Script para procesar cartolas de tarjeta de crédito internacional en formato XLS. Extrae transacciones, calcula un hash único para evitar duplicados y los inserta en la base de datos.
+*   **`ingest_xls_international_cc.py`**: Script para procesar cartolas de tarjeta de crédito internacional en formato XLS.
+*   **`ingest_xls_falabella_cc.py`**: Script para procesar cartolas de tarjeta de crédito de Banco Falabella en formato XLS.
+*   **`ingest_xls_falabella_cuenta_corriente.py`**: Script para procesar cartolas de cuenta corriente de Banco Falabella en formato XLS.
+*   **`ingest_xls_falabella_linea_credito.py`**: Script para procesar cartolas de línea de crédito de Banco Falabella en formato XLS.
 
 *   **`product_categorizer.py`**: Módulo de lógica de negocio para categorizar productos de boletas.
 *   **`pdf_parser.py`**: Módulo de extracción y parsing para boletas de supermercado en PDF.
 *   **`download_boletas.py`**: Script de automatización para descargar boletas de Jumbo.cl.
 *   **`process_boletas.py`**: Script orquestador que procesa los PDFs de boletas de supermercado en paralelo.
 *   **`export_data.py`**: Script para exportar datos de boletas a un archivo CSV.
+*   **`utils/db/`**: Directorio con scripts de utilidad para la base de datos (resetear, configurar tablas, etc.).
 *   **`cuarentena_pdfs/`**: Directorio para PDFs de boletas que no pudieron ser procesados.
 *   **`descargas/`**: Directorio que contiene las subcarpetas para los archivos descargados de `Jumbo` y `Banco`.
 *   **`tests/`**: Directorio de pruebas unitarias con `pytest`.
@@ -75,19 +79,24 @@ El sistema tiene dos flujos de trabajo principales:
     ```bash
     python ingest_xls_international_cc.py
     ```
-    *   **Proceso:** Similar al procesamiento de PDFs, este script buscará archivos XLS/XLSX en el directorio configurado para cartolas internacionales. Identificará dinámicamente la cabecera de las transacciones, extraerá los datos (incluyendo el manejo de cuotas y fechas de cargo/originales) y los insertará en la base de datos, evitando duplicados por hash.
+    *   **Proceso:** Similar a los otros scripts de ingesta de XLS, procesa las cartolas de tarjetas de crédito internacionales.
+
+5.  **Procesar Cartolas de Banco Falabella (XLS):**
+    ```bash
+    # Para Tarjeta de Crédito
+    python ingest_xls_falabella_cc.py
+
+    # Para Cuenta Corriente
+    python ingest_xls_falabella_cuenta_corriente.py
+
+    # Para Línea de Crédito
+    python ingest_xls_falabella_linea_credito.py
+    ```
+    *   **Proceso:** Cada uno de estos scripts está especializado en un producto de Banco Falabella, buscando los archivos en su directorio correspondiente y guardando los datos en la tabla apropiada.
 
 ---
 
-## Avances y Roadmap
 
-### Fase 1: Motor de Boletas (Completada)
-
-Se ha completado un motor robusto para el análisis de boletas de Jumbo, incluyendo:
-*   Centralización de la configuración.
-*   Sistema de cuarentena para PDFs con errores.
-*   Pruebas unitarias con `pytest`.
-*   Optimización con `multiprocessing`.
 
 ## Avances y Roadmap
 

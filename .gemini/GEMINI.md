@@ -89,7 +89,6 @@ Este es el proceso que seguiré para gestionar los cambios en el repositorio.
 *   `[x]` **Implementar Ingesta Robusta de Cartolas PDF:** Desarrollar un mecanismo de parsing configurable para archivos PDF de bancos, con detección de duplicados por contenido (hash), utilizando el campo `document_type` y moviendo los archivos procesados.
 *   `[x]` **Expandir Ingesta de Cartolas (PDF/XLS):** Implementada la ingesta de cartolas de tarjeta de crédito nacional e internacional (XLS), con soporte para `document_type` y movimiento de archivos procesados.
 *   `[x]` **Aplicar Hashing a Todos los Archivos Analizados:** Asegurado que cualquier archivo que se ingrese a la base de datos (no solo PDFs) tenga su hash para identificación única, con soporte para `document_type` y movimiento de archivos procesados.
-*   `[ ]` **Extracción de Datos de Diferentes Dominios:** Implementar la lógica para extraer información de los distintos dominios web donde se publican las cartolas.
 *   `[ ]` **Renombrar Archivos Procesados:** Implementar un sistema para renombrar los archivos PDF/XLS procesados con un formato estandarizado (ej. `[TipoDocumento]_[Cuenta]_[Fecha]_[HashCorto].pdf`).
 *   `[x]` **Revisar y Validar Esquema de BD:** Confirmado que el esquema actual (`create_new_tables.sql`) es adecuado para el escalamiento y las necesidades futuras, y se han realizado ajustes en `alter_table.py` para su compatibilidad.
 *   `[x]` **Implementar Ingestión Robusta de XLS para Banco Falabella:** Desarrollar un mecanismo de parsing específico para los archivos XLS de tarjetas de crédito de Banco Falabella.
@@ -99,5 +98,10 @@ Este es el proceso que seguiré para gestionar los cambios en el repositorio.
 *   `[ ]` **Optimización de Consultas:** Revisar y optimizar las consultas SQL para asegurar un rendimiento eficiente.
 *   `[ ]` **Estrategia de Backup y Recuperación:** Definir e implementar una estrategia de backup y recuperación para la base de datos.
 
+#### Fase 2.1: Mejoras de Arquitectura y Robustez del Proceso de Ingesta
+*   `[ ]` **Manejo Transaccional de la Ingesta:** Modificar todos los scripts para que el `hash` de un archivo se guarde en la base de datos únicamente si el archivo y **todas** sus transacciones han sido procesadas e insertadas con éxito. Esto evitará registros "huérfanos" que impiden el reprocesamiento.
+*   `[ ]` **Reubicación Inteligente de Archivos:** Mejorar la lógica de movimiento de archivos para que al pasar un documento a la carpeta `archivos_procesados`, se conserve su estructura de carpetas original (ej. `.../banco/tarjeta/`). Esto facilitará los ciclos de prueba y la re-ingesta manual de datos.
+
 #### Fase 3: Sistema Genérico de Ingesta de Documentos (Planificada)
+*   `[ ]` **Extracción de Datos de Diferentes Dominios:** Implementar la lógica para extraer información de los distintos dominios web donde se publican las cartolas.
 *   `[ ]` **Implementar Sistema Genérico de Ingesta:** Desarrollar un sistema capaz de procesar cualquier tipo de PDF o documento estructurado, inferir su esquema y mapearlo a la base de datos de forma flexible.

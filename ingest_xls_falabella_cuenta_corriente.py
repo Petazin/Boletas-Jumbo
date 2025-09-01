@@ -6,7 +6,6 @@ import shutil
 from database_utils import db_connection
 from collections import defaultdict
 from datetime import datetime
-from dateutil.relativedelta import relativedelta
 from config import PROCESSED_BANK_STATEMENTS_DIR
 
 # Configuración de logging
@@ -58,36 +57,42 @@ def insert_metadata(conn, source_id, file_path, file_hash, doc_type):
     INSERT INTO metadatos_cartolas_bancarias_raw (fuente_id, nombre_archivo_original, file_hash, document_type)
     VALUES (%s, %s, %s, %s)
     """
+    # Corregido para usar os.path.basename y ser consistente
     values = (source_id, os.path.basename(file_path), file_hash, doc_type)
     cursor.execute(query, values)
     conn.commit()
     return cursor.lastrowid
 
 def parse_and_clean_value(value):
-    """Limpia y convierte valores monetarios."""
+    """Limpia y convierte valores monetarios, manejando el símbolo '.'"""
     if isinstance(value, str):
-        value = value.replace('.', '').replace(',', '.')
-        return float(value) if value and value != '-' else 0.0
+        value = value.replace('$', '').replace(' ', '').replace('.', '').replace(',', '.')
+        
+        if value.endswith('-'):
+            value = '-' + value[:-1]
+        
+        try:
+            return float(value)
+        except ValueError:
+            return 0.0
     return value if pd.notna(value) else 0.0
 
-def process_national_cc_xls_file(xls_path, source_id, metadata_id):
+def process_falabella_cuenta_corriente_xls_file(xls_path, source_id, metadata_id):
     """
-    Procesa un archivo XLS de cartola de tarjeta de crédito nacional.
+    Procesa un archivo XLS de cartola de Cuenta Corriente de Banco Falabella.
     """
-    logging.info(f"Iniciando procesamiento de XLS nacional: {xls_path}")
+    logging.info(f"Iniciando procesamiento de XLS de Cuenta Corriente de Banco Falabella: {xls_path}")
     try:
         df_initial_read = pd.read_excel(xls_path, header=None, nrows=50)
         
-        keywords_required = ["Fecha", "Descripción"]
-        keywords_optional = ["Monto", "Cargo", "Abono", "Importe"]
+        keywords_required = ["Fecha", "Descripcion", "Cargo", "Abono", "Saldo"]
         header_row_index = -1
 
-        for index in range(17, len(df_initial_read)):
+        for index in range(len(df_initial_read)):
             row = df_initial_read.iloc[index]
             row_str = row.astype(str).str.cat(sep=' ')
             
-            if all(keyword in row_str for keyword in keywords_required) and \
-               any(keyword in row_str for keyword in keywords_optional):
+            if all(keyword in row_str for keyword in keywords_required):
                 header_row_index = index
                 break
         
@@ -99,101 +104,84 @@ def process_national_cc_xls_file(xls_path, source_id, metadata_id):
 
         df_transactions = pd.read_excel(xls_path, skiprows=header_row_index, header=0) 
         
-        original_columns = df_transactions.columns.tolist()
-        cleaned_columns = [str(col).strip() if pd.notna(col) else f'unnamed_{i}' for i, col in enumerate(original_columns)]
-        df_transactions.columns = cleaned_columns
-        
+        df_transactions = df_transactions.loc[:, ~df_transactions.columns.str.contains('^Unnamed')]
+        if 'nan' in df_transactions.columns:
+            df_transactions = df_transactions.drop(columns=['nan'])
+
+        logging.info("Columnas del DataFrame de transacciones (después de limpiar Unnamed/nan): %s", df_transactions.columns.tolist())
+
         column_mapping = {
-            'Fecha': 'fecha_cargo_original',
-            'Descripción': 'descripcion_transaccion',
-            'Categoría': 'categoria',
-            'Cuotas': 'cuotas_raw',
-            'Monto ($)': 'cargos_pesos'
+            'Fecha': 'fecha_transaccion_str',
+            'Descripcion': 'descripcion_transaccion',
+            'Cargo': 'cargos_pesos',
+            'Abono': 'abonos_pesos',
+            'Saldo': 'saldo_pesos'
         }
         df_transactions.rename(columns=column_mapping, inplace=True)
 
         columns_to_keep = [
-            'fecha_cargo_original', 'descripcion_transaccion', 'categoria',
-            'cargos_pesos', 'cuotas_raw'
+            'fecha_transaccion_str', 'descripcion_transaccion', 'cargos_pesos',
+            'abonos_pesos', 'saldo_pesos'
         ]
+        columns_to_keep = [col for col in columns_to_keep if col in df_transactions.columns]
+        df_transactions = df_transactions[columns_to_keep]
+
+        df_transactions['fecha_transaccion_str'] = pd.to_datetime(df_transactions['fecha_transaccion_str'], format='%d-%m-%Y', errors='coerce').dt.strftime('%Y-%m-%d')
+        df_transactions.dropna(subset=['fecha_transaccion_str'], inplace=True)
+
+        df_transactions['cargos_pesos'] = df_transactions['cargos_pesos'].apply(parse_and_clean_value)
+        df_transactions['abonos_pesos'] = df_transactions['abonos_pesos'].apply(parse_and_clean_value)
+        df_transactions['saldo_pesos'] = df_transactions['saldo_pesos'].apply(parse_and_clean_value)
         
-        df_transactions = df_transactions[[col for col in columns_to_keep if col in df_transactions.columns]]
-
-        if 'cuotas_raw' in df_transactions.columns:
-            df_transactions['cuota_actual'] = df_transactions['cuotas_raw'].astype(str).apply(lambda x: int(x.split('/')[0]) if '/' in x else 1)
-            df_transactions['total_cuotas'] = df_transactions['cuotas_raw'].astype(str).apply(lambda x: int(x.split('/')[1]) if '/' in x else 1)
-        else:
-            df_transactions['cuota_actual'] = 1
-            df_transactions['total_cuotas'] = 1
-
-        if 'fecha_cargo_original' in df_transactions.columns:
-            df_transactions['fecha_cargo_original'] = pd.to_datetime(df_transactions['fecha_cargo_original'], errors='coerce', dayfirst=True)
-        
-        df_transactions['fecha_cargo_cuota'] = df_transactions.apply(
-            lambda row: row['fecha_cargo_original'] + relativedelta(months=row['cuota_actual'] - 1)
-            if pd.notna(row['fecha_cargo_original']) and row['cuota_actual'] > 0 else pd.NaT,
-            axis=1
-        )
-
-        df_transactions['fecha_cargo_original'] = df_transactions['fecha_cargo_original'].dt.strftime('%Y-%m-%d')
-        df_transactions['fecha_cargo_cuota'] = df_transactions['fecha_cargo_cuota'].dt.strftime('%Y-%m-%d')
-
-        if 'cargos_pesos' in df_transactions.columns:
-            df_transactions['cargos_pesos'] = df_transactions['cargos_pesos'].apply(parse_and_clean_value)
-        
-        df_transactions.dropna(subset=['fecha_cargo_original'], inplace=True)
-
-        # --- INICIO DE LA CORRECCIÓN DEFINITIVA ---
+        # --- INICIO DE LA CORRECCIÓN ---
         # Reemplazar todos los NaN restantes con None para compatibilidad con SQL.
         df_transactions = df_transactions.astype(object).where(pd.notnull(df_transactions), None)
-        # --- FIN DE LA CORRECCIÓN DEFINITIVA ---
+        # --- FIN DE LA CORRECCIÓN ---
 
-        logging.info(f"Parseo de {os.path.basename(xls_path)} completado. DataFrame listo para inserción.")
+        logging.info(f"Parseo de {os.path.basename(xls_path)} completado. {len(df_transactions)} transacciones listas para inserción.")
         return df_transactions
 
     except Exception as e:
         logging.error(f"Error al procesar el archivo XLS {os.path.basename(xls_path)}: {e}", exc_info=True)
         return None
 
-def insert_credit_card_transactions(conn, metadata_id, source_id, transactions_df):
+def insert_bank_account_transactions(conn, metadata_id, source_id, transactions_df):
     """
-    Inserta las transacciones de tarjeta de crédito procesadas en la base de datos.
+    Inserta las transacciones de cuenta bancaria procesadas en la base de datos.
     """
     cursor = conn.cursor()
     query = """
-    INSERT INTO transacciones_tarjeta_credito_raw (
-        metadata_id, fuente_id, fecha_cargo_original, fecha_cargo_cuota, descripcion_transaccion, 
-        categoria, cuota_actual, total_cuotas, cargos_pesos, monto_usd, tipo_cambio, pais
-    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+    INSERT INTO transacciones_cuenta_bancaria_raw (
+        metadata_id, fuente_id, fecha_transaccion_str, descripcion_transaccion, 
+        canal_o_sucursal, cargos_pesos, abonos_pesos, saldo_pesos, linea_original_datos
+    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
     """
     for _, row in transactions_df.iterrows():
         values = (
             metadata_id,
             source_id,
-            row.get('fecha_cargo_original'),
-            row.get('fecha_cargo_cuota'),
+            row.get('fecha_transaccion_str'),
             row.get('descripcion_transaccion'),
-            row.get('categoria'),
-            row.get('cuota_actual'),
-            row.get('total_cuotas'),
+            row.get('canal_o_sucursal', None),
             row.get('cargos_pesos'),
-            row.get('monto_usd', None),
-            row.get('tipo_cambio', None),
-            row.get('pais', None)
+            row.get('abonos_pesos'),
+            row.get('saldo_pesos'),
+            str(row.to_dict()) # Guardar la fila original como string
         )
         cursor.execute(query, values)
     conn.commit()
-    logging.info(f"Se insertaron {len(transactions_df)} transacciones de tarjeta de crdito para metadata_id: {metadata_id}")
+    logging.info(f"Se insertaron {len(transactions_df)} transacciones de cuenta bancaria para metadata_id: {metadata_id}")
 
 def main():
     """
-    Función principal para orquestar el procesamiento de archivos XLS.
+    Función principal para orquestar el procesamiento de archivos XLS de Cuenta Corriente de Banco Falabella.
     """
-    xls_directory = r'C:\\Users\\Petazo\\Desktop\\Boletas Jumbo\\descargas\\Banco\\banco de chile\\tarjeta de credito\\nacional'
-    source_name = 'Banco de Chile - Tarjeta Credito Nacional'
-    document_type = 'Credit Card Statement'
+    xls_directory = r'C:\\Users\\Petazo\\Desktop\\Boletas Jumbo\\descargas\\Banco\\Banco falabella\\Cuenta Corriente'
+    source_name = 'Banco Falabella - Cuenta Corriente'
+    document_type = 'Bank Statement - Checking Account'
 
     xls_files = find_all_xls_files(xls_directory)
+
     if not xls_files:
         logging.info(f"No se encontraron archivos XLS/XLSX en: {xls_directory}")
         return
@@ -211,13 +199,13 @@ def main():
 
                 metadata_id = insert_metadata(conn, source_id, xls_path, file_hash, document_type)
                 
-                processed_df = process_national_cc_xls_file(xls_path, source_id, metadata_id)
+                processed_df = process_falabella_cuenta_corriente_xls_file(xls_path, source_id, metadata_id)
                 
                 if processed_df is None or processed_df.empty:
-                    logging.warning(f"No se procesaron transacciones para {os.path.basename(xls_path)}. Omitiendo inserción y movimiento.")
+                    logging.warning(f"No se procesaron transacciones para {os.path.basename(xls_path)}.")
                     continue
                 
-                insert_credit_card_transactions(conn, metadata_id, source_id, processed_df)
+                insert_bank_account_transactions(conn, metadata_id, source_id, processed_df)
                 
                 processed_filepath = os.path.join(PROCESSED_BANK_STATEMENTS_DIR, os.path.basename(xls_path))
                 os.makedirs(os.path.dirname(processed_filepath), exist_ok=True)

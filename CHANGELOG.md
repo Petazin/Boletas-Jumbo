@@ -1,5 +1,18 @@
 # Historial de Cambios
 
+## 2025-09-01
+- **feat(ingestion)**: Implementa la ingesta de cartolas de Línea de Crédito de Banco Falabella.
+    - Se creó el script `ingest_xls_falabella_linea_credito.py` y la tabla `transacciones_linea_credito_raw` para manejar este nuevo producto.
+    - Se crearon scripts de utilidad (`setup_linea_credito_table.py`, `reset_database.py`) para mejorar la gestión del esquema de la BD.
+- **fix(ingestion)**: Corrige error de inserción de valores `NaN` en múltiples scripts.
+    - Se modificaron los scripts `ingest_xls_national_cc.py` y `ingest_xls_falabella_cuenta_corriente.py` para convertir valores `NaN` de pandas a `None` antes de la inserción, solucionando el error `Unknown column 'nan'`.
+- **fix(pdf-parser)**: Mejora la robustez del parseo de números en cartolas PDF.
+    - Se ajustó la función de limpieza en `ingest_pdf_bank_statement.py` para manejar casos donde el extractor de texto une columnas adyacentes, evitando errores de conversión a `float`.
+- **chore(testing)**: Realiza prueba de ingesta completa de extremo a extremo.
+    - Se validó el funcionamiento de todos los scripts de ingesta (`boletas`, `pdf`, `xls`) contra una base de datos limpia, corrigiendo múltiples errores y asegurando la robustez del sistema.
+- **docs(roadmap)**: Añade nuevas tareas de arquitectura al roadmap.
+    - Se incluyeron mejoras para el manejo transaccional de la ingesta y la reubicación inteligente de archivos procesados.
+
 ## 2025-08-29
 - **fix(categorization)**: Corrige clasificación de yogures por orden de reglas.
     - Se reordena la lógica en `product_categorizer.py` para que la categoría "Lácteos y Huevos" se verifique antes que "Productos de Limpieza", solucionando la clasificación incorrecta de yogures en bolsa.
