@@ -129,8 +129,9 @@ Se está trabajando en expandir la aplicación a un gestor financiero completo.
 *   `[ ]` **Optimización de Consultas:** Revisar y optimizar las consultas SQL para asegurar un rendimiento eficiente.
 *   `[ ]` **Estrategia de Backup y Recuperación:** Definir e implementar una estrategia de backup y recuperación para la base de datos.
 
-### Fase 3: Sistema Genérico de Ingesta de Documentos (Planificada)
-*   `[ ]` **Implementar Sistema Genérico de Ingesta:** Desarrollar un sistema capaz de procesar cualquier tipo de PDF o documento estructurado, inferir su esquema y mapearlo a la base de datos de forma flexible.
+### Fase 2.1: Mejoras de Arquitectura y Robustez del Proceso de Ingesta
+*   `[x]` **Manejo Transaccional de la Ingesta:** Modificar todos los scripts para que el `hash` de un archivo se guarde en la base de datos únicamente si el archivo y **todas** sus transacciones han sido procesadas e insertadas con éxito. Esto evitará registros "huérfanos" que impiden el reprocesamiento.
+*   `[x]` **Reubicación Inteligente de Archivos:** Mejorar la lógica de movimiento de archivos para que al pasar un documento a la carpeta `archivos_procesados`, se conserve su estructura de carpetas original (ej. `.../banco/tarjeta/`). Esto facilitará los ciclos de prueba y la re-ingesta manual de datos.
 
 ### Fase 3: Sistema Genérico de Ingesta de Documentos (Planificada)
 *   `[ ]` **Implementar Sistema Genérico de Ingesta:** Desarrollar un sistema capaz de procesar cualquier tipo de PDF o documento estructurado, inferir su esquema y mapearlo a la base de datos de forma flexible.

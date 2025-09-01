@@ -99,8 +99,8 @@ Este es el proceso que seguiré para gestionar los cambios en el repositorio.
 *   `[ ]` **Estrategia de Backup y Recuperación:** Definir e implementar una estrategia de backup y recuperación para la base de datos.
 
 #### Fase 2.1: Mejoras de Arquitectura y Robustez del Proceso de Ingesta
-*   `[ ]` **Manejo Transaccional de la Ingesta:** Modificar todos los scripts para que el `hash` de un archivo se guarde en la base de datos únicamente si el archivo y **todas** sus transacciones han sido procesadas e insertadas con éxito. Esto evitará registros "huérfanos" que impiden el reprocesamiento.
-*   `[ ]` **Reubicación Inteligente de Archivos:** Mejorar la lógica de movimiento de archivos para que al pasar un documento a la carpeta `archivos_procesados`, se conserve su estructura de carpetas original (ej. `.../banco/tarjeta/`). Esto facilitará los ciclos de prueba y la re-ingesta manual de datos.
+*   `[x]` **Manejo Transaccional de la Ingesta:** Modificar todos los scripts para que el `hash` de un archivo se guarde en la base de datos únicamente si el archivo y **todas** sus transacciones han sido procesadas e insertadas con éxito. Esto evitará registros "huérfanos" que impiden el reprocesamiento.
+*   `[x]` **Reubicación Inteligente de Archivos:** Mejorar la lógica de movimiento de archivos para que al pasar un documento a la carpeta `archivos_procesados`, se conserve su estructura de carpetas original (ej. `.../banco/tarjeta/`). Esto facilitará los ciclos de prueba y la re-ingesta manual de datos.
 
 #### Fase 3: Sistema Genérico de Ingesta de Documentos (Planificada)
 *   `[ ]` **Extracción de Datos de Diferentes Dominios:** Implementar la lógica para extraer información de los distintos dominios web donde se publican las cartolas.

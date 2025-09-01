@@ -127,3 +127,6 @@ Se ajustó el formato de los mensajes de log en `download_boletas.py` para mejor
 - **Add**: requirements.txt (090b8d0)
 - **Add**: .gitignore (79c887a)
 - **Initial**: commit (5ac646a)
+- **docs(roadmap)**: Actualiza el roadmap y el estado del proyecto.
+    - Se completaron las tareas de la Fase 1 y se avanzó en la Fase 2, implementando la ingesta de cartolas bancarias en formato PDF y XLS.
+    - Se añadieron nuevas tareas a la Fase 2.1 para mejorar la arquitectura y robustez del proceso de ingesta.
