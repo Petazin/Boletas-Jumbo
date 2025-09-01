@@ -4,9 +4,10 @@ import os
 import logging
 import hashlib
 import shutil
+from utils.file_utils import log_file_movement
 from database_utils import db_connection
 from collections import defaultdict
-from config import PROCESSED_BANK_STATEMENTS_DIR
+
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
@@ -191,13 +192,16 @@ def main():
                 metadata_id = insert_metadata(conn, source_id, pdf_path, file_hash)
                 insert_transactions(conn, metadata_id, source_id, transactions_df)
                 
-                processed_filepath = os.path.join(PROCESSED_BANK_STATEMENTS_DIR, os.path.basename(pdf_path))
-                os.makedirs(os.path.dirname(processed_filepath), exist_ok=True)
+                processed_dir = os.path.join(os.path.dirname(pdf_path), 'procesados')
+                os.makedirs(processed_dir, exist_ok=True)
+                processed_filepath = os.path.join(processed_dir, os.path.basename(pdf_path))
                 shutil.move(pdf_path, processed_filepath)
                 logging.info(f"Archivo movido a la carpeta de procesados: {processed_filepath}")
+                log_file_movement(pdf_path, processed_filepath, "SUCCESS", "Archivo procesado y movido con éxito.")
 
             except Exception as e:
                 logging.error(f"Ocurrió un error procesando el archivo {os.path.basename(pdf_path)}: {e}", exc_info=True)
+                log_file_movement(pdf_path, "N/A", "FAILED", f"Error al procesar: {e}")
 
 if __name__ == '__main__':
     main()

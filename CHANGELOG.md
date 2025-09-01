@@ -12,6 +12,10 @@
     - Se validó el funcionamiento de todos los scripts de ingesta (`boletas`, `pdf`, `xls`) contra una base de datos limpia, corrigiendo múltiples errores y asegurando la robustez del sistema.
 - **docs(roadmap)**: Añade nuevas tareas de arquitectura al roadmap.
     - Se incluyeron mejoras para el manejo transaccional de la ingesta y la reubicación inteligente de archivos procesados.
+- **refactor(file-management)**: Mejora la gestión de archivos procesados y añade logging centralizado.
+    - Se modificaron todos los scripts de ingesta (`ingest_pdf_bank_statement.py`, `ingest_xls_national_cc.py`, `ingest_xls_international_cc.py`, `ingest_xls_falabella_cc.py`, `ingest_xls_falabella_cuenta_corriente.py`, `ingest_xls_falabella_linea_credito.py`) para mover los archivos procesados a una subcarpeta `procesados/` dentro de su directorio de origen.
+    - Se eliminó la variable `PROCESSED_BANK_STATEMENTS_DIR` de `config.py`.
+    - Se implementó un sistema de logging centralizado para los movimientos de archivos en `utils/file_utils.py`, registrando el origen, destino, estado y mensaje de cada operación.
 
 ## 2025-08-29
 - **fix(categorization)**: Corrige clasificación de yogures por orden de reglas.

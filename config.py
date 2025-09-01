@@ -36,8 +36,7 @@ QUARANTINE_DIR = os.path.join(BASE_DIR, "cuarentena_pdfs")
 # Fuente de datos actual
 CURRENT_SOURCE = "Jumbo"
 
-# Directorio donde se moverán los archivos bancarios una vez procesados.
-PROCESSED_BANK_STATEMENTS_DIR = os.path.join(BASE_DIR, "archivos_procesados", "Banco")
+
 
 # Nombre y ruta del archivo CSV que se generará con los datos exportados.
 EXPORT_CSV_FILE = os.path.join(BASE_DIR, "boletas_data.csv")

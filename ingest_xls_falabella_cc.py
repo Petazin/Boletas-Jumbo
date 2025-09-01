@@ -3,11 +3,12 @@ import os
 import logging
 import hashlib
 import shutil
+from utils.file_utils import log_file_movement
 from database_utils import db_connection
 from collections import defaultdict
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
-from config import PROCESSED_BANK_STATEMENTS_DIR
+
 
 # Configuración de logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -215,15 +216,18 @@ def main():
                 
                 insert_credit_card_transactions(conn, metadata_id, source_id, processed_df)
                 
-                processed_filepath = os.path.join(PROCESSED_BANK_STATEMENTS_DIR, os.path.basename(xls_path))
-                os.makedirs(os.path.dirname(processed_filepath), exist_ok=True)
+                processed_dir = os.path.join(os.path.dirname(xls_path), 'procesados')
+                os.makedirs(processed_dir, exist_ok=True)
+                processed_filepath = os.path.join(processed_dir, os.path.basename(xls_path))
                 shutil.move(xls_path, processed_filepath)
                 logging.info(f"Archivo movido a la carpeta de procesados: {processed_filepath}")
+                log_file_movement(xls_path, processed_filepath, "SUCCESS", "Archivo procesado y movido con éxito.")
 
                 logging.info(f"Proceso de ingesta completado con éxito para: {os.path.basename(xls_path)}")
 
             except Exception as e:
                 logging.error(f"Ocurrió un error procesando el archivo {os.path.basename(xls_path)}: {e}")
+                log_file_movement(xls_path, "N/A", "FAILED", f"Error al procesar: {e}")
 
 if __name__ == '__main__':
     main()

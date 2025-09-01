@@ -3,9 +3,10 @@ import os
 import logging
 import hashlib
 import shutil
+from utils.file_utils import log_file_movement
 from database_utils import db_connection
 from datetime import datetime
-from config import PROCESSED_BANK_STATEMENTS_DIR
+
 
 # Configuración de logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -181,13 +182,16 @@ def main():
                 metadata_id = insert_metadata(conn, source_id, xls_path, file_hash, document_type)
                 insert_linea_credito_transactions(conn, metadata_id, source_id, processed_df)
                 
-                processed_filepath = os.path.join(PROCESSED_BANK_STATEMENTS_DIR, os.path.basename(xls_path))
-                os.makedirs(os.path.dirname(processed_filepath), exist_ok=True)
+                processed_dir = os.path.join(os.path.dirname(xls_path), 'procesados')
+                os.makedirs(processed_dir, exist_ok=True)
+                processed_filepath = os.path.join(processed_dir, os.path.basename(xls_path))
                 shutil.move(xls_path, processed_filepath)
                 logging.info(f"Archivo movido a procesados: {processed_filepath}")
+                log_file_movement(xls_path, processed_filepath, "SUCCESS", "Archivo procesado y movido con éxito.")
 
             except Exception as e:
                 logging.error(f"Ocurrió un error mayor en el procesamiento de {os.path.basename(xls_path)}: {e}", exc_info=True)
+                log_file_movement(xls_path, "N/A", "FAILED", f"Error al procesar: {e}")
 
 if __name__ == '__main__':
     main()

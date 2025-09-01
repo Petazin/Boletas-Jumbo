@@ -5,11 +5,13 @@ import logging
 import os
 import mysql.connector
 import multiprocessing
+import shutil
 
 # Importar módulos y configuración del proyecto
 from config import PROCESS_LOG_FILE
 from database_utils import db_connection
 from pdf_parser import process_pdf
+from utils.file_utils import log_file_movement
 
 
 def setup_logging():
@@ -133,12 +135,22 @@ def main():
                         conn.commit()
                         msg = f"Datos de {pdf_file} insertados correctamente."
                         logging.info(msg)
+
+                        # Mover el archivo PDF a la carpeta de procesados
+                        original_filepath = file_path_map[order_id][0]
+                        processed_dir = os.path.join(os.path.dirname(original_filepath), 'procesados')
+                        os.makedirs(processed_dir, exist_ok=True)
+                        processed_filepath = os.path.join(processed_dir, os.path.basename(original_filepath))
+                        shutil.move(original_filepath, processed_filepath)
+                        log_file_movement(original_filepath, processed_filepath, "SUCCESS", "Archivo procesado y movido con éxito.")
+
                     else:
                         update_status(cursor, order_id, status)
                         conn.commit()
                         msg = (f"No se pudo procesar completamente {pdf_file}. "
                                f"Estado: {status}. Saltando.")
                         logging.warning(msg)
+                        log_file_movement(file_path_map[order_id][0], "N/A", "FAILED", f"Error al procesar: {status}")
 
         logging.info("Proceso completado. Revisa tu base de datos MySQL.")
 

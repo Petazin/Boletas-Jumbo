@@ -30,8 +30,9 @@ El proyecto sigue una arquitectura modular, donde cada archivo tiene una respons
 *   **`process_boletas.py`**: Script orquestador que procesa los PDFs de boletas de supermercado en paralelo.
 *   **`export_data.py`**: Script para exportar datos de boletas a un archivo CSV.
 *   **`utils/db/`**: Directorio con scripts de utilidad para la base de datos (resetear, configurar tablas, etc.).
+*   **`utils/file_utils.py`**: Módulo de utilidades para la gestión de archivos, incluyendo el logging centralizado de movimientos de archivos.
 *   **`cuarentena_pdfs/`**: Directorio para PDFs de boletas que no pudieron ser procesados.
-*   **`descargas/`**: Directorio que contiene las subcarpetas para los archivos descargados de `Jumbo` y `Banco`.
+*   **`descargas/`**: Directorio que contiene las subcarpetas para los archivos descargados de `Jumbo` y `Banco`. Dentro de estas subcarpetas, los archivos procesados se moverán a una subcarpeta `procesados/`.
 *   **`tests/`**: Directorio de pruebas unitarias con `pytest`.
 
 ### Esquema de la Base de Datos
@@ -67,19 +68,19 @@ El sistema tiene dos flujos de trabajo principales:
     ```bash
     python ingest_pdf_bank_statement.py
     ```
-    *   **Proceso:** El script buscará todos los archivos PDF en el directorio configurado. Para cada archivo, calculará un hash único, verificará duplicados y, si es nuevo, lo procesará y guardará las transacciones en la base de datos.
+    *   **Proceso:** El script buscará todos los archivos PDF en el directorio configurado. Para cada archivo, calculará un hash único, verificará duplicados y, si es nuevo, lo procesará y guardará las transacciones en la base de datos. Los archivos procesados se moverán a una subcarpeta `procesados/` dentro de su directorio de origen.
 
 3.  **Procesar Cartolas Nacionales XLS (`ingest_xls_national_cc.py`):**
     ```bash
     python ingest_xls_national_cc.py
     ```
-    *   **Proceso:** Similar al procesamiento de PDFs, este script buscará archivos XLS/XLSX en el directorio configurado para cartolas nacionales. Identificará dinámicamente la cabecera de las transacciones, extraerá los datos (incluyendo el manejo de cuotas y fechas de cargo/originales) y los insertará en la base de datos, evitando duplicados por hash.
+    *   **Proceso:** Similar al procesamiento de PDFs, este script buscará archivos XLS/XLSX en el directorio configurado para cartolas nacionales. Identificará dinámicamente la cabecera de las transacciones, extraerá los datos (incluyendo el manejo de cuotas y fechas de cargo/originales) y los insertará en la base de datos, evitando duplicados por hash. Los archivos procesados se moverán a una subcarpeta `procesados/` dentro de su directorio de origen.
 
 4.  **Procesar Cartolas Internacionales XLS (`ingest_xls_international_cc.py`):**
     ```bash
     python ingest_xls_international_cc.py
     ```
-    *   **Proceso:** Similar a los otros scripts de ingesta de XLS, procesa las cartolas de tarjetas de crédito internacionales.
+    *   **Proceso:** Similar a los otros scripts de ingesta de XLS, procesa las cartolas de tarjetas de crédito internacionales. Los archivos procesados se moverán a una subcarpeta `procesados/` dentro de su directorio de origen.
 
 5.  **Procesar Cartolas de Banco Falabella (XLS):**
     ```bash
@@ -92,7 +93,7 @@ El sistema tiene dos flujos de trabajo principales:
     # Para Línea de Crédito
     python ingest_xls_falabella_linea_credito.py
     ```
-    *   **Proceso:** Cada uno de estos scripts está especializado en un producto de Banco Falabella, buscando los archivos en su directorio correspondiente y guardando los datos en la tabla apropiada.
+    *   **Proceso:** Cada uno de estos scripts está especializado en un producto de Banco Falabella, buscando los archivos en su directorio correspondiente y guardando los datos en la tabla apropiada. Los archivos procesados se moverán a una subcarpeta `procesados/` dentro de su directorio de origen.
 
 ---
 
@@ -112,7 +113,7 @@ Se ha completado un motor robusto para el análisis de boletas de Jumbo, incluye
 
 Se está trabajando en expandir la aplicación a un gestor financiero completo.
 
-*   `[x]` **Mejora en la Estructura de Carpetas para Estados de Cuenta Bancarios:** Se ha implementado un sistema para mover automáticamente los archivos de estados de cuenta bancarios procesados a un directorio separado, formalizando su estado y manteniendo los directorios de descarga limpios.
+*   `[x]` **Mejora en la Estructura de Carpetas para Estados de Cuenta Bancarios:** Se ha implementado un sistema para mover automáticamente los archivos de estados de cuenta bancarios procesados a una subcarpeta `procesados/` dentro de su directorio de origen, formalizando su estado y manteniendo los directorios de descarga limpios. Se ha añadido un sistema de logging centralizado para los movimientos de archivos.
 *   `[x]` **Implementación de Hashing para Boletas de Jumbo:** Se ha implementado un mecanismo de hashing para las boletas de Jumbo, asegurando que no se procesen archivos duplicados y mejorando la integridad de los datos.
 *   `[x]` **Traducción de la Base de Datos al Español:** Se ha traducido completamente el esquema de la base de datos (tablas y columnas) al español para facilitar la comprensión y el mantenimiento.
 *   `[x]` **Diseño de Base de Datos Escalable:** Se ha definido un esquema de base de datos más robusto y modular.
@@ -131,7 +132,7 @@ Se está trabajando en expandir la aplicación a un gestor financiero completo.
 
 ### Fase 2.1: Mejoras de Arquitectura y Robustez del Proceso de Ingesta
 *   `[x]` **Manejo Transaccional de la Ingesta:** Modificar todos los scripts para que el `hash` de un archivo se guarde en la base de datos únicamente si el archivo y **todas** sus transacciones han sido procesadas e insertadas con éxito. Esto evitará registros "huérfanos" que impiden el reprocesamiento.
-*   `[x]` **Reubicación Inteligente de Archivos:** Mejorar la lógica de movimiento de archivos para que al pasar un documento a la carpeta `archivos_procesados`, se conserve su estructura de carpetas original (ej. `.../banco/tarjeta/`). Esto facilitará los ciclos de prueba y la re-ingesta manual de datos.
+*   `[x]` **Reubicación Inteligente de Archivos:** Mejorar la lógica de movimiento de archivos para que al pasar un documento a la carpeta `procesados/` dentro de su directorio de origen, se conserve su estructura de carpetas original. Esto facilitará los ciclos de prueba y la re-ingesta manual de datos, y se complementa con un logging centralizado de movimientos de archivos.
 
 ### Fase 3: Sistema Genérico de Ingesta de Documentos (Planificada)
 *   `[ ]` **Implementar Sistema Genérico de Ingesta:** Desarrollar un sistema capaz de procesar cualquier tipo de PDF o documento estructurado, inferir su esquema y mapearlo a la base de datos de forma flexible.
