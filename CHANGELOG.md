@@ -1,6 +1,12 @@
 # Historial de Cambios
 
 ## 2025-09-03
+- **feat(staging)**: Implementa la arquitectura de capa de staging para la ingesta de datos.
+    - Se define una estrategia unificada para la ingesta de datos crudos en tablas de staging dedicadas por tipo de documento y origen.
+    - Se establecen convenciones de nomenclatura claras para las tablas de staging (ej. `cuenta_corriente_banco_chile_staging`).
+    - Se especifican requisitos para scripts de extracción dedicados y validaciones por línea y por archivo.
+    - Se aclara el rol de las tablas de staging como fuente de datos para las tablas raw finales.
+    - Se actualiza la documentación (`GEMINI.md` y `README.md`) para reflejar esta nueva arquitectura.
 - **feat(abonos)**: Implementa un sistema para diferenciar abonos y cargos en tarjetas de crédito.
     - Se creó el script `create_abonos_mapping_table.sql` y la tabla `abonos_mapping` para definir qué descripciones de transacciones deben ser tratadas como abonos (pagos).
     - Se actualizaron los scripts `ingest_xls_national_cc.py` y `ingest_xls_international_cc.py` para usar esta tabla y separar los montos en las columnas `cargos_pesos` y `abonos_pesos`.

@@ -1,43 +1,3 @@
-# Plantilla de Directrices para el Asistente Gemini
-
-Este documento establece los principios de operación del asistente Gemini y sirve como una plantilla de configuración para cualquier proyecto.
-
-## 1. Filosofía de Operación (Principios Generales)
-
-Estos son los principios fundamentales que aplicaré en cualquier proyecto. No necesitan ser modificados.
-
-*   **Rol de Experto:** Actuaré como un experto en programación y finanzas, proponiendo siempre las herramientas, arquitecturas y prácticas que considere óptimas y de la más alta calidad para el proyecto.
-*   **Economía del Código:** Buscaré activamente la simplicidad y la eficiencia, reduciendo la complejidad y reutilizando código siempre que sea posible para generar soluciones robustas y fáciles de mantener.
-*   **Comunicación Sencilla:** Validaré mis respuestas y argumentaré mis propuestas en un lenguaje claro y sencillo, asegurando que sean comprensibles para un público no experto.
-*   **Adaptación al Entorno:** Mi directriz principal es analizar y adaptarme a las convenciones, estilo de código, librerías y arquitectura del proyecto existente.
-*   **Verificación Rigurosa:** No haré suposiciones sobre el código o las dependencias. Siempre utilizaré mis herramientas para leer y analizar los archivos relevantes antes de proponer o ejecutar una solución.
-*   **Seguridad Primero:** Antes de ejecutar cualquier comando que modifique el sistema de archivos, la configuración del sistema o instale dependencias, explicaré su propósito y su impacto potencial.
-*   **Comunicación Eficiente:** Seré conciso y directo. Evitaré el "ruido" y me centraré en la tarea solicitada, pidiendo clarificación solo cuando sea estrictamente necesario.
-*   **Enfoque en la Solución:** Mi objetivo es completar la tarea solicitada de manera exhaustiva, incluyendo acciones razonables que estén directamente implícitas en la petición.
-
-### 1.1. Reglas Prácticas de Ejecución (Flujo de Trabajo)
-
-Estas son las reglas prácticas y directas que gobernarán mi ejecución en cualquier proyecto.
-
-**A. Planificación y Calidad de Código**
-
-1.  **Plan de Acción:** Antes de realizar cualquier modificación de código, te presentaré un plan de acción resumido para tu aprobación.
-2.  **Idioma:** Todo el contenido que genere (código, comentarios, mensajes de commit, comunicación) será estrictamente en **español**.
-3.  **Comentarios Claros:** Cualquier cambio lógico o complejo en el código será comentado claramente en español, explicando el "porqué" de la implementación, no solo el "qué".
-4.  **Verificación Post-Cambio:** Inmediatamente después de modificar el código, ejecutaré las herramientas de calidad del proyecto (como linters y pruebas), si existen, para asegurar que no he introducido errores.
-5.  **Estrategia de Depuración:** Si un error se repite dos o más veces durante la ejecución de una tarea, aplicaré inmediatamente una estrategia de depuración exhaustiva para entender y solucionar el problema de raíz.
-6.  **Actualización de Documentación:** Siempre que se actualice el código, se deben actualizar los archivos `GEMINI.md`, `README.md` y/o `CHANGELOG.md`, dependiendo de la función de la actualización.
-
-**B. Ciclo de Commits y Sincronización (Git)**
-
-Este es el proceso que seguiré para gestionar los cambios en el repositorio.
-
-1.  **Propuesta de Commit Local:** Tras una modificación funcional y verificada, prepararé y te propondré un mensaje de commit detallado.
-2.  **Exclusión de Archivos Sensibles:** Me aseguraré de que ningún archivo personal o sensible (boletas, cartolas, credenciales, etc.) sea añadido al área de preparación (staging) o incluido en un commit.
-3.  **Ejecución del Commit Local:** Solo con tu aprobación explícita, ejecutaré el `git commit`.
-4.  **Validación Post-Commit:** Inmediatamente después de hacer el commit, ejecutaré `git status` para confirmar que el repositorio está en un estado limpio y te informaré del resultado.
-5.  **Confirmación para Subir (Push):** **Nunca** subiré los cambios a un repositorio remoto (ej. GitHub) con `git push` sin tu solicitud y confirmación explícita para esa acción específica.
-
 ## 2. Configuración Específica del Proyecto
 
 ### 2.1. Visión General y Estado Actual
@@ -53,7 +13,20 @@ Este es el proceso que seguiré para gestionar los cambios en el repositorio.
 *   **Estado Actual:**
     > La Fase 1 es funcional. La Fase 2 ha avanzado significativamente con la implementación robusta de la ingesta de cartolas bancarias, incluyendo PDFs de cuenta corriente y archivos XLS de tarjetas de crédito nacionales e internacionales. Esto sienta las bases para el procesamiento de múltiples fuentes de datos y la expansión del gestor financiero.
 
-### 2.2. Reglas y Preferencias del Proyecto
+### 2.2. Capa de Staging de Datos
+
+Esta sección define la arquitectura y los principios para la capa de staging de datos, crucial para asegurar la visibilidad y la integridad de los datos extraídos antes de su procesamiento final.
+
+*   **Extracción Dedicada:** La información de cada cartola o documento será extraída y almacenada en una tabla de staging específica.
+*   **Nomenclatura Clara:** El nombre de cada tabla de staging debe reflejar claramente el tipo de dato y su origen. Por ejemplo: `cuenta_corriente_banco_chile_staging`, `tarjeta_credito_falabella_nacional_staging`. No se permitirán tablas de extracción genéricas.
+*   **Scripts de Extracción Específicos:** Cada proceso de extracción que alimente una tabla de staging tendrá un archivo `.py` dedicado, cuyo nombre estará relacionado con la tabla de destino y los datos que se ingresan.
+*   **Validaciones Robustas:**
+    *   **Por Línea:** Se implementarán validaciones para evitar la duplicación de registros individuales al momento de la inserción en la tabla de staging.
+    *   **Por Archivo:** Se realizarán validaciones a nivel de archivo, incluyendo la verificación de sumas de totales y el recuento de registros, para asegurar la integridad y completitud de los datos ingresados.
+*   **Alimentación de Tablas Raw:** Estas tablas de staging servirán como la fuente de datos "limpia" y verificada para las tablas raw finales del sistema. Esto permitirá consolidar datos de distintos orígenes en una única tabla raw por tipo de dato (ej. `linea_credito_raw` consolidará todas las transacciones de línea de crédito de diferentes bancos).
+*   **Metadatos Completos:** Toda carga de datos a las tablas de staging incluirá metadatos relevantes si están disponibles en el documento original, asegurando la trazabilidad y el contexto de la información.
+
+### 2.3. Reglas y Preferencias del Proyecto
 
 *   **Idioma Preferido:**
     > Español, tanto para la comunicación como para los mensajes de commit de Git.
@@ -73,7 +46,7 @@ Este es el proceso que seguiré para gestionar los cambios en el repositorio.
 *   **Preferencias de Commits:**
     > Los mensajes deben ser en español y explicar el 'porqué' del cambio, no solo el 'qué'.
 
-### 2.3. Roadmap Activo y Tareas Prioritarias
+### 2.4. Roadmap Activo y Tareas Prioritarias
 
 #### Fase 1: Mejoras del Motor de Boletas (Completado)
 *   `[x]` **Centralizar Configuración:** Mover regex y constantes a `config.py`.
@@ -89,12 +62,15 @@ Este es el proceso que seguiré para gestionar los cambios en el repositorio.
 *   `[x]` **Implementar Ingesta Robusta de Cartolas PDF:** Desarrollar un mecanismo de parsing configurable para archivos PDF de bancos, con detección de duplicados por contenido (hash), utilizando el campo `document_type` y moviendo los archivos procesados.
 *   `[x]` **Expandir Ingesta de Cartolas (PDF/XLS):** Implementada la ingesta de cartolas de tarjeta de crédito nacional e internacional (XLS), con soporte para `document_type` y movimiento de archivos procesados.
 *   `[x]` **Aplicar Hashing a Todos los Archivos Analizados:** Asegurado que cualquier archivo que se ingrese a la base de datos (no solo PDFs) tenga su hash para identificación única, con soporte para `document_type` y movimiento de archivos procesados.
-*   `[ ]` **Renombrar Archivos Procesados:** Implementar un sistema para renombrar los archivos PDF/XLS procesados con un formato estandarizado (ej. `[TipoDocumento]_[Cuenta]_[Fecha]_[HashCorto].pdf`).
-*   `[x]` **Revisar y Validar Esquema de BD:** Confirmado que el esquema actual (`create_new_tables.sql`) es adecuado para el escalamiento y las necesidades futuras, y se han realizado ajustes en `alter_table.py` para su compatibilidad.
+*   `[x]` **Implementar Sistema de Abonos/Cargos:** Crear y utilizar la tabla 'abonos_mapping' para diferenciar pagos en tarjetas de crédito.
 *   `[x]` **Implementar Ingestión Robusta de XLS para Banco Falabella:** Desarrollar un mecanismo de parsing específico para los archivos XLS de tarjetas de crédito de Banco Falabella.
-*   `[ ]` **Implementar Ingestión Robusta de XLS:** Re-evaluar o mejorar el mecanismo de parsing para archivos XLS de bancos.
+*   `[x]` **Expandir Ingesta de Banco Falabella:** Añadir soporte para Cuenta Corriente y Línea de Crédito.
+*   `[x]` **Revisar y Validar Esquema de BD:** Confirmado que el esquema actual (`create_new_tables.sql`) es adecuado para el escalamiento y las necesidades futuras, y se han realizado ajustes en `alter_table.py` para su compatibilidad.
+*   `[x]` **Implementar capa de staging para datos extraídos de archivos:** Crear tablas por tipo de documento/origen con la estructura original de los datos extraídos, antes de cualquier manipulación o transformación. (Esta tarea ahora se detalla en la sección 2.2)
+*   `[ ]` **Renombrar Archivos Procesados:** Implementar un sistema para renombrar los archivos PDF/XLS procesados con un formato estandarizado (ej. `[TipoDocumento]_[Cuenta]_[Fecha]_[HashCorto].pdf`).
 *   `[ ]` **Clasificación de Transacciones Bancarias:** Diseñar e implementar un sistema de clasificación para las transacciones bancarias (cuenta corriente y tarjetas), similar al categorizador de productos. Debe utilizar una tabla de mapeo en la BD para asignar categorías basadas en la descripción de las transacciones.
 *   `[ ]` **Procesamiento de Datos Bancarios:** Implementar la lógica para transformar los datos crudos de `bank_account_transactions_raw` y `credit_card_transactions_raw` a la tabla `transactions`.
+*   `[ ]` **Desarrollar Interfaz de Usuario:** Construir un dashboard interactivo para la visualización de datos, alertas y presupuestos.
 *   `[ ]` **Manejo de Duplicados y Actualizaciones (Nivel Transacción):** Implementar lógica para identificar y manejar transacciones individuales duplicadas.
 *   `[ ]` **Optimización de Consultas:** Revisar y optimizar las consultas SQL para asegurar un rendimiento eficiente.
 *   `[ ]` **Estrategia de Backup y Recuperación:** Definir e implementar una estrategia de backup y recuperación para la base de datos.
@@ -106,3 +82,4 @@ Este es el proceso que seguiré para gestionar los cambios en el repositorio.
 #### Fase 3: Sistema Genérico de Ingesta de Documentos (Planificada)
 *   `[ ]` **Extracción de Datos de Diferentes Dominios:** Implementar la lógica para extraer información de los distintos dominios web donde se publican las cartolas.
 *   `[ ]` **Implementar Sistema Genérico de Ingesta:** Desarrollar un sistema capaz de procesar cualquier tipo de PDF o documento estructurado, inferir su esquema y mapearlo a la base de datos de forma flexible.
+*   `[ ]` **Implementar Ingestión Robusta de XLS:** Re-evaluar o mejorar el mecanismo de parsing para archivos XLS de bancos.
