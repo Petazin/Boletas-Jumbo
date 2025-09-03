@@ -14,6 +14,14 @@ from pdf_parser import process_pdf
 from utils.file_utils import log_file_movement
 
 
+# Configuración del logger para el estado de la ingesta
+ingestion_status_logger = logging.getLogger('ingestion_status')
+ingestion_status_logger.setLevel(logging.INFO)
+status_file_handler = logging.FileHandler('ingestion_status.log')
+status_formatter = logging.Formatter('%(asctime)s - %(message)s')
+status_file_handler.setFormatter(status_formatter)
+ingestion_status_logger.addHandler(status_file_handler)
+
 def setup_logging():
     """Configura el sistema de logging para este script."""
     logging.basicConfig(
@@ -135,6 +143,7 @@ def main():
                         conn.commit()
                         msg = f"Datos de {pdf_file} insertados correctamente."
                         logging.info(msg)
+                        ingestion_status_logger.info(f"FILE: {pdf_file} | HASH: {file_hash} | STATUS: Processed Successfully")
 
                         # Mover el archivo PDF a la carpeta de procesados
                         original_filepath = file_path_map[order_id][0]
@@ -151,13 +160,16 @@ def main():
                                f"Estado: {status}. Saltando.")
                         logging.warning(msg)
                         log_file_movement(file_path_map[order_id][0], "N/A", "FAILED", f"Error al procesar: {status}")
+                        ingestion_status_logger.info(f"FILE: {pdf_file} | HASH: {file_hash} | STATUS: Failed - {status}")
 
         logging.info("Proceso completado. Revisa tu base de datos MySQL.")
 
     except mysql.connector.Error:
         logging.error("El script terminó debido a un error con la base de datos.")
+        ingestion_status_logger.info(f"GLOBAL_ERROR: Database error occurred.")
     except Exception as e:
         logging.error(f"Ocurrió un error inesperado en el proceso principal: {e}")
+        ingestion_status_logger.info(f"GLOBAL_ERROR: Unexpected error - {e}")
 
 
 if __name__ == "__main__":

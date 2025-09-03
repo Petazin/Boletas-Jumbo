@@ -93,6 +93,7 @@ Este es el proceso que seguiré para gestionar los cambios en el repositorio.
 *   `[x]` **Revisar y Validar Esquema de BD:** Confirmado que el esquema actual (`create_new_tables.sql`) es adecuado para el escalamiento y las necesidades futuras, y se han realizado ajustes en `alter_table.py` para su compatibilidad.
 *   `[x]` **Implementar Ingestión Robusta de XLS para Banco Falabella:** Desarrollar un mecanismo de parsing específico para los archivos XLS de tarjetas de crédito de Banco Falabella.
 *   `[ ]` **Implementar Ingestión Robusta de XLS:** Re-evaluar o mejorar el mecanismo de parsing para archivos XLS de bancos.
+*   `[ ]` **Clasificación de Transacciones Bancarias:** Diseñar e implementar un sistema de clasificación para las transacciones bancarias (cuenta corriente y tarjetas), similar al categorizador de productos. Debe utilizar una tabla de mapeo en la BD para asignar categorías basadas en la descripción de las transacciones.
 *   `[ ]` **Procesamiento de Datos Bancarios:** Implementar la lógica para transformar los datos crudos de `bank_account_transactions_raw` y `credit_card_transactions_raw` a la tabla `transactions`.
 *   `[ ]` **Manejo de Duplicados y Actualizaciones (Nivel Transacción):** Implementar lógica para identificar y manejar transacciones individuales duplicadas.
 *   `[ ]` **Optimización de Consultas:** Revisar y optimizar las consultas SQL para asegurar un rendimiento eficiente.
@@ -100,7 +101,7 @@ Este es el proceso que seguiré para gestionar los cambios en el repositorio.
 
 #### Fase 2.1: Mejoras de Arquitectura y Robustez del Proceso de Ingesta
 *   `[x]` **Manejo Transaccional de la Ingesta:** Modificar todos los scripts para que el `hash` de un archivo se guarde en la base de datos únicamente si el archivo y **todas** sus transacciones han sido procesadas e insertadas con éxito. Esto evitará registros "huérfanos" que impiden el reprocesamiento.
-*   `[x]` **Reubicación Inteligente de Archivos:** Mejorar la lógica de movimiento de archivos para que al pasar un documento a la carpeta `archivos_procesados`, se conserve su estructura de carpetas original (ej. `.../banco/tarjeta/`). Esto facilitará los ciclos de prueba y la re-ingesta manual de datos.
+*   `[x]` **Reubicación Inteligente de Archivos:** Mejorar la lógica de movimiento de archivos para que al pasar un documento a la carpeta `procesados/` dentro de su directorio de origen, se conserve su estructura de carpetas original. Esto facilitará los ciclos de prueba y la re-ingesta manual de datos, y se complementa con un logging centralizado de movimientos de archivos.
 
 #### Fase 3: Sistema Genérico de Ingesta de Documentos (Planificada)
 *   `[ ]` **Extracción de Datos de Diferentes Dominios:** Implementar la lógica para extraer información de los distintos dominios web donde se publican las cartolas.

@@ -13,6 +13,14 @@ from dateutil.relativedelta import relativedelta
 # Configuración de logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
+# Configuración del logger para el estado de la ingesta
+ingestion_status_logger = logging.getLogger('ingestion_status')
+ingestion_status_logger.setLevel(logging.INFO)
+status_file_handler = logging.FileHandler('ingestion_status.log')
+status_formatter = logging.Formatter('%(asctime)s - %(message)s')
+status_file_handler.setFormatter(status_formatter)
+ingestion_status_logger.addHandler(status_file_handler)
+
 def calculate_file_hash(file_path):
     """Calcula el hash SHA-256 de un archivo."""
     sha256_hash = hashlib.sha256()
@@ -204,6 +212,7 @@ def main():
                 file_hash = calculate_file_hash(xls_path)
                 if is_file_processed(conn, file_hash):
                     logging.info(f"Archivo ya procesado (hash existente), omitiendo: {os.path.basename(xls_path)}")
+                    ingestion_status_logger.info(f"FILE: {os.path.basename(xls_path)} | HASH: {file_hash} | STATUS: Skipped - Already Processed")
                     continue
 
                 metadata_id = insert_metadata(conn, source_id, xls_path, file_hash, document_type)
@@ -212,6 +221,7 @@ def main():
                 
                 if processed_df is None or processed_df.empty:
                     logging.warning(f"No se procesaron transacciones para {os.path.basename(xls_path)}.")
+                    ingestion_status_logger.info(f"FILE: {os.path.basename(xls_path)} | HASH: {file_hash} | STATUS: Failed - Parsing failed")
                     continue
                 
                 insert_credit_card_transactions(conn, metadata_id, source_id, processed_df)
@@ -224,10 +234,12 @@ def main():
                 log_file_movement(xls_path, processed_filepath, "SUCCESS", "Archivo procesado y movido con éxito.")
 
                 logging.info(f"Proceso de ingesta completado con éxito para: {os.path.basename(xls_path)}")
+                ingestion_status_logger.info(f"FILE: {os.path.basename(xls_path)} | HASH: {file_hash} | STATUS: Processed Successfully")
 
             except Exception as e:
                 logging.error(f"Ocurrió un error procesando el archivo {os.path.basename(xls_path)}: {e}")
                 log_file_movement(xls_path, "N/A", "FAILED", f"Error al procesar: {e}")
+                ingestion_status_logger.info(f"FILE: {os.path.basename(xls_path)} | HASH: {file_hash} | STATUS: Failed - {e}")
 
 if __name__ == '__main__':
     main()

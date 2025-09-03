@@ -1,6 +1,12 @@
 import logging
 import mysql.connector
 import copy
+import os
+import sys
+
+# Añadir el directorio base del proyecto al sys.path para que las importaciones funcionen
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
+
 from database_utils import db_connection
 from config import DB_CONFIG  # Importar directamente desde config
 from alter_table import reset_and_setup_bank_tables
@@ -54,6 +60,11 @@ def main():
             # 1. Crear todas las tablas desde el script base
             execute_sql_from_file(cursor, 'create_new_tables.sql')
             logging.info("Tablas base creadas exitosamente.")
+            
+            # 2. Crear la tabla de mapeo de abonos
+            execute_sql_from_file(cursor, 'create_abonos_mapping_table.sql')
+            conn.commit()  # Asegurar que el INSERT se guarde
+            logging.info("Tabla de mapeo de abonos creada y poblada exitosamente.")
             
         # 2. Ejecutar la lógica de alter_table.py
         # Esta función se conecta por su cuenta

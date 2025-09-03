@@ -13,6 +13,14 @@ from dateutil.relativedelta import relativedelta
 # Configuración de logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
+# Configuración del logger para el estado de la ingesta
+ingestion_status_logger = logging.getLogger('ingestion_status')
+ingestion_status_logger.setLevel(logging.INFO)
+status_file_handler = logging.FileHandler('ingestion_status.log')
+status_formatter = logging.Formatter('%(asctime)s - %(message)s')
+status_file_handler.setFormatter(status_formatter)
+ingestion_status_logger.addHandler(status_file_handler)
+
 def calculate_file_hash(file_path):
     """Calcula el hash SHA-256 de un archivo."""
     sha256_hash = hashlib.sha256()
@@ -71,7 +79,23 @@ def parse_and_clean_value(value):
         return float(value) if value and value != '-' else 0.0
     return value if value is not None else 0.0
 
-def process_international_cc_xls_file(xls_path, source_id, metadata_id):
+def load_abono_mappings(conn):
+    """
+    Carga las descripciones de abono desde la tabla abonos_mapping.
+    """
+    abono_descriptions = set()
+    try:
+        with conn.cursor(dictionary=True) as cursor:
+            cursor.execute("SELECT description FROM abonos_mapping")
+            rows = cursor.fetchall()
+            for row in rows:
+                abono_descriptions.add(row['description'].strip())
+        logging.info(f"Cargadas {len(abono_descriptions)} descripciones de abono: {abono_descriptions}")
+    except Exception as e:
+        logging.error(f"Error al cargar mapeos de abonos: {e}")
+    return abono_descriptions
+
+def process_international_cc_xls_file(xls_path, source_id, metadata_id, abono_descriptions):
     """
     Procesa un archivo XLS de cartola de tarjeta de crédito internacional.
     """
@@ -115,7 +139,7 @@ def process_international_cc_xls_file(xls_path, source_id, metadata_id):
             'Descripción': 'descripcion_transaccion',
             'Categoría': 'categoria',
             'Cuotas': 'cuotas_raw', # Nombre temporal para la columna original de Cuotas
-            'Monto Moneda Origen': 'cargos_pesos', # Monto en CLP
+            'Monto Moneda Origen': 'monto_bruto', # Mapear a una columna temporal
             'Monto (USD)': 'monto_usd', # Monto en USD
             'País': 'pais'
         }
@@ -126,7 +150,7 @@ def process_international_cc_xls_file(xls_path, source_id, metadata_id):
             'fecha_cargo_original',
             'descripcion_transaccion',
             'categoria',
-            'cargos_pesos',
+            'monto_bruto',
             'monto_usd',
             'pais'
         ]
@@ -151,7 +175,8 @@ def process_international_cc_xls_file(xls_path, source_id, metadata_id):
         # fecha_cargo_cuota = fecha_cargo_original + (cuota_actual - 1) meses
         df_transactions['fecha_cargo_cuota'] = df_transactions.apply(
             lambda row: row['fecha_cargo_original'] + relativedelta(months=row['cuota_actual'] - 1)
-            if pd.notna(row['fecha_cargo_original']) and row['cuota_actual'] > 0 else pd.NaT,
+            if pd.notna(row['fecha_cargo_original']) and row['cuota_actual'] >= 1 # Change > 0 to >= 1
+            else row['fecha_cargo_original'] if pd.notna(row['fecha_cargo_original']) else pd.NaT, # Assign original date if cuota_actual is 0
             axis=1
         )
 
@@ -159,25 +184,39 @@ def process_international_cc_xls_file(xls_path, source_id, metadata_id):
         df_transactions['fecha_cargo_original'] = df_transactions['fecha_cargo_original'].dt.strftime('%Y-%m-%d')
         df_transactions['fecha_cargo_cuota'] = df_transactions['fecha_cargo_cuota'].dt.strftime('%Y-%m-%d')
 
-        df_transactions['cargos_pesos'] = df_transactions['cargos_pesos'].apply(parse_and_clean_value)
-        
-        # Manejar la ausencia de monto_usd y pais en cartolas nacionales
-        if 'monto_usd' in df_transactions.columns:
-            df_transactions['monto_usd'] = df_transactions['monto_usd'].apply(parse_and_clean_value)
-            # Calcular tipo_cambio (evitar división por cero)
-            df_transactions['tipo_cambio'] = df_transactions.apply(
-                lambda row: row['cargos_pesos'] / row['monto_usd'] if row['monto_usd'] != 0 else 0.0,
-                axis=1
-            )
-        else:
-            df_transactions['monto_usd'] = None
-            df_transactions['tipo_cambio'] = None
+        # Inicializar cargos_pesos y abonos_pesos
+        df_transactions['cargos_pesos'] = 0.0
+        df_transactions['abonos_pesos'] = 0.0
+
+        # --- LÓGICA DE SEPARACIÓN DE CARGOS/ABONOS ---
+        # El archivo XLS no distingue entre cargos y abonos en columnas separadas.
+        # Se utiliza la tabla `abonos_mapping` para identificar qué transacciones son abonos.
+        # Si la descripción de la transacción existe en el set `abono_descriptions`,
+        # el monto se asigna a `abonos_pesos`; de lo contrario, a `cargos_pesos`.
+        for index, row in df_transactions.iterrows():
+            monto = parse_and_clean_value(row.get('monto_bruto'))
+            description = str(row.get('descripcion_transaccion', '')).strip()
+            
+            if description in abono_descriptions:
+                df_transactions.loc[index, 'abonos_pesos'] = monto
+            else:
+                df_transactions.loc[index, 'cargos_pesos'] = monto
+
+        df_transactions['monto_usd'] = df_transactions['monto_usd'].apply(parse_and_clean_value)
+        # Calcular tipo_cambio (evitar división por cero)
+        df_transactions['tipo_cambio'] = df_transactions.apply(
+            lambda row: row['cargos_pesos'] / row['monto_usd'] if row['monto_usd'] != 0 else 0.0,
+            axis=1
+        )
         
         if 'pais' not in df_transactions.columns:
             df_transactions['pais'] = None
 
         # Eliminar filas con fechas nulas después de la conversión (posibles filas de resumen o basura)
         df_transactions.dropna(subset=['fecha_cargo_original'], inplace=True)
+
+        # Reemplazar todos los NaN con None para compatibilidad con la base de datos
+        df_transactions = df_transactions.astype(object).where(pd.notnull(df_transactions), None)
 
         logging.info(f"Parseo de {os.path.basename(xls_path)} completado. DataFrame listo para inserción.")
         return df_transactions
@@ -196,8 +235,8 @@ def insert_credit_card_transactions(conn, metadata_id, source_id, transactions_d
     query = """
     INSERT INTO transacciones_tarjeta_credito_raw (
         metadata_id, fuente_id, fecha_cargo_original, fecha_cargo_cuota, descripcion_transaccion, 
-        categoria, cuota_actual, total_cuotas, cargos_pesos, monto_usd, tipo_cambio, pais
-    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        categoria, cuota_actual, total_cuotas, cargos_pesos, abonos_pesos, monto_usd, tipo_cambio, pais
+    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
     """
     for _, row in transactions_df.iterrows():
         values = (
@@ -210,6 +249,7 @@ def insert_credit_card_transactions(conn, metadata_id, source_id, transactions_d
             row.get('cuota_actual'),
             row.get('total_cuotas'),
             row.get('cargos_pesos'),
+            row.get('abonos_pesos'), # Usar la nueva columna de abonos
             row.get('monto_usd'),
             row.get('tipo_cambio'),
             row.get('pais')
@@ -235,20 +275,23 @@ def main():
     logging.info(f"Se encontraron {len(xls_files)} archivos XLS/XLSX para procesar.")
 
     with db_connection() as conn:
+        abono_descriptions = load_abono_mappings(conn) # Cargar mapeos de abonos
         source_id = get_source_id(conn, source_name)
         for xls_path in xls_files:
             try:
                 file_hash = calculate_file_hash(xls_path)
                 if is_file_processed(conn, file_hash):
                     logging.info(f"Archivo ya procesado (hash existente), omitiendo: {os.path.basename(xls_path)}")
+                    ingestion_status_logger.info(f"FILE: {os.path.basename(xls_path)} | HASH: {file_hash} | STATUS: Skipped - Already Processed")
                     continue
 
                 metadata_id = insert_metadata(conn, source_id, xls_path, file_hash, document_type)
                 
-                processed_df = process_international_cc_xls_file(xls_path, source_id, metadata_id) # Renamed function call
+                processed_df = process_international_cc_xls_file(xls_path, source_id, metadata_id, abono_descriptions) # Pasar mapeos
                 
                 if processed_df is None:
-                    logging.error(f"Fallo el procesamiento de {os.path.basename(xls_path)}.")
+                    logging.warning(f"No se procesaron transacciones para {os.path.basename(xls_path)}.")
+                    ingestion_status_logger.info(f"FILE: {os.path.basename(xls_path)} | HASH: {file_hash} | STATUS: Failed - Parsing failed")
                     continue
                 
                 insert_credit_card_transactions(conn, metadata_id, source_id, processed_df)
@@ -261,10 +304,12 @@ def main():
                 log_file_movement(xls_path, processed_filepath, "SUCCESS", "Archivo procesado y movido con éxito.")
 
                 logging.info(f"Proceso de ingesta completado con éxito para: {os.path.basename(xls_path)}")
+                ingestion_status_logger.info(f"FILE: {os.path.basename(xls_path)} | HASH: {file_hash} | STATUS: Processed Successfully")
 
             except Exception as e:
                 logging.error(f"Ocurrió un error procesando el archivo {os.path.basename(xls_path)}: {e}")
                 log_file_movement(xls_path, "N/A", "FAILED", f"Error al procesar: {e}")
+                ingestion_status_logger.info(f"FILE: {os.path.basename(xls_path)} | HASH: {file_hash} | STATUS: Failed - {e}")
 
 if __name__ == '__main__':
     main()

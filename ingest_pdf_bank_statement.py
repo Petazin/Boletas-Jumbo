@@ -4,12 +4,21 @@ import os
 import logging
 import hashlib
 import shutil
+import re
+from datetime import datetime
 from utils.file_utils import log_file_movement
 from database_utils import db_connection
 from collections import defaultdict
 
-
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+ingestion_status_logger = logging.getLogger('ingestion_status')
+ingestion_status_logger.setLevel(logging.INFO)
+if not ingestion_status_logger.handlers:
+    status_file_handler = logging.FileHandler('ingestion_status.log')
+    status_formatter = logging.Formatter('%(asctime)s - %(message)s')
+    status_file_handler.setFormatter(status_formatter)
+    ingestion_status_logger.addHandler(status_file_handler)
 
 def calculate_file_hash(file_path):
     sha256_hash = hashlib.sha256()
@@ -52,22 +61,15 @@ def insert_metadata(conn, source_id, pdf_path, file_hash):
     INSERT INTO metadatos_cartolas_bancarias_raw (fuente_id, nombre_archivo_original, file_hash, document_type)
     VALUES (%s, %s, %s, %s)
     """
-    # Usamos os.path.basename para ser consistentes
     values = (source_id, os.path.basename(pdf_path), file_hash, 'Bank Statement')
     cursor.execute(query, values)
     conn.commit()
     return cursor.lastrowid
 
 def parse_and_clean_value(value):
-    """Limpia y convierte un string monetario a un número de punto flotante (float)."""
     if isinstance(value, str):
-        # --- INICIO DE LA CORRECCIÓN ---
-        # Si el valor contiene espacios, es probable que sea un error de extracción del PDF.
-        # Nos quedamos con la primera parte, que suele ser el monto correcto.
         if ' ' in value:
             value = value.split(' ')[0]
-        # --- FIN DE LA CORRECCIÓN ---
-        
         value = value.replace('.', '').replace(',', '.')
         return float(value) if value and value != '-' else 0.0
     return value if pd.notna(value) else 0.0
@@ -90,7 +92,24 @@ def group_words_by_line(words, tolerance=3):
 
 def parse_bank_statement_pdf(pdf_path):
     logging.info(f"Iniciando parseo de: {pdf_path}")
+    hasta_date = None
     with pdfplumber.open(pdf_path) as pdf:
+        try:
+            full_text = pdf.pages[0].extract_text()
+            match = re.search(r"HASTA\s*:\s*(\d{2}/\d{2}/(\d{4}))", full_text)
+            if match:
+                hasta_date = datetime.strptime(match.group(1), "%d/%m/%Y")
+                logging.info(f"Fecha 'HASTA' extraída: {hasta_date.strftime('%Y-%m-%d')}")
+        except Exception as e:
+            logging.error(f"No se pudo extraer la fecha 'HASTA': {e}")
+
+        if not hasta_date:
+            logging.error(f"La fecha 'HASTA' no pudo ser determinada para {pdf_path}. Omitiendo archivo.")
+            return None
+
+        hasta_year = hasta_date.year
+        hasta_month = hasta_date.month
+
         page = pdf.pages[0]
         column_boundaries = [15, 50, 230, 300, 380, 450, 550]
         headers = ['FECHA DIA/MES', 'DETALLE DE TRANSACCION', 'SUCURSAL', 'N° DOCTO', 'MONTO CHEQUES O CARGOS', 'MONTO DEPOSITOS O ABONOS', 'SALDO']
@@ -131,18 +150,42 @@ def parse_bank_statement_pdf(pdf_path):
         logging.info(f"DataFrame construido con éxito para {pdf_path}")
         
         column_mapping = {
-            'FECHA DIA/MES': 'fecha_transaccion_str', 'DETALLE DE TRANSACCION': 'descripcion_transaccion',
-            'SUCURSAL': 'canal_o_sucursal', 'N° DOCTO': 'doc_number',
-            'MONTO CHEQUES O CARGOS': 'cargos_pesos', 'MONTO DEPOSITOS O ABONOS': 'abonos_pesos',
+            'FECHA DIA/MES': 'fecha_transaccion_str',
+            'DETALLE DE TRANSACCION': 'descripcion_transaccion',
+            'SUCURSAL': 'canal_o_sucursal',
+            'N° DOCTO': 'doc_number',
+            'MONTO CHEQUES O CARGOS': 'cargos_pesos',
+            'MONTO DEPOSITOS O ABONOS': 'abonos_pesos',
             'SALDO': 'saldo_pesos'
         }
         df.rename(columns=column_mapping, inplace=True)
+
+        # --- LÓGICA DE CORRECCIÓN DE FECHAS ---
+        # 1. Define una función interna para determinar el año correcto de una transacción.
+        def get_correct_date(tx_date_str):
+            """Determina el año correcto para una fecha DD/MM comparándola con la fecha de la cartola."""
+            try:
+                tx_day, tx_month = map(int, tx_date_str.split('/'))
+                correct_year = hasta_year
+                # El caso clave: si el mes de la transacción es mayor al mes de la cartola,
+                # significa que la transacción es del año anterior (ej. cartola de Enero con transacción de Diciembre).
+                if tx_month > hasta_month:
+                    correct_year = hasta_year - 1
+                return pd.to_datetime(f"{tx_day}/{tx_month}/{correct_year}", format='%d/%m/%Y')
+            except (ValueError, TypeError):
+                return pd.NaT # Retorna Not a Time si el formato es inválido
+
+        # 2. Aplica la función para crear fechas completas y válidas.
+        df['fecha_transaccion_str'] = df['fecha_transaccion_str'].apply(get_correct_date)
+        # 3. Elimina cualquier fila que no tenga una fecha válida después de la conversión.
+        df.dropna(subset=['fecha_transaccion_str'], inplace=True)
+        # 4. Estandariza la fecha al formato YYYY-MM-DD para la base de datos.
+        df['fecha_transaccion_str'] = df['fecha_transaccion_str'].dt.strftime('%Y-%m-%d')
         
         for col in ['cargos_pesos', 'abonos_pesos', 'saldo_pesos']:
             if col in df.columns:
                 df[col] = df[col].apply(parse_and_clean_value)
         
-        # Reemplazar NaN con None para compatibilidad con la BD
         df = df.astype(object).where(pd.notnull(df), None)
         
         final_columns = [col for col in column_mapping.values() if col in df.columns]
@@ -167,7 +210,7 @@ def insert_transactions(conn, metadata_id, source_id, transactions_df):
     logging.info(f"Se insertaron {len(transactions_df)} transacciones para metadata_id: {metadata_id}")
 
 def main():
-    pdf_directory = r'c:\\Users\\Petazo\\Desktop\\Boletas Jumbo\\descargas\\Banco\\banco de chile\\cuenta corriente'
+    pdf_directory = r'c:\Users\Petazo\Desktop\Boletas Jumbo\descargas\Banco\banco de chile\cuenta corriente'
     pdf_files = find_all_pdf_files(pdf_directory)
     
     if not pdf_files:
@@ -178,14 +221,18 @@ def main():
 
     with db_connection() as conn:
         for pdf_path in pdf_files:
+            file_hash = None
             try:
                 file_hash = calculate_file_hash(pdf_path)
                 if is_file_processed(conn, file_hash):
                     logging.info(f"Archivo ya procesado (hash existente), omitiendo: {os.path.basename(pdf_path)}")
+                    ingestion_status_logger.info(f"FILE: {os.path.basename(pdf_path)} | HASH: {file_hash} | STATUS: Skipped - Already Processed")
                     continue
 
                 transactions_df = parse_bank_statement_pdf(pdf_path)
                 if transactions_df is None or transactions_df.empty:
+                    logging.warning(f"No se procesaron transacciones para {os.path.basename(pdf_path)}. Omitiendo inserción y movimiento.")
+                    ingestion_status_logger.info(f"FILE: {os.path.basename(pdf_path)} | HASH: {file_hash} | STATUS: Failed - Parsing failed")
                     continue
 
                 source_id = get_source_id(conn)
@@ -198,10 +245,13 @@ def main():
                 shutil.move(pdf_path, processed_filepath)
                 logging.info(f"Archivo movido a la carpeta de procesados: {processed_filepath}")
                 log_file_movement(pdf_path, processed_filepath, "SUCCESS", "Archivo procesado y movido con éxito.")
+                ingestion_status_logger.info(f"FILE: {os.path.basename(pdf_path)} | HASH: {file_hash} | STATUS: Processed Successfully")
 
             except Exception as e:
                 logging.error(f"Ocurrió un error procesando el archivo {os.path.basename(pdf_path)}: {e}", exc_info=True)
-                log_file_movement(pdf_path, "N/A", "FAILED", f"Error al procesar: {e}")
+                if file_hash:
+                    log_file_movement(pdf_path, "N/A", "FAILED", f"Error al procesar: {e}")
+                    ingestion_status_logger.info(f"FILE: {os.path.basename(pdf_path)} | HASH: {file_hash} | STATUS: Failed - {e}")
 
 if __name__ == '__main__':
     main()
