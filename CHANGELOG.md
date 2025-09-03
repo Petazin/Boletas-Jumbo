@@ -1,7 +1,13 @@
 # Historial de Cambios
 
-## 2025-09-01
-- **feat(ingestion)**: Implementa la ingesta de cartolas de Línea de Crédito de Banco Falabella.
+## 2025-09-03
+- **feat(abonos)**: Implementa un sistema para diferenciar abonos y cargos en tarjetas de crédito.
+    - Se creó el script `create_abonos_mapping_table.sql` y la tabla `abonos_mapping` para definir qué descripciones de transacciones deben ser tratadas como abonos (pagos).
+    - Se actualizaron los scripts `ingest_xls_national_cc.py` y `ingest_xls_international_cc.py` para usar esta tabla y separar los montos en las columnas `cargos_pesos` y `abonos_pesos`.
+- **fix(dates)**: Corrige la lógica de fechas para cartolas bancarias en PDF.
+    - Se mejoró el script `ingest_pdf_bank_statement.py` para que extraiga el año de la fecha "HASTA" del documento.
+    - Se implementó una lógica que maneja correctamente las transacciones de fin de año (ej. una cartola de enero que contiene transacciones de diciembre del año anterior).
+- **chore(docs)**: Se añaden comentarios a los scripts de ingesta para explicar las lógicas complejas de negocio.
     - Se creó el script `ingest_xls_falabella_linea_credito.py` y la tabla `transacciones_linea_credito_raw` para manejar este nuevo producto.
     - Se crearon scripts de utilidad (`setup_linea_credito_table.py`, `reset_database.py`) para mejorar la gestión del esquema de la BD.
 - **fix(ingestion)**: Corrige error de inserción de valores `NaN` en múltiples scripts.

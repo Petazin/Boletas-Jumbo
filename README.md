@@ -39,6 +39,8 @@ El proyecto sigue una arquitectura modular, donde cada archivo tiene una respons
 
 El proyecto utiliza un esquema de base de datos escalable y completamente en español para manejar diversos tipos de transacciones. Las tablas principales incluyen `fuentes`, `categorias_principales`, `subcategorias`, `metadatos_cartolas_bancarias_raw`, `transacciones_cuenta_bancaria_raw`, `transacciones_tarjeta_credito_raw`, `transacciones`, `items_transaccion`, `historial_descargas` y `transacciones_jumbo`. Para el esquema completo, consulta el archivo `create_new_tables.sql`.
 
+Una tabla de soporte importante es `abonos_mapping`, que contiene descripciones de transacciones que deben ser tratadas como pagos (abonos) en las tarjetas de crédito, permitiendo una correcta clasificación de los flujos de dinero.
+
 ---
 
 ## Uso Detallado y Flujos de Trabajo
