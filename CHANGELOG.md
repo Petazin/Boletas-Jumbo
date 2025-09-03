@@ -1,6 +1,13 @@
 # Historial de Cambios
 
 ## 2025-09-03
+- **docs(contexto)**: Reorganiza archivos de contexto de IA y actualiza documentación del roadmap.
+    - Se crea nueva carpeta 'IA contexto' para centralizar documentación específica de IA.
+    - Se migra contenido de GEMINI.md a CLAUDE.md dentro de la nueva estructura organizacional.
+    - Se actualiza la descripción de "Procesamiento de Datos Bancarios" en el roadmap para clarificar el flujo de staging → tablas raw → transactions.
+    - Se elimina archivo CONTEXTO.txt obsoleto para evitar duplicación de información.
+
+## 2025-09-03
 - **feat(staging)**: Implementa la arquitectura de capa de staging para la ingesta de datos.
     - Se define una estrategia unificada para la ingesta de datos crudos en tablas de staging dedicadas por tipo de documento y origen.
     - Se establecen convenciones de nomenclatura claras para las tablas de staging (ej. `cuenta_corriente_banco_chile_staging`).
