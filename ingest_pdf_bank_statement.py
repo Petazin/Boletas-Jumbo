@@ -21,6 +21,7 @@ if not ingestion_status_logger.handlers:
     ingestion_status_logger.addHandler(status_file_handler)
 
 def calculate_file_hash(file_path):
+    """Calcula el hash SHA-256 de un archivo."""
     sha256_hash = hashlib.sha256()
     with open(file_path, "rb") as f:
         for byte_block in iter(lambda: f.read(4096), b""):
@@ -28,6 +29,7 @@ def calculate_file_hash(file_path):
     return sha256_hash.hexdigest()
 
 def find_all_pdf_files(directory):
+    """Encuentra todos los archivos PDF en un directorio."""
     pdf_files = []
     for filename in os.listdir(directory):
         if filename.lower().endswith('.pdf'):
@@ -35,6 +37,7 @@ def find_all_pdf_files(directory):
     return pdf_files
 
 def is_file_processed(conn, file_hash):
+    """Verifica si un archivo con un hash específico ya ha sido procesado."""
     cursor = conn.cursor(buffered=True)
     query = "SELECT 1 FROM metadatos_cartolas_bancarias_raw WHERE file_hash = %s"
     cursor.execute(query, (file_hash,))
@@ -43,6 +46,7 @@ def is_file_processed(conn, file_hash):
     return result
 
 def get_source_id(conn, source_name='Banco de Chile'):
+    """Obtiene el ID de la fuente, creándolo si no existe."""
     cursor = conn.cursor(buffered=True)
     query = "SELECT fuente_id FROM fuentes WHERE nombre_fuente = %s"
     cursor.execute(query, (source_name,))
@@ -56,6 +60,7 @@ def get_source_id(conn, source_name='Banco de Chile'):
         return cursor.lastrowid
 
 def insert_metadata(conn, source_id, pdf_path, file_hash):
+    """Inserta los metadatos del archivo PDF, incluyendo su hash y tipo de documento."""
     cursor = conn.cursor()
     query = """
     INSERT INTO metadatos_cartolas_bancarias_raw (fuente_id, nombre_archivo_original, file_hash, document_type)
@@ -67,6 +72,7 @@ def insert_metadata(conn, source_id, pdf_path, file_hash):
     return cursor.lastrowid
 
 def parse_and_clean_value(value):
+    """Limpia y convierte valores monetarios de string a float."""
     if isinstance(value, str):
         if ' ' in value:
             value = value.split(' ')[0]
@@ -75,6 +81,7 @@ def parse_and_clean_value(value):
     return value if pd.notna(value) else 0.0
 
 def group_words_by_line(words, tolerance=3):
+    """Agrupa las palabras extraídas por pdfplumber en líneas coherentes."""
     if not words:
         return []
     lines = defaultdict(list)
@@ -91,6 +98,7 @@ def group_words_by_line(words, tolerance=3):
     return [sorted(line, key=lambda w: w['x0']) for top, line in sorted(lines.items())]
 
 def parse_bank_statement_pdf(pdf_path):
+    """Parsea un archivo PDF de cartola bancaria para extraer transacciones."""
     logging.info(f"Iniciando parseo de: {pdf_path}")
     hasta_date = None
     with pdfplumber.open(pdf_path) as pdf:
@@ -192,6 +200,7 @@ def parse_bank_statement_pdf(pdf_path):
         return df[final_columns]
 
 def insert_transactions(conn, metadata_id, source_id, transactions_df):
+    """Inserta las transacciones de la cuenta bancaria en la base de datos."""
     cursor = conn.cursor()
     query = """
     INSERT INTO transacciones_cuenta_bancaria_raw (
@@ -210,6 +219,7 @@ def insert_transactions(conn, metadata_id, source_id, transactions_df):
     logging.info(f"Se insertaron {len(transactions_df)} transacciones para metadata_id: {metadata_id}")
 
 def main():
+    """Función principal para orquestar el procesamiento de archivos PDF de cartolas bancarias."""
     pdf_directory = r'c:\Users\Petazo\Desktop\Boletas Jumbo\descargas\Banco\banco de chile\cuenta corriente'
     pdf_files = find_all_pdf_files(pdf_directory)
     

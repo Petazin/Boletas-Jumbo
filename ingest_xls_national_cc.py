@@ -21,6 +21,7 @@ if not ingestion_status_logger.handlers:
     ingestion_status_logger.addHandler(status_file_handler)
 
 def calculate_file_hash(file_path):
+    """Calcula el hash SHA-256 de un archivo."""
     sha256_hash = hashlib.sha256()
     with open(file_path, "rb") as f:
         for byte_block in iter(lambda: f.read(4096), b""):
@@ -28,6 +29,7 @@ def calculate_file_hash(file_path):
     return sha256_hash.hexdigest()
 
 def find_all_xls_files(directory):
+    """Encuentra todos los archivos XLS/XLSX en un directorio."""
     xls_files = []
     if not os.path.isdir(directory):
         logging.warning(f"El directorio no existe: {directory}")
@@ -38,6 +40,7 @@ def find_all_xls_files(directory):
     return xls_files
 
 def is_file_processed(conn, file_hash):
+    """Verifica si un archivo con un hash específico ya ha sido procesado."""
     cursor = conn.cursor(buffered=True)
     cursor.execute("SELECT 1 FROM metadatos_cartolas_bancarias_raw WHERE file_hash = %s", (file_hash,))
     result = cursor.fetchone() is not None
@@ -45,6 +48,7 @@ def is_file_processed(conn, file_hash):
     return result
 
 def get_source_id(conn, source_name):
+    """Obtiene el ID de la fuente, creándolo si no existe."""
     cursor = conn.cursor(buffered=True)
     cursor.execute("SELECT fuente_id FROM fuentes WHERE nombre_fuente = %s", (source_name,))
     result = cursor.fetchone()
@@ -56,6 +60,7 @@ def get_source_id(conn, source_name):
         return cursor.lastrowid
 
 def insert_metadata(conn, source_id, file_path, file_hash, doc_type):
+    """Inserta los metadatos del archivo, incluyendo su hash y tipo de documento."""
     cursor = conn.cursor()
     query = """
     INSERT INTO metadatos_cartolas_bancarias_raw (fuente_id, nombre_archivo_original, file_hash, document_type)
@@ -66,12 +71,14 @@ def insert_metadata(conn, source_id, file_path, file_hash, doc_type):
     return cursor.lastrowid
 
 def parse_and_clean_value(value):
+    """Limpia y convierte valores monetarios de string a float."""
     if isinstance(value, str):
         value = value.replace('.', '').replace(',', '.')
         return float(value) if value and value != '-' else 0.0
     return value if pd.notna(value) else 0.0
 
 def load_abono_mappings(conn):
+    """Carga las descripciones de abono desde la tabla abonos_mapping."""
     abono_descriptions = set()
     try:
         with conn.cursor(dictionary=True) as cursor:
@@ -85,6 +92,7 @@ def load_abono_mappings(conn):
     return abono_descriptions
 
 def process_national_cc_xls_file(xls_path, abono_descriptions):
+    """Procesa un archivo XLS de cartola de tarjeta de crédito nacional."""
     logging.info(f"Iniciando procesamiento de XLS nacional: {xls_path}")
     try:
         df_initial_read = pd.read_excel(xls_path, header=None, nrows=50)
@@ -142,6 +150,7 @@ def process_national_cc_xls_file(xls_path, abono_descriptions):
         return None
 
 def insert_credit_card_transactions(conn, metadata_id, source_id, df):
+    """Inserta las transacciones de tarjeta de crédito procesadas en la base de datos."""
     cursor = conn.cursor()
     query = """
     INSERT INTO transacciones_tarjeta_credito_raw (
@@ -163,6 +172,7 @@ def insert_credit_card_transactions(conn, metadata_id, source_id, df):
         logging.info(f"Insertadas {len(rows_to_insert)} transacciones para metadata_id: {metadata_id}")
 
 def main():
+    """Función principal para orquestar el procesamiento de archivos XLS de tarjetas de crédito nacionales."""
     xls_directory = r'c:\Users\Petazo\Desktop\Boletas Jumbo\descargas\Banco\banco de chile\tarjeta de credito\nacional'
     source_name = 'Banco de Chile - Tarjeta Credito Nacional'
     document_type = 'National Credit Card Statement'
