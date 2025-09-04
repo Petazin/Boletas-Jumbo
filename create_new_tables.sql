@@ -22,7 +22,7 @@ CREATE TABLE IF NOT EXISTS subcategorias (
 );
 
 -- Table: metadatos_cartolas_bancarias_raw
-CREATE TABLE IF NOT EXISTS metadatos_cartolas_bancarias_raw (
+CREATE TABLE IF NOT EXISTS raw_metadatos_cartolas_bancarias (
     metadata_id INT AUTO_INCREMENT PRIMARY KEY,
     fuente_id INT NOT NULL,
     nombre_titular_cuenta VARCHAR(255),
@@ -51,7 +51,7 @@ CREATE TABLE IF NOT EXISTS metadatos_cartolas_bancarias_raw (
 );
 
 -- Table: transacciones_cuenta_bancaria_raw
-CREATE TABLE IF NOT EXISTS transacciones_cuenta_bancaria_raw (
+CREATE TABLE IF NOT EXISTS raw_transacciones_cuenta_bancaria (
     raw_id INT AUTO_INCREMENT PRIMARY KEY,
     fuente_id INT NOT NULL,
     metadata_id INT NOT NULL,
@@ -64,11 +64,11 @@ CREATE TABLE IF NOT EXISTS transacciones_cuenta_bancaria_raw (
     linea_original_datos TEXT,
     procesado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (fuente_id) REFERENCES fuentes(fuente_id),
-    FOREIGN KEY (metadata_id) REFERENCES metadatos_cartolas_bancarias_raw(metadata_id)
+    FOREIGN KEY (metadata_id) REFERENCES raw_metadatos_cartolas_bancarias(metadata_id)
 );
 
 -- Table: transacciones_tarjeta_credito_raw
-CREATE TABLE IF NOT EXISTS transacciones_tarjeta_credito_raw (
+CREATE TABLE IF NOT EXISTS raw_transacciones_tarjeta_credito (
     raw_id INT AUTO_INCREMENT PRIMARY KEY,
     fuente_id INT NOT NULL,
     metadata_id INT NOT NULL,
@@ -79,7 +79,7 @@ CREATE TABLE IF NOT EXISTS transacciones_tarjeta_credito_raw (
     linea_original_datos TEXT,
     procesado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (fuente_id) REFERENCES fuentes(fuente_id),
-    FOREIGN KEY (metadata_id) REFERENCES metadatos_cartolas_bancarias_raw(metadata_id)
+    FOREIGN KEY (metadata_id) REFERENCES raw_metadatos_cartolas_bancarias(metadata_id)
 );
 
 -- Table: transacciones
@@ -99,7 +99,7 @@ CREATE TABLE IF NOT EXISTS transacciones (
     creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     actualizado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (fuente_id) REFERENCES fuentes(fuente_id),
-    FOREIGN KEY (metadata_id_original) REFERENCES metadatos_cartolas_bancarias_raw(metadata_id),
+    FOREIGN KEY (metadata_id_original) REFERENCES raw_metadatos_cartolas_bancarias(metadata_id),
     FOREIGN KEY (categoria_principal_id) REFERENCES categorias_principales(categoria_principal_id),
     FOREIGN KEY (subcategoria_id) REFERENCES subcategorias(subcategoria_id)
 );

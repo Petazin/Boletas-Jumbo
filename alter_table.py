@@ -6,7 +6,7 @@ def reset_and_setup_bank_tables():
     """
     Resetea las tablas bancarias y aplica la estructura final con file_hash.
     ADVERTENCIA: Esta operación es destructiva y borrará todos los datos existentes
-    en las tablas 'transacciones_cuenta_bancaria_raw' y 'metadatos_cartolas_bancarias_raw'.
+    en las tablas 'raw_transacciones_cuenta_bancaria' y 'raw_metadatos_cartolas_bancarias'.
     """
     try:
         with db_connection() as conn:
@@ -19,18 +19,18 @@ def reset_and_setup_bank_tables():
             cursor.execute("SET FOREIGN_KEY_CHECKS=0;")
             
             # 2. Vaciar las tablas principales
-            logging.info("Vaciando tabla 'transacciones_cuenta_bancaria_raw'...")
-            cursor.execute("TRUNCATE TABLE transacciones_cuenta_bancaria_raw")
-            logging.info("Vaciando tabla 'metadatos_cartolas_bancarias_raw'...")
-            cursor.execute("TRUNCATE TABLE metadatos_cartolas_bancarias_raw")
+            logging.info("Vaciando tabla 'raw_transacciones_cuenta_bancaria'...")
+            cursor.execute("TRUNCATE TABLE raw_transacciones_cuenta_bancaria")
+            logging.info("Vaciando tabla 'raw_metadatos_cartolas_bancarias'...")
+            cursor.execute("TRUNCATE TABLE raw_metadatos_cartolas_bancarias")
             
-            # 3. Eliminar y recrear transacciones_tarjeta_credito_raw para asegurar el esquema
-            logging.info("Eliminando tabla 'transacciones_tarjeta_credito_raw' si existe...")
-            cursor.execute("DROP TABLE IF EXISTS `transacciones_tarjeta_credito_raw`")
+            # 3. Eliminar y recrear raw_transacciones_tarjeta_credito para asegurar el esquema
+            logging.info("Eliminando tabla 'raw_transacciones_tarjeta_credito' si existe...")
+            cursor.execute("DROP TABLE IF EXISTS `raw_transacciones_tarjeta_credito`")
 
-            logging.info("Creando tabla 'transacciones_tarjeta_credito_raw' con el esquema actualizado...")
+            logging.info("Creando tabla 'raw_transacciones_tarjeta_credito' con el esquema actualizado...")
             create_credit_card_table_query = """
-            CREATE TABLE `transacciones_tarjeta_credito_raw` (
+            CREATE TABLE `raw_transacciones_tarjeta_credito` (
               `raw_id` int NOT NULL AUTO_INCREMENT,
               `fuente_id` int NOT NULL,
               `metadata_id` int NOT NULL,
@@ -50,27 +50,27 @@ def reset_and_setup_bank_tables():
               PRIMARY KEY (`raw_id`),
               KEY `fuente_id` (`fuente_id`),
               KEY `metadata_id` (`metadata_id`),
-              CONSTRAINT `transacciones_tarjeta_credito_raw_ibfk_1` FOREIGN KEY (`fuente_id`) REFERENCES `fuentes` (`fuente_id`),
-              CONSTRAINT `transacciones_tarjeta_credito_raw_ibfk_2` FOREIGN KEY (`metadata_id`) REFERENCES `metadatos_cartolas_bancarias_raw` (`metadata_id`)
+              CONSTRAINT `raw_transacciones_tarjeta_credito_ibfk_1` FOREIGN KEY (`fuente_id`) REFERENCES `fuentes` (`fuente_id`),
+              CONSTRAINT `raw_transacciones_tarjeta_credito_ibfk_2` FOREIGN KEY (`metadata_id`) REFERENCES `raw_metadatos_cartolas_bancarias` (`metadata_id`)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
             """
             cursor.execute(create_credit_card_table_query)
-            logging.info("Tabla 'transacciones_tarjeta_credito_raw' creada/asegurada con el esquema actualizado.")
+            logging.info("Tabla 'raw_transacciones_tarjeta_credito' creada/asegurada con el esquema actualizado.")
 
             # 4. Reactivar la revisión de llaves foráneas
             logging.info("Reactivando revisión de llaves foráneas.")
             cursor.execute("SET FOREIGN_KEY_CHECKS=1;")
 
-            # 5. Asegurar columnas necesarias en metadatos_cartolas_bancarias_raw (si no existen)
-            cursor.execute("SHOW COLUMNS FROM metadatos_cartolas_bancarias_raw LIKE 'file_hash'")
+            # 5. Asegurar columnas necesarias en raw_metadatos_cartolas_bancarias (si no existen)
+            cursor.execute("SHOW COLUMNS FROM raw_metadatos_cartolas_bancarias LIKE 'file_hash'")
             if not cursor.fetchone():
-                cursor.execute("ALTER TABLE metadatos_cartolas_bancarias_raw ADD COLUMN file_hash VARCHAR(64) NOT NULL UNIQUE AFTER nombre_archivo_original")
-                logging.info("Columna 'file_hash' agregada a metadatos_cartolas_bancarias_raw.")
+                cursor.execute("ALTER TABLE raw_metadatos_cartolas_bancarias ADD COLUMN file_hash VARCHAR(64) NOT NULL UNIQUE AFTER nombre_archivo_original")
+                logging.info("Columna 'file_hash' agregada a raw_metadatos_cartolas_bancarias.")
             
-            cursor.execute("SHOW COLUMNS FROM metadatos_cartolas_bancarias_raw LIKE 'document_type'")
+            cursor.execute("SHOW COLUMNS FROM raw_metadatos_cartolas_bancarias LIKE 'document_type'")
             if not cursor.fetchone():
-                cursor.execute("ALTER TABLE metadatos_cartolas_bancarias_raw ADD COLUMN document_type VARCHAR(255) AFTER file_hash")
-                logging.info("Columna 'document_type' agregada a metadatos_cartolas_bancarias_raw.")
+                cursor.execute("ALTER TABLE raw_metadatos_cartolas_bancarias ADD COLUMN document_type VARCHAR(255) AFTER file_hash")
+                logging.info("Columna 'document_type' agregada a raw_metadatos_cartolas_bancarias.")
 
             conn.commit()
             logging.info("Las tablas bancarias han sido reseteadas y configuradas exitosamente.")

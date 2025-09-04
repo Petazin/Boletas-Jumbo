@@ -39,7 +39,7 @@ def find_all_pdf_files(directory):
 def is_file_processed(conn, file_hash):
     """Verifica si un archivo con un hash específico ya ha sido procesado."""
     cursor = conn.cursor(buffered=True)
-    query = "SELECT 1 FROM metadatos_cartolas_bancarias_raw WHERE file_hash = %s"
+    query = "SELECT 1 FROM raw_metadatos_cartolas_bancarias WHERE file_hash = %s"
     cursor.execute(query, (file_hash,))
     result = cursor.fetchone() is not None
     cursor.close()
@@ -63,7 +63,7 @@ def insert_metadata(conn, source_id, pdf_path, file_hash):
     """Inserta los metadatos del archivo PDF, incluyendo su hash y tipo de documento."""
     cursor = conn.cursor()
     query = """
-    INSERT INTO metadatos_cartolas_bancarias_raw (fuente_id, nombre_archivo_original, file_hash, document_type)
+    INSERT INTO raw_metadatos_cartolas_bancarias (fuente_id, nombre_archivo_original, file_hash, document_type)
     VALUES (%s, %s, %s, %s)
     """
     values = (source_id, os.path.basename(pdf_path), file_hash, 'Bank Statement')
@@ -152,10 +152,12 @@ def parse_bank_statement_pdf(pdf_path):
         
         if not table_data:
             logging.error(f"No se pudieron extraer datos de transacciones de {pdf_path}")
-            return None
+            return None, None
         
-        df = pd.DataFrame(table_data, columns=headers)
-        logging.info(f"DataFrame construido con éxito para {pdf_path}")
+        raw_df = pd.DataFrame(table_data, columns=headers)
+        logging.info(f"Raw DataFrame construido con éxito para {pdf_path}")
+
+        processed_df = raw_df.copy() # Create a copy for processing
         
         column_mapping = {
             'FECHA DIA/MES': 'fecha_transaccion_str',
@@ -166,7 +168,7 @@ def parse_bank_statement_pdf(pdf_path):
             'MONTO DEPOSITOS O ABONOS': 'abonos_pesos',
             'SALDO': 'saldo_pesos'
         }
-        df.rename(columns=column_mapping, inplace=True)
+        processed_df.rename(columns=column_mapping, inplace=True)
 
         # --- LÓGICA DE CORRECCIÓN DE FECHAS ---
         # 1. Define una función interna para determinar el año correcto de una transacción.
@@ -184,26 +186,26 @@ def parse_bank_statement_pdf(pdf_path):
                 return pd.NaT # Retorna Not a Time si el formato es inválido
 
         # 2. Aplica la función para crear fechas completas y válidas.
-        df['fecha_transaccion_str'] = df['fecha_transaccion_str'].apply(get_correct_date)
+        processed_df['fecha_transaccion_str'] = processed_df['fecha_transaccion_str'].apply(get_correct_date)
         # 3. Elimina cualquier fila que no tenga una fecha válida después de la conversión.
-        df.dropna(subset=['fecha_transaccion_str'], inplace=True)
+        processed_df.dropna(subset=['fecha_transaccion_str'], inplace=True)
         # 4. Estandariza la fecha al formato YYYY-MM-DD para la base de datos.
-        df['fecha_transaccion_str'] = df['fecha_transaccion_str'].dt.strftime('%Y-%m-%d')
+        processed_df['fecha_transaccion_str'] = processed_df['fecha_transaccion_str'].dt.strftime('%Y-%m-%d')
         
         for col in ['cargos_pesos', 'abonos_pesos', 'saldo_pesos']:
-            if col in df.columns:
-                df[col] = df[col].apply(parse_and_clean_value)
+            if col in processed_df.columns:
+                processed_df[col] = processed_df[col].apply(parse_and_clean_value)
         
-        df = df.astype(object).where(pd.notnull(df), None)
+        processed_df = processed_df.astype(object).where(pd.notnull(processed_df), None)
         
-        final_columns = [col for col in column_mapping.values() if col in df.columns]
-        return df[final_columns]
+        final_columns = [col for col in column_mapping.values() if col in processed_df.columns]
+        return raw_df, processed_df[final_columns]
 
 def insert_transactions(conn, metadata_id, source_id, transactions_df):
     """Inserta las transacciones de la cuenta bancaria en la base de datos."""
     cursor = conn.cursor()
     query = """
-    INSERT INTO transacciones_cuenta_bancaria_raw (
+    INSERT INTO raw_transacciones_cuenta_bancaria (
         metadata_id, fuente_id, fecha_transaccion_str, descripcion_transaccion, 
         canal_o_sucursal, cargos_pesos, abonos_pesos, saldo_pesos
     ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
@@ -217,6 +219,27 @@ def insert_transactions(conn, metadata_id, source_id, transactions_df):
         cursor.execute(query, values)
     conn.commit()
     logging.info(f"Se insertaron {len(transactions_df)} transacciones para metadata_id: {metadata_id}")
+
+def insert_raw_pdf_bank_statement_to_staging(conn, metadata_id, source_id, raw_df):
+    """Inserta los datos crudos de la cartola bancaria PDF en la tabla de staging."""
+    cursor = conn.cursor()
+    # Construir la consulta de inserción dinámicamente
+    cols = ", ".join([f"`{col}`" for col in raw_df.columns])
+    placeholders = ", ".join(["%s"] * len(raw_df.columns))
+    query = f"""
+    INSERT INTO staging_cta_corriente_banco_de_chile (metadata_id, fuente_id, {cols})
+    VALUES (%s, %s, {placeholders})
+    """
+    
+    rows_to_insert = []
+    for _, row in raw_df.iterrows():
+        values = [metadata_id, source_id] + row.tolist()
+        rows_to_insert.append(tuple(values))
+
+    if rows_to_insert:
+        cursor.executemany(query, rows_to_insert)
+        conn.commit()
+        logging.info(f"Se insertaron {len(rows_to_insert)} filas en staging_cta_corriente_banco_de_chile para metadata_id: {metadata_id}")
 
 def main():
     """Función principal para orquestar el procesamiento de archivos PDF de cartolas bancarias."""
@@ -239,15 +262,17 @@ def main():
                     ingestion_status_logger.info(f"FILE: {os.path.basename(pdf_path)} | HASH: {file_hash} | STATUS: Skipped - Already Processed")
                     continue
 
-                transactions_df = parse_bank_statement_pdf(pdf_path)
-                if transactions_df is None or transactions_df.empty:
+                raw_transactions_df, processed_transactions_df = parse_bank_statement_pdf(pdf_path)
+                if raw_transactions_df is None or raw_transactions_df.empty:
                     logging.warning(f"No se procesaron transacciones para {os.path.basename(pdf_path)}. Omitiendo inserción y movimiento.")
                     ingestion_status_logger.info(f"FILE: {os.path.basename(pdf_path)} | HASH: {file_hash} | STATUS: Failed - Parsing failed")
                     continue
 
                 source_id = get_source_id(conn)
                 metadata_id = insert_metadata(conn, source_id, pdf_path, file_hash)
-                insert_transactions(conn, metadata_id, source_id, transactions_df)
+                
+                insert_raw_pdf_bank_statement_to_staging(conn, metadata_id, source_id, raw_transactions_df)
+                insert_transactions(conn, metadata_id, source_id, processed_transactions_df)
                 
                 processed_dir = os.path.join(os.path.dirname(pdf_path), 'procesados')
                 os.makedirs(processed_dir, exist_ok=True)

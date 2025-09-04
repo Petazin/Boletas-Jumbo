@@ -34,5 +34,5 @@ def execute_sql_from_file(sql_file_path):
         logging.error(f"Ocurrió un error inesperado al ejecutar el script SQL: {e}")
 
 if __name__ == "__main__":
-    sql_file = "c:\\Users\\Petazo\\Desktop\\Boletas Jumbo\\create_new_tables.sql"
+    sql_file = r"c:\Users\Petazo\Desktop\Boletas Jumbo\create_staging_tables.sql"
     execute_sql_from_file(sql_file)

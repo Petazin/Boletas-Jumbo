@@ -3,7 +3,7 @@ from database_utils import db_connection
 
 def setup_linea_credito_table():
     """
-    Crea la tabla 'transacciones_linea_credito_raw' si no existe.
+    Crea la tabla 'raw_transacciones_linea_credito' si no existe.
     Esta tabla almacenará los datos crudos de las cartolas de línea de crédito,
     siguiendo la arquitectura de una tabla por tipo de producto.
     """
@@ -11,10 +11,10 @@ def setup_linea_credito_table():
         with db_connection() as conn:
             cursor = conn.cursor()
             
-            logging.info("Verificando/Creando la tabla 'transacciones_linea_credito_raw'...")
+            logging.info("Verificando/Creando la tabla 'raw_transacciones_linea_credito'...")
             
             create_table_query = """
-            CREATE TABLE IF NOT EXISTS `transacciones_linea_credito_raw` (
+            CREATE TABLE IF NOT EXISTS `raw_transacciones_linea_credito` (
               `raw_id` INT NOT NULL AUTO_INCREMENT,
               `fuente_id` INT NOT NULL,
               `metadata_id` INT NOT NULL,
@@ -31,14 +31,14 @@ def setup_linea_credito_table():
               KEY `fuente_id` (`fuente_id`),
               KEY `metadata_id` (`metadata_id`),
               CONSTRAINT `fk_linea_credito_fuente` FOREIGN KEY (`fuente_id`) REFERENCES `fuentes` (`fuente_id`),
-              CONSTRAINT `fk_linea_credito_metadata` FOREIGN KEY (`metadata_id`) REFERENCES `metadatos_cartolas_bancarias_raw` (`metadata_id`)
+              CONSTRAINT `fk_linea_credito_metadata` FOREIGN KEY (`metadata_id`) REFERENCES `raw_metadatos_cartolas_bancarias` (`metadata_id`)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
             """
             
             cursor.execute(create_table_query)
             conn.commit()
             
-            logging.info("La tabla 'transacciones_linea_credito_raw' está lista.")
+            logging.info("La tabla 'raw_transacciones_linea_credito' está lista.")
 
     except Exception as e:
         logging.error(f"Ocurrió un error durante la configuración de la tabla: {e}")

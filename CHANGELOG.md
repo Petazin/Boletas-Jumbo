@@ -1,5 +1,20 @@
 # Historial de Cambios
 
+## 2025-09-04
+- **refactor(db)**: Estandariza la nomenclatura de tablas `raw` y `staging`.
+    - Todas las tablas de datos crudos ahora usan el prefijo `raw_` (ej. `raw_transacciones_tarjeta_credito`).
+    - Todas las tablas de staging ahora usan el prefijo `staging_` (ej. `staging_cta_corriente_banco_de_chile`).
+    - Se actualizan todos los scripts de ingesta, SQL y de utilidad para reflejar la nueva nomenclatura.
+- **feat(staging)**: Implementa la inserción a la capa de staging en todos los scripts de ingesta.
+    - Los scripts ahora guardan los datos extraídos directamente en las tablas de staging antes de cualquier transformación.
+    - Se añaden las funciones `insert_raw_*_to_staging` a los scripts de ingesta correspondientes.
+- **fix(ingestion)**: Corrige múltiples errores en los scripts de ingesta de XLS.
+    - Se soluciona el error `Unknown column` al eliminar columnas no deseadas (`Unnamed: 0`, `Categoría`) que pandas genera al leer ciertos archivos Excel.
+    - Se mejora el manejo de transacciones en bucles para evitar el error `Transaction already in progress`.
+- **feat(testing)**: Añade y mejora scripts de utilidad para pruebas y validación.
+    - Se crea el script `create_staging_tables.sql`.
+    - Se mejora `check_staging_data.py` para que acepte un nombre de tabla como argumento y use la nomenclatura correcta.
+
 ## 2025-09-03
 - **docs(contexto)**: Reorganiza archivos de contexto de IA y actualiza documentación del roadmap.
     - Se crea nueva carpeta 'IA contexto' para centralizar documentación específica de IA.

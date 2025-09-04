@@ -42,7 +42,7 @@ def find_all_xls_files(directory):
 def is_file_processed(conn, file_hash):
     """Verifica si un archivo con un hash específico ya ha sido procesado."""
     cursor = conn.cursor(buffered=True)
-    cursor.execute("SELECT 1 FROM metadatos_cartolas_bancarias_raw WHERE file_hash = %s", (file_hash,))
+    cursor.execute("SELECT 1 FROM raw_metadatos_cartolas_bancarias WHERE file_hash = %s", (file_hash,))
     result = cursor.fetchone() is not None
     cursor.close()
     return result
@@ -63,7 +63,7 @@ def insert_metadata(conn, source_id, file_path, file_hash, doc_type):
     """Inserta los metadatos del archivo, incluyendo su hash y tipo de documento."""
     cursor = conn.cursor()
     query = """
-    INSERT INTO metadatos_cartolas_bancarias_raw (fuente_id, nombre_archivo_original, file_hash, document_type)
+    INSERT INTO raw_metadatos_cartolas_bancarias (fuente_id, nombre_archivo_original, file_hash, document_type)
     VALUES (%s, %s, %s, %s)
     """
     values = (source_id, os.path.basename(file_path), file_hash, doc_type)
@@ -108,6 +108,12 @@ def process_national_cc_xls_file(xls_path, abono_descriptions):
             return None
 
         df = pd.read_excel(xls_path, skiprows=header_row_index, header=0)
+        raw_df = df.copy()  # Keep a copy of the raw DataFrame
+        # Eliminar columnas no deseadas que a veces genera pandas
+        raw_df = raw_df.loc[:, ~raw_df.columns.str.startswith('Unnamed')]
+        # Eliminar la columna 'Categoría' si existe, ya que no pertenece a la tabla de staging
+        if 'Categoría' in raw_df.columns:
+            raw_df = raw_df.drop(columns=['Categoría'])
         df.columns = [str(col).strip() for col in df.columns]
         
         column_mapping = {
@@ -143,7 +149,7 @@ def process_national_cc_xls_file(xls_path, abono_descriptions):
 
         df_final = df.astype(object).where(pd.notnull(df), None)
         logging.info(f"Parseo de {os.path.basename(xls_path)} completado. {len(df_final)} transacciones listas.")
-        return df_final
+        return raw_df, df_final
 
     except Exception as e:
         logging.error(f"Error procesando {os.path.basename(xls_path)}: {e}", exc_info=True)
@@ -153,7 +159,7 @@ def insert_credit_card_transactions(conn, metadata_id, source_id, df):
     """Inserta las transacciones de tarjeta de crédito procesadas en la base de datos."""
     cursor = conn.cursor()
     query = """
-    INSERT INTO transacciones_tarjeta_credito_raw (
+    INSERT INTO raw_transacciones_tarjeta_credito (
         metadata_id, fuente_id, fecha_cargo_original, fecha_cargo_cuota, 
         descripcion_transaccion, cuota_actual, total_cuotas, cargos_pesos, abonos_pesos
     ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
@@ -170,6 +176,27 @@ def insert_credit_card_transactions(conn, metadata_id, source_id, df):
     if rows_to_insert:
         cursor.executemany(query, rows_to_insert)
         logging.info(f"Insertadas {len(rows_to_insert)} transacciones para metadata_id: {metadata_id}")
+
+def insert_raw_national_cc_to_staging(conn, metadata_id, source_id, raw_df):
+    """Inserta los datos crudos de la cartola de Tarjeta de Crédito Nacional en la tabla de staging."""
+    cursor = conn.cursor()
+    # Construir la consulta de inserción dinámicamente
+    cols = ", ".join([f"`{col}`" for col in raw_df.columns])
+    placeholders = ", ".join(["%s"] * len(raw_df.columns))
+    query = f"""
+    INSERT INTO staging_tarjeta_credito_banco_de_chile_nacional (metadata_id, fuente_id, {cols})
+    VALUES (%s, %s, {placeholders})
+    """
+    
+    rows_to_insert = []
+    for _, row in raw_df.iterrows():
+        values = [metadata_id, source_id] + row.tolist()
+        rows_to_insert.append(tuple(values))
+
+    if rows_to_insert:
+        cursor.executemany(query, rows_to_insert)
+        conn.commit()
+        logging.info(f"Se insertaron {len(rows_to_insert)} filas en staging_tarjeta_credito_banco_de_chile_nacional para metadata_id: {metadata_id}")
 
 def main():
     """Función principal para orquestar el procesamiento de archivos XLS de tarjetas de crédito nacionales."""
@@ -200,9 +227,18 @@ def main():
                     continue
 
                 metadata_id = insert_metadata(conn, source_id, xls_path, file_hash, document_type)
-                processed_df = process_national_cc_xls_file(xls_path, abono_descriptions)
+                result = process_national_cc_xls_file(xls_path, abono_descriptions)
+                
+                if result is None:
+                    logging.warning(f"No se procesaron transacciones para {os.path.basename(xls_path)}.")
+                    ingestion_status_logger.info(f"FILE: {os.path.basename(xls_path)} | HASH: {file_hash} | STATUS: Failed - Parsing failed")
+                    conn.rollback()
+                    continue
+                
+                raw_df, processed_df = result
 
-                if processed_df is not None and not processed_df.empty:
+                if raw_df is not None and processed_df is not None and not processed_df.empty:
+                    insert_raw_national_cc_to_staging(conn, metadata_id, source_id, raw_df)
                     insert_credit_card_transactions(conn, metadata_id, source_id, processed_df)
                     conn.commit()
                     ingestion_status_logger.info(f"FILE: {os.path.basename(xls_path)} | HASH: {file_hash} | STATUS: Processed Successfully")

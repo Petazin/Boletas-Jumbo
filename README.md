@@ -40,14 +40,14 @@ El proyecto sigue una arquitectura modular, donde cada archivo tiene una respons
 La capa de staging es un componente fundamental de la arquitectura de ingesta de datos, diseñada para capturar los datos extraídos de los documentos en su formato original antes de cualquier transformación o consolidación.
 
 *   **Propósito:** Asegurar la visibilidad, trazabilidad y validación de los datos crudos extraídos.
-*   **Nomenclatura:** Las tablas de staging siguen una convención `[tipo_documento]_[origen]_staging` (ej. `cuenta_corriente_banco_chile_staging`, `tarjeta_credito_falabella_nacional_staging`). Esto permite una clara identificación del tipo de dato y su fuente.
+*   **Nomenclatura:** Las tablas de staging siguen una convención `staging_[tipo_documento]_[origen]` (ej. `staging_cta_corriente_banco_de_chile`, `staging_tarjeta_credito_falabella_nacional`). Esto permite una clara identificación del tipo de dato y su fuente.
 *   **Estructura:** Cada tabla de staging replica la estructura de los datos tal como son extraídos del documento fuente, preservando la información original.
 *   **Validación:** Se implementan validaciones a nivel de registro (para evitar duplicados) y a nivel de archivo (para verificar sumas y recuentos) para garantizar la integridad de los datos antes de su paso a las tablas raw.
 *   **Rol en el ETL:** Las tablas de staging actúan como una fuente de datos verificada y estandarizada para las tablas raw del sistema, donde los datos de diferentes orígenes se consolidan y transforman para el análisis.
 
 ### Esquema de la Base de Datos
 
-El proyecto utiliza un esquema de base de datos escalable y completamente en español para manejar diversos tipos de transacciones. Además de las tablas principales como `fuentes`, `categorias_principales`, `subcategorias`, `metadatos_cartolas_bancarias_raw`, `transacciones_cuenta_bancaria_raw`, `transacciones_tarjeta_credito_raw`, `transacciones`, `items_transaccion`, `historial_descargas` y `transacciones_jumbo`, el esquema ahora incluye una **capa de tablas de staging** dedicada para la ingesta de datos crudos. Para el esquema completo, consulta el archivo `create_new_tables.sql` y `create_staging_tables.sql`.
+El proyecto utiliza un esquema de base de datos escalable y completamente en español para manejar diversos tipos de transacciones. Además de las tablas principales como `fuentes`, `categorias_principales`, `subcategorias`, `raw_metadatos_cartolas_bancarias`, `raw_transacciones_cuenta_bancaria`, `raw_transacciones_tarjeta_credito`, `transacciones`, `items_transaccion`, `historial_descargas` y `transacciones_jumbo`, el esquema ahora incluye una **capa de tablas de staging** dedicada para la ingesta de datos crudos. Para el esquema completo, consulta el archivo `create_new_tables.sql` y `create_staging_tables.sql`.
 
 Una tabla de soporte importante es `abonos_mapping`, que contiene descripciones de transacciones que deben ser tratadas como pagos (abonos) en las tarjetas de crédito, permitiendo una correcta clasificación de los flujos de dinero.
 
@@ -69,7 +69,7 @@ El sistema tiene dos flujos de trabajo principales:
     ```bash
     python process_boletas.py
     ```
-    Lee los PDFs descargados, extrae los datos de productos y los guarda primero en la tabla de staging `boletas_jumbo_staging`. Utiliza el hash del archivo para evitar el reprocesamiento de duplicados y mueve a cuarentena los que fallan.
+    Lee los PDFs descargados, extrae los datos de productos y los guarda primero en la tabla de staging `staging_boletas_jumbo`. Utiliza el hash del archivo para evitar el reprocesamiento de duplicados y mueve a cuarentena los que fallan.
 
 ### Flujo 2: Procesamiento de Cartolas Bancarias (PDF y XLS)
 
@@ -80,19 +80,19 @@ El sistema tiene dos flujos de trabajo principales:
     ```bash
     python ingest_pdf_bank_statement.py
     ```
-    *   **Proceso:** El script buscará todos los archivos PDF en el directorio configurado. Para cada archivo, calculará un hash único, verificará duplicados y, si es nuevo, lo procesará y guardará las transacciones en la tabla de staging `cta_corriente_banco_de_chile_staging`. Los archivos procesados se moverán a una subcarpeta `procesados/` dentro de su directorio de origen.
+    *   **Proceso:** El script buscará todos los archivos PDF en el directorio configurado. Para cada archivo, calculará un hash único, verificará duplicados y, si es nuevo, lo procesará y guardará las transacciones en la tabla de staging `staging_cta_corriente_banco_de_chile`. Los archivos procesados se moverán a una subcarpeta `procesados/` dentro de su directorio de origen.
 
 3.  **Procesar Cartolas Nacionales XLS (`ingest_xls_national_cc.py`):**
     ```bash
     python ingest_xls_national_cc.py
     ```
-    *   **Proceso:** Similar al procesamiento de PDFs, este script buscará archivos XLS/XLSX en el directorio configurado para cartolas nacionales. Identificará dinámicamente la cabecera de las transacciones, extraerá los datos (incluyendo el manejo de cuotas y fechas de cargo/originales) y los insertará en la tabla de staging `tarjeta_credito_banco_de_chile_nacional_staging`, evitando duplicados por hash. Los archivos procesados se moverán a una subcarpeta `procesados/` dentro de su directorio de origen.
+    *   **Proceso:** Similar al procesamiento de PDFs, este script buscará archivos XLS/XLSX en el directorio configurado para cartolas nacionales. Identificará dinámicamente la cabecera de las transacciones, extraerá los datos (incluyendo el manejo de cuotas y fechas de cargo/originales) y los insertará en la tabla de staging `staging_tarjeta_credito_banco_de_chile_nacional`, evitando duplicados por hash. Los archivos procesados se moverán a una subcarpeta `procesados/` dentro de su directorio de origen.
 
 4.  **Procesar Cartolas Internacionales XLS (`ingest_xls_international_cc.py`):**
     ```bash
     python ingest_xls_international_cc.py
     ```
-    *   **Proceso:** Similar a los otros scripts de ingesta de XLS, procesa las cartolas de tarjetas de crédito internacionales y las inserta en la tabla de staging `tarjeta_credito_banco_de_chile_internacional_staging`. Los archivos procesados se moverán a una subcarpeta `procesados/` dentro de su directorio de origen.
+    *   **Proceso:** Similar a los otros scripts de ingesta de XLS, procesa las cartolas de tarjetas de crédito internacionales y las inserta en la tabla de staging `staging_tarjeta_credito_banco_de_chile_internacional`. Los archivos procesados se moverán a una subcarpeta `procesados/` dentro de su directorio de origen.
 
 5.  **Procesar Cartolas de Banco Falabella (XLS):**
     ```bash
@@ -105,7 +105,7 @@ El sistema tiene dos flujos de trabajo principales:
     # Para Línea de Crédito
     python ingest_xls_falabella_linea_credito.py
     ```
-    *   **Proceso:** Cada uno de estos scripts está especializado en un producto de Banco Falabella, buscando los archivos en su directorio correspondiente y guardando los datos en la tabla de staging apropiada (ej. `tarjeta_credito_falabella_nacional_staging`, `cta_corriente_falabella_staging`, `linea_credito_falabella_staging`). Los archivos procesados se moverán a una subcarpeta `procesados/` dentro de su directorio de origen.
+    *   **Proceso:** Cada uno de estos scripts está especializado en un producto de Banco Falabella, buscando los archivos en su directorio correspondiente y guardando los datos en la tabla de staging apropiada (ej. `staging_tarjeta_credito_falabella_nacional`, `staging_cta_corriente_falabella`, `staging_linea_credito_falabella`). Los archivos procesados se moverán a una subcarpeta `procesados/` dentro de su directorio de origen.
 
 ---
 

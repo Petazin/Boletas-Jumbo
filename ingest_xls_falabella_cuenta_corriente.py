@@ -39,7 +39,7 @@ def find_all_xls_files(directory):
 def is_file_processed(conn, file_hash):
     """Verifica si un archivo con un hash específico ya ha sido procesado."""
     cursor = conn.cursor(buffered=True)
-    query = "SELECT 1 FROM metadatos_cartolas_bancarias_raw WHERE file_hash = %s"
+    query = "SELECT 1 FROM raw_metadatos_cartolas_bancarias WHERE file_hash = %s"
     cursor.execute(query, (file_hash,))
     result = cursor.fetchone() is not None
     cursor.close()
@@ -63,7 +63,7 @@ def insert_metadata(conn, source_id, file_path, file_hash, doc_type):
     """Inserta los metadatos del archivo, incluyendo su hash y tipo de documento."""
     cursor = conn.cursor()
     query = """
-    INSERT INTO metadatos_cartolas_bancarias_raw (fuente_id, nombre_archivo_original, file_hash, document_type)
+    INSERT INTO raw_metadatos_cartolas_bancarias (fuente_id, nombre_archivo_original, file_hash, document_type)
     VALUES (%s, %s, %s, %s)
     """
     # Corregido para usar os.path.basename y ser consistente
@@ -112,6 +112,7 @@ def process_falabella_cuenta_corriente_xls_file(xls_path, source_id, metadata_id
         logging.info(f"Fila de cabecera de transacciones encontrada en el índice: {header_row_index}")
 
         df_transactions = pd.read_excel(xls_path, skiprows=header_row_index, header=0) 
+        raw_df = df_transactions.copy() # Keep a copy of the raw DataFrame
         
         df_transactions = df_transactions.loc[:, ~df_transactions.columns.str.contains('^Unnamed')]
         if 'nan' in df_transactions.columns:
@@ -148,7 +149,7 @@ def process_falabella_cuenta_corriente_xls_file(xls_path, source_id, metadata_id
         # --- FIN DE LA CORRECCIÓN ---
 
         logging.info(f"Parseo de {os.path.basename(xls_path)} completado. {len(df_transactions)} transacciones listas para inserción.")
-        return df_transactions
+        return raw_df, df_transactions
 
     except Exception as e:
         logging.error(f"Error al procesar el archivo XLS {os.path.basename(xls_path)}: {e}", exc_info=True)
@@ -181,6 +182,27 @@ def insert_bank_account_transactions(conn, metadata_id, source_id, transactions_
     conn.commit()
     logging.info(f"Se insertaron {len(transactions_df)} transacciones de cuenta bancaria para metadata_id: {metadata_id}")
 
+def insert_raw_falabella_cuenta_corriente_to_staging(conn, metadata_id, source_id, raw_df):
+    """Inserta los datos crudos de la cartola de Cuenta Corriente Falabella en la tabla de staging."""
+    cursor = conn.cursor()
+    # Construir la consulta de inserción dinámicamente
+    cols = ", ".join([f"`{col}`" for col in raw_df.columns])
+    placeholders = ", ".join(["%s"] * len(raw_df.columns))
+    query = f"""
+    INSERT INTO staging_cta_corriente_falabella (metadata_id, fuente_id, {cols})
+    VALUES (%s, %s, {placeholders})
+    """
+    
+    rows_to_insert = []
+    for _, row in raw_df.iterrows():
+        values = [metadata_id, source_id] + row.tolist()
+        rows_to_insert.append(tuple(values))
+
+    if rows_to_insert:
+        cursor.executemany(query, rows_to_insert)
+        conn.commit()
+        logging.info(f"Se insertaron {len(rows_to_insert)} filas en cta_corriente_falabella_staging para metadata_id: {metadata_id}")
+
 def main():
     """
     Función principal para orquestar el procesamiento de archivos XLS de Cuenta Corriente de Banco Falabella.
@@ -209,13 +231,14 @@ def main():
 
                 metadata_id = insert_metadata(conn, source_id, xls_path, file_hash, document_type)
                 
-                processed_df = process_falabella_cuenta_corriente_xls_file(xls_path, source_id, metadata_id)
+                raw_df, processed_df = process_falabella_cuenta_corriente_xls_file(xls_path, source_id, metadata_id)
                 
                 if processed_df is None or processed_df.empty:
                     logging.warning(f"No se procesaron transacciones para {os.path.basename(xls_path)}.")
                     ingestion_status_logger.info(f"FILE: {os.path.basename(xls_path)} | HASH: {file_hash} | STATUS: Failed - Parsing failed")
                     continue
                 
+                insert_raw_falabella_cuenta_corriente_to_staging(conn, metadata_id, source_id, raw_df)
                 insert_bank_account_transactions(conn, metadata_id, source_id, processed_df)
                 
                 processed_dir = os.path.join(os.path.dirname(xls_path), 'procesados')

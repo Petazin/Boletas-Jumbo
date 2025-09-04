@@ -40,7 +40,7 @@ def find_all_xls_files(directory):
 def is_file_processed(conn, file_hash):
     """Verifica si un archivo con un hash específico ya ha sido procesado."""
     cursor = conn.cursor(buffered=True)
-    query = "SELECT 1 FROM metadatos_cartolas_bancarias_raw WHERE file_hash = %s"
+    query = "SELECT 1 FROM raw_metadatos_cartolas_bancarias WHERE file_hash = %s"
     cursor.execute(query, (file_hash,))
     result = cursor.fetchone() is not None
     cursor.close()
@@ -64,10 +64,10 @@ def insert_metadata(conn, source_id, file_path, file_hash, doc_type):
     """Inserta los metadatos del archivo, incluyendo su hash y tipo de documento."""
     cursor = conn.cursor()
     query = """
-    INSERT INTO metadatos_cartolas_bancarias_raw (fuente_id, nombre_archivo_original, file_hash, document_type)
+    INSERT INTO raw_metadatos_cartolas_bancarias (fuente_id, nombre_archivo_original, file_hash, document_type)
     VALUES (%s, %s, %s, %s)
     """
-    values = (source_id, file_path, file_hash, doc_type)
+    values = (source_id, os.path.basename(file_path), file_hash, doc_type)
     cursor.execute(query, values)
     conn.commit()
     return cursor.lastrowid
@@ -111,6 +111,7 @@ def process_falabella_cc_xls_file(xls_path, source_id, metadata_id):
 
         # Volver a leer el Excel, usando la fila de cabecera encontrada.
         df_transactions = pd.read_excel(xls_path, skiprows=header_row_index, header=0) 
+        raw_df = df_transactions.copy() # Keep a copy of the raw DataFrame
         
         logging.info("Columnas del DataFrame de transacciones: %s", df_transactions.columns.tolist())
 
@@ -153,7 +154,7 @@ def process_falabella_cc_xls_file(xls_path, source_id, metadata_id):
         df_transactions.dropna(subset=['fecha_cargo_original'], inplace=True)
 
         logging.info(f"Parseo de {os.path.basename(xls_path)} completado. {len(df_transactions)} transacciones listas para inserción.")
-        return df_transactions
+        return raw_df, df_transactions
 
     except Exception as e:
         logging.error(f"Error al procesar el archivo XLS {os.path.basename(xls_path)}: {e}")
@@ -165,7 +166,7 @@ def insert_credit_card_transactions(conn, metadata_id, source_id, transactions_d
     """
     cursor = conn.cursor()
     query = """
-    INSERT INTO transacciones_tarjeta_credito_raw (
+    INSERT INTO raw_transacciones_tarjeta_credito (
         metadata_id, fuente_id, fecha_cargo_original, fecha_cargo_cuota, descripcion_transaccion, 
         categoria, cuota_actual, total_cuotas, cargos_pesos, monto_usd, tipo_cambio, pais
     ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
@@ -188,6 +189,27 @@ def insert_credit_card_transactions(conn, metadata_id, source_id, transactions_d
         cursor.execute(query, values)
     conn.commit()
     logging.info(f"Se insertaron {len(transactions_df)} transacciones de tarjeta de crédito para metadata_id: {metadata_id}")
+
+def insert_raw_falabella_cc_to_staging(conn, metadata_id, source_id, raw_df):
+    """Inserta los datos crudos de la cartola de Tarjeta de Crédito Falabella en la tabla de staging."""
+    cursor = conn.cursor()
+    # Construir la consulta de inserción dinámicamente
+    cols = ", ".join([f"`{col}`" for col in raw_df.columns])
+    placeholders = ", ".join(["%s"] * len(raw_df.columns))
+    query = f"""
+    INSERT INTO staging_tarjeta_credito_falabella_nacional (metadata_id, fuente_id, {cols})
+    VALUES (%s, %s, {placeholders})
+    """
+    
+    rows_to_insert = []
+    for _, row in raw_df.iterrows():
+        values = [metadata_id, source_id] + row.tolist()
+        rows_to_insert.append(tuple(values))
+
+    if rows_to_insert:
+        cursor.executemany(query, rows_to_insert)
+        conn.commit()
+        logging.info(f"Se insertaron {len(rows_to_insert)} filas en staging_tarjeta_credito_falabella_nacional para metadata_id: {metadata_id}")
 
 def main():
     """
@@ -217,13 +239,14 @@ def main():
 
                 metadata_id = insert_metadata(conn, source_id, xls_path, file_hash, document_type)
                 
-                processed_df = process_falabella_cc_xls_file(xls_path, source_id, metadata_id)
+                raw_df, processed_df = process_falabella_cc_xls_file(xls_path, source_id, metadata_id)
                 
                 if processed_df is None or processed_df.empty:
                     logging.warning(f"No se procesaron transacciones para {os.path.basename(xls_path)}.")
                     ingestion_status_logger.info(f"FILE: {os.path.basename(xls_path)} | HASH: {file_hash} | STATUS: Failed - Parsing failed")
                     continue
                 
+                insert_raw_falabella_cc_to_staging(conn, metadata_id, source_id, raw_df)
                 insert_credit_card_transactions(conn, metadata_id, source_id, processed_df)
                 
                 processed_dir = os.path.join(os.path.dirname(xls_path), 'procesados')

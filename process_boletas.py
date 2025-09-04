@@ -6,6 +6,7 @@ import os
 import mysql.connector
 import multiprocessing
 import shutil
+import hashlib
 
 # Importar módulos y configuración del proyecto
 from config import PROCESS_LOG_FILE
@@ -33,84 +34,103 @@ def setup_logging():
         ],
     )
 
+def calculate_file_hash(file_path):
+    """Calcula el hash SHA-256 de un archivo."""
+    sha256_hash = hashlib.sha256()
+    with open(file_path, "rb") as f:
+        for byte_block in iter(lambda: f.read(4096), b""):
+            sha256_hash.update(byte_block)
+    return sha256_hash.hexdigest()
 
+def is_file_processed(conn, file_hash):
+    """Verifica si un archivo con un hash específico ya ha sido procesado."""
+    cursor = conn.cursor(buffered=True)
+    query = "SELECT 1 FROM metadatos_cartolas_bancarias_raw WHERE file_hash = %s"
+    cursor.execute(query, (file_hash,))
+    result = cursor.fetchone() is not None
+    cursor.close()
+    return result
 
+def get_source_id(conn, source_name='Jumbo'):
+    """Obtiene el ID de la fuente, creándolo si no existe."""
+    cursor = conn.cursor(buffered=True)
+    query = "SELECT fuente_id FROM fuentes WHERE nombre_fuente = %s"
+    cursor.execute(query, (source_name,))
+    result = cursor.fetchone()
+    if result:
+        return result[0]
+    else:
+        insert_query = "INSERT INTO fuentes (nombre_fuente) VALUES (%s)"
+        cursor.execute(insert_query, (source_name,))
+        conn.commit()
+        return cursor.lastrowid
 
+def insert_metadata(conn, source_id, file_path, file_hash, doc_type):
+    """Inserta los metadatos del archivo, incluyendo su hash y tipo de documento."""
+    cursor = conn.cursor()
+    query = """
+    INSERT INTO metadatos_cartolas_bancarias_raw (fuente_id, nombre_archivo_original, file_hash, document_type)
+    VALUES (%s, %s, %s, %s)
+    """
+    values = (source_id, os.path.basename(file_path), file_hash, doc_type)
+    cursor.execute(query, values)
+    conn.commit()
+    return cursor.lastrowid
 
-def get_files_to_process(cursor):
-    """Obtiene de la BD la lista de archivos que necesitan ser procesados."""
-    query = (
-        "SELECT ruta_archivo, order_id, file_hash FROM historial_descargas WHERE estado = 'Descargado'"
-    )
-    cursor.execute(query)
-    return cursor.fetchall()
-
-
-def update_status(cursor, order_id, status):
-    """Actualiza el estado de un registro en la tabla de historial."""
-    query = "UPDATE historial_descargas SET estado = %s WHERE order_id = %s"
-    cursor.execute(query, (status, order_id))
-
-
-def insert_boleta_data(cursor, boleta_id, filename, purchase_time, products_data):
-    """Inserta una lista de productos de una boleta en la base de datos."""
+def insert_boleta_data_to_staging(cursor, metadata_id, fuente_id, boleta_id, hora_compra, products_data):
+    """Inserta una lista de productos de una boleta en la tabla de staging de Jumbo."""
     insert_query = """
-    INSERT INTO transacciones_jumbo (
-        transaccion_id, nombre_archivo, fecha_compra, hora_compra, sku, cantidad,
-        precio_unitario, cantidad_X_precio_unitario,
-        descripcion_producto, precio_total_item,
-        descripcion_oferta, monto_descuento, categoria
-    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-    ON DUPLICATE KEY UPDATE
-        cantidad=VALUES(cantidad),
-        precio_unitario=VALUES(precio_unitario),
-        cantidad_X_precio_unitario=VALUES(cantidad_X_precio_unitario),
-        descripcion_producto=VALUES(descripcion_producto),
-        precio_total_item=VALUES(precio_total_item),
-        descripcion_oferta=VALUES(descripcion_oferta),
-        monto_descuento=VALUES(monto_descuento),
-        categoria=VALUES(categoria);
+    INSERT INTO staging_boletas_jumbo (
+        metadata_id, fuente_id, boleta_id, fecha_compra, hora_compra, sku,
+        descripcion_producto, precio_total_item_str, cantidad_str,
+        precio_unitario_str, descripcion_oferta, monto_descuento_str
+    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
     """
     for product in products_data:
         try:
             data_tuple = (
+                metadata_id,
+                fuente_id,
                 boleta_id,
-                filename,
-                product["fecha_transaccion"],
-                purchase_time,  # Usar la hora extraída del PDF
+                product["fecha_transaccion"], # Esto es fecha_compra
+                hora_compra,
                 product["sku"],
-                product["cantidad"],
-                product["precio_unitario"],
-                product["Cantidad_comprada_X_Valor_Unitario"],
                 product["descripcion_producto"],
-                product["precio_total_item"],
+                str(product["precio_total_item"]),
+                str(product["cantidad"]),
+                str(product["precio_unitario"]),
                 product["descripcion_oferta"],
-                product["monto_descuento"],
-                product["categoria"],
+                str(product["monto_descuento"]),
             )
             cursor.execute(insert_query, data_tuple)
         except mysql.connector.Error as err:
             sku = product.get('sku', 'N/A')
             logging.error(
-                f"Error al insertar SKU {sku} de {filename}: {err}"
+                f"Error al insertar SKU {sku} de boleta {boleta_id} en staging: {err}"
             )
 
-
 def _process_single_pdf_task(args):
-    pdf_path, order_id, file_hash = args
+    pdf_path, order_id, file_hash, source_id = args
     try:
         if not os.path.exists(pdf_path):
-            return order_id, "Error - File not found", None, None, None, None
+            return order_id, "Error - File not found", None, None, None, None, None
 
-        boleta_id, purchase_date, purchase_time, products_data = process_pdf(pdf_path)
+        conn = None # Initialize conn to None
+        try:
+            conn = db_connection().__enter__() # Get connection from context manager
+            metadata_id = insert_metadata(conn, source_id, pdf_path, file_hash, 'Jumbo Receipt')
+            boleta_id, purchase_date, purchase_time, products_data = process_pdf(pdf_path)
 
-        if boleta_id and products_data:
-            return order_id, "Processed", boleta_id, purchase_time, products_data, file_hash
-        else:
-            return order_id, "Error - Parsing failed", None, None, None, None
+            if boleta_id and products_data:
+                return order_id, "Processed", boleta_id, purchase_time, products_data, file_hash, metadata_id
+            else:
+                return order_id, "Error - Parsing failed", None, None, None, None, None
+        finally:
+            if conn:
+                conn.__exit__(None, None, None) # Close connection
+
     except Exception as e:
-        return order_id, f"Error - Unexpected: {e}", None, None, None, None
-
+        return order_id, f"Error - Unexpected: {e}", None, None, None, None, None
 
 def main():
     """Función principal que orquesta el proceso de leer y procesar PDFs."""
@@ -120,28 +140,36 @@ def main():
             cursor = conn.cursor()
             conn.commit()
 
-            files_to_process = get_files_to_process(cursor)
-            file_path_map = {order_id: (file_path, file_hash) for file_path, order_id, file_hash in files_to_process}
+            source_id = get_source_id(conn, 'Jumbo') # Get Jumbo source_id
+
+            files_to_process = []
+            query = "SELECT ruta_archivo, order_id, file_hash FROM historial_descargas WHERE estado = 'Descargado'"
+            cursor.execute(query)
+            for ruta_archivo, order_id, file_hash in cursor.fetchall():
+                files_to_process.append((ruta_archivo, order_id, file_hash, source_id)) # Pass source_id
+
+            file_path_map = {order_id: (file_path, file_hash) for file_path, order_id, file_hash, _ in files_to_process}
 
             # Use multiprocessing Pool to process PDFs in parallel
             with multiprocessing.Pool() as pool:
                 results = pool.imap_unordered(_process_single_pdf_task, files_to_process)
 
-                for order_id, status, boleta_id, purchase_time, products_data, file_hash in results:
+                for order_id, status, boleta_id, purchase_time, products_data, file_hash, metadata_id in results:
                     # Get original filename for logging
                     pdf_file = os.path.basename(file_path_map[order_id][0])
 
                     if status == "Processed":
-                        insert_boleta_data(
+                        # Insert into staging table
+                        insert_boleta_data_to_staging(
                             cursor,
+                            metadata_id,
+                            source_id,
                             boleta_id,
-                            pdf_file,
                             purchase_time,
                             products_data
                         )
-                        update_status(cursor, order_id, "Processed")
                         conn.commit()
-                        msg = f"Datos de {pdf_file} insertados correctamente."
+                        msg = f"Datos de {pdf_file} insertados correctamente en staging."
                         logging.info(msg)
                         ingestion_status_logger.info(f"FILE: {pdf_file} | HASH: {file_hash} | STATUS: Processed Successfully")
 
@@ -154,8 +182,7 @@ def main():
                         log_file_movement(original_filepath, processed_filepath, "SUCCESS", "Archivo procesado y movido con éxito.")
 
                     else:
-                        update_status(cursor, order_id, status)
-                        conn.commit()
+                        # No update_status for staging, just log failure
                         msg = (f"No se pudo procesar completamente {pdf_file}. "
                                f"Estado: {status}. Saltando.")
                         logging.warning(msg)

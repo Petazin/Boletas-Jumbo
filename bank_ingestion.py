@@ -3,12 +3,21 @@ import mysql.connector
 import logging
 import os
 from datetime import datetime
+import hashlib
 
 from config import DB_CONFIG
 from database_utils import db_connection
 
 # Configuración de logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+def calculate_file_hash(file_path):
+    """Calcula el hash SHA-256 de un archivo."""
+    sha256_hash = hashlib.sha256()
+    with open(file_path, "rb") as f:
+        for byte_block in iter(lambda: f.read(4096), b""):
+            sha256_hash.update(byte_block)
+    return sha256_hash.hexdigest()
 
 def get_or_create_source_id(cursor, source_name, source_type):
     """Obtiene el source_id si existe, o lo crea si no."""

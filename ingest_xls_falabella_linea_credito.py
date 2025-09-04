@@ -38,7 +38,7 @@ def find_all_xls_files(directory):
 def is_file_processed(conn, file_hash):
     """Verifica si un archivo con un hash específico ya ha sido procesado."""
     cursor = conn.cursor(buffered=True)
-    query = "SELECT 1 FROM metadatos_cartolas_bancarias_raw WHERE file_hash = %s"
+    query = "SELECT 1 FROM raw_metadatos_cartolas_bancarias WHERE file_hash = %s"
     cursor.execute(query, (file_hash,))
     result = cursor.fetchone() is not None
     cursor.close()
@@ -62,7 +62,7 @@ def insert_metadata(conn, source_id, file_path, file_hash, doc_type):
     """Inserta los metadatos del archivo en la tabla común de metadatos."""
     cursor = conn.cursor()
     query = """
-    INSERT INTO metadatos_cartolas_bancarias_raw (fuente_id, nombre_archivo_original, file_hash, document_type)
+    INSERT INTO raw_metadatos_cartolas_bancarias (fuente_id, nombre_archivo_original, file_hash, document_type)
     VALUES (%s, %s, %s, %s)
     """
     values = (source_id, os.path.basename(file_path), file_hash, doc_type)
@@ -109,6 +109,7 @@ def process_falabella_linea_credito_xls_file(xls_path):
         logging.info(f"Fila de cabecera encontrada en el índice: {header_row_index}")
 
         df = pd.read_excel(xls_path, skiprows=header_row_index)
+        raw_df = df.copy() # Keep a copy of the raw DataFrame
         
         df.columns = df.columns.str.strip()
         logging.info("Columnas detectadas: %s", df.columns.tolist())
@@ -129,7 +130,7 @@ def process_falabella_linea_credito_xls_file(xls_path):
         df = df.astype(object).where(pd.notnull(df), None)
 
         logging.info(f"Parseo de {os.path.basename(xls_path)} completado. {len(df)} transacciones listas.")
-        return df
+        return raw_df, df
 
     except Exception as e:
         logging.error(f"Error al procesar el archivo XLS {os.path.basename(xls_path)}: {e}", exc_info=True)
@@ -157,6 +158,27 @@ def insert_linea_credito_transactions(conn, metadata_id, source_id, df):
     conn.commit()
     logging.info(f"Se insertaron {len(df)} transacciones de línea de crédito para metadata_id: {metadata_id}")
 
+def insert_raw_falabella_linea_credito_to_staging(conn, metadata_id, source_id, raw_df):
+    """Inserta los datos crudos de la cartola de Línea de Crédito Falabella en la tabla de staging."""
+    cursor = conn.cursor()
+    # Construir la consulta de inserción dinámicamente
+    cols = ", ".join([f"`{col}`" for col in raw_df.columns])
+    placeholders = ", ".join(["%s"] * len(raw_df.columns))
+    query = f"""
+    INSERT INTO staging_linea_credito_falabella (metadata_id, fuente_id, {cols})
+    VALUES (%s, %s, {placeholders})
+    """
+    
+    rows_to_insert = []
+    for _, row in raw_df.iterrows():
+        values = [metadata_id, source_id] + row.tolist()
+        rows_to_insert.append(tuple(values))
+
+    if rows_to_insert:
+        cursor.executemany(query, rows_to_insert)
+        conn.commit()
+        logging.info(f"Se insertaron {len(rows_to_insert)} filas en linea_credito_falabella_staging para metadata_id: {metadata_id}")
+
 def main():
     """
     Función principal para orquestar el procesamiento de archivos XLS.
@@ -182,7 +204,7 @@ def main():
                     ingestion_status_logger.info(f"FILE: {os.path.basename(xls_path)} | HASH: {file_hash} | STATUS: Skipped - Already Processed")
                     continue
 
-                processed_df = process_falabella_linea_credito_xls_file(xls_path)
+                raw_df, processed_df = process_falabella_linea_credito_xls_file(xls_path)
                 
                 if processed_df is None or processed_df.empty:
                     logging.warning(f"No se procesaron transacciones para {os.path.basename(xls_path)}. Omitiendo inserción y movimiento.")
@@ -190,6 +212,7 @@ def main():
                     continue
                 
                 metadata_id = insert_metadata(conn, source_id, xls_path, file_hash, document_type)
+                insert_raw_falabella_linea_credito_to_staging(conn, metadata_id, source_id, raw_df)
                 insert_linea_credito_transactions(conn, metadata_id, source_id, processed_df)
                 
                 processed_dir = os.path.join(os.path.dirname(xls_path), 'procesados')

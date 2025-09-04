@@ -11,7 +11,7 @@
     *   **Fase 3 (Planificada):** Implementar un sistema genérico de ingesta de documentos, capaz de procesar cualquier tipo de PDF o documento estructurado, inferir su esquema y mapearlo a la base de datos.
 
 *   **Estado Actual:**
-    > La Fase 1 es funcional. La Fase 2 ha avanzado significativamente con la implementación robusta de la ingesta de cartolas bancarias, incluyendo PDFs de cuenta corriente y archivos XLS de tarjetas de crédito nacionales e internacionales. Esto sienta las bases para el procesamiento de múltiples fuentes de datos y la expansión del gestor financiero.
+    > La Fase 1 es funcional. La Fase 2 ha avanzado significativamente con la implementación de la **capa de staging de datos** (descrita en la sección 2.2). Todos los scripts de ingesta ahora cargan los datos crudos en tablas de staging dedicadas, sentando una base robusta para el procesamiento posterior. Los siguientes pasos son validar la ingesta de todos los tipos de documentos y luego construir el proceso de transformación y traspaso de datos desde staging a las tablas `raw`.
 
 ### 2.2. Capa de Staging de Datos
 
