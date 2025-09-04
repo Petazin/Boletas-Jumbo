@@ -42,7 +42,7 @@ La capa de staging es un componente fundamental de la arquitectura de ingesta de
 *   **Propósito:** Asegurar la visibilidad, trazabilidad y validación de los datos crudos extraídos.
 *   **Nomenclatura:** Las tablas de staging siguen una convención `staging_[tipo_documento]_[origen]` (ej. `staging_cta_corriente_banco_de_chile`, `staging_tarjeta_credito_falabella_nacional`). Esto permite una clara identificación del tipo de dato y su fuente.
 *   **Estructura:** Cada tabla de staging replica la estructura de los datos tal como son extraídos del documento fuente, preservando la información original.
-*   **Validación:** Se implementan validaciones a nivel de registro (para evitar duplicados) y a nivel de archivo (para verificar sumas y recuentos) para garantizar la integridad de los datos antes de su paso a las tablas raw.
+*   **Validación Post-Ingesta:** Para garantizar la integridad de los datos, cada script de ingesta realiza una validación inmediata después de cargar los datos en la tabla de staging. Se verifica que el **conteo de registros** y la **suma total de montos** extraídos del archivo coincidan exactamente con los datos insertados en la base de datos, registrando el resultado de esta validación en el log.
 *   **Rol en el ETL:** Las tablas de staging actúan como una fuente de datos verificada y estandarizada para las tablas raw del sistema, donde los datos de diferentes orígenes se consolidan y transforman para el análisis.
 
 ### Esquema de la Base de Datos

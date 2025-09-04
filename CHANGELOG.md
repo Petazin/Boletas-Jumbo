@@ -14,6 +14,8 @@
 - **feat(testing)**: Añade y mejora scripts de utilidad para pruebas y validación.
     - Se crea el script `create_staging_tables.sql`.
     - Se mejora `check_staging_data.py` para que acepte un nombre de tabla como argumento y use la nomenclatura correcta.
+- **feat(validation)**: Añade validación de conteo y suma a la ingesta de staging.
+    - El script `ingest_xls_national_cc.py` ahora valida que el número de filas y la suma total de montos extraídos del archivo coincidan con los datos insertados en la tabla de staging, registrando el resultado en el log.
 
 ## 2025-09-03
 - **docs(contexto)**: Reorganiza archivos de contexto de IA y actualiza documentación del roadmap.

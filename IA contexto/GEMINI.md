@@ -67,6 +67,8 @@ Esta sección define la arquitectura y los principios para la capa de staging de
 *   `[x]` **Expandir Ingesta de Banco Falabella:** Añadir soporte para Cuenta Corriente y Línea de Crédito.
 *   `[x]` **Revisar y Validar Esquema de BD:** Confirmado que el esquema actual (`create_new_tables.sql`) es adecuado para el escalamiento y las necesidades futuras, y se han realizado ajustes en `alter_table.py` para su compatibilidad.
 *   `[x]` **Implementar capa de staging para datos extraídos de archivos:** Crear tablas por tipo de documento/origen con la estructura original de los datos extraídos, antes de cualquier manipulación o transformación. (Esta tarea ahora se detalla en la sección 2.2)
+*   `[ ]` **Implementar Validación Post-Ingesta en Staging:** Añadir validación de conteo de registros y suma de montos para todos los scripts de ingesta.
+    *   `[x]` Implementado en `ingest_xls_national_cc.py`.
 *   `[ ]` **Renombrar Archivos Procesados:** Implementar un sistema para renombrar los archivos PDF/XLS procesados con un formato estandarizado (ej. `[TipoDocumento]_[Cuenta]_[Fecha]_[HashCorto].pdf`).
 *   `[ ]` **Clasificación de Transacciones Bancarias:** Diseñar e implementar un sistema de clasificación para las transacciones bancarias (cuenta corriente y tarjetas), similar al categorizador de productos. Debe utilizar una tabla de mapeo en la BD para asignar categorías basadas en la descripción de las transacciones.
 *   `[ ]` **Procesamiento de Datos Bancarios:** Implementar la lógica para transformar los datos crudos de las tablas de staging a las tablas raw consolidadas, y posteriormente a la tabla `transactions` para análisis final.

@@ -108,10 +108,8 @@ def process_national_cc_xls_file(xls_path, abono_descriptions):
             return None
 
         df = pd.read_excel(xls_path, skiprows=header_row_index, header=0)
-        raw_df = df.copy()  # Keep a copy of the raw DataFrame
-        # Eliminar columnas no deseadas que a veces genera pandas
+        raw_df = df.copy()
         raw_df = raw_df.loc[:, ~raw_df.columns.str.startswith('Unnamed')]
-        # Eliminar la columna 'Categoría' si existe, ya que no pertenece a la tabla de staging
         if 'Categoría' in raw_df.columns:
             raw_df = raw_df.drop(columns=['Categoría'])
         df.columns = [str(col).strip() for col in df.columns]
@@ -139,17 +137,16 @@ def process_national_cc_xls_file(xls_path, abono_descriptions):
             axis=1
         )
 
-        # --- LÓGICA DE SEPARACIÓN DE CARGOS/ABONOS ---
-        # El archivo XLS no distingue entre cargos y abonos en columnas separadas.
-        # Se utiliza la tabla `abonos_mapping` para identificar qué transacciones son abonos.
-        # Si la descripción de la transacción existe en el set `abono_descriptions`,
-        # el monto se asigna a `abonos_pesos`; de lo contrario, a `cargos_pesos`.
         df['cargos_pesos'] = df.apply(lambda row: parse_and_clean_value(row['monto_bruto']) if str(row['descripcion_transaccion']).strip() not in abono_descriptions else 0, axis=1)
         df['abonos_pesos'] = df.apply(lambda row: parse_and_clean_value(row['monto_bruto']) if str(row['descripcion_transaccion']).strip() in abono_descriptions else 0, axis=1)
 
         df_final = df.astype(object).where(pd.notnull(df), None)
-        logging.info(f"Parseo de {os.path.basename(xls_path)} completado. {len(df_final)} transacciones listas.")
-        return raw_df, df_final
+        
+        expected_count = len(df_final)
+        expected_sum = df['monto_bruto'].apply(parse_and_clean_value).sum()
+
+        logging.info(f"Parseo de {os.path.basename(xls_path)} completado. {expected_count} transacciones listas. Suma esperada: {expected_sum}")
+        return raw_df, df_final, expected_count, expected_sum
 
     except Exception as e:
         logging.error(f"Error procesando {os.path.basename(xls_path)}: {e}", exc_info=True)
@@ -180,7 +177,6 @@ def insert_credit_card_transactions(conn, metadata_id, source_id, df):
 def insert_raw_national_cc_to_staging(conn, metadata_id, source_id, raw_df):
     """Inserta los datos crudos de la cartola de Tarjeta de Crédito Nacional en la tabla de staging."""
     cursor = conn.cursor()
-    # Construir la consulta de inserción dinámicamente
     cols = ", ".join([f"`{col}`" for col in raw_df.columns])
     placeholders = ", ".join(["%s"] * len(raw_df.columns))
     query = f"""
@@ -196,6 +192,40 @@ def insert_raw_national_cc_to_staging(conn, metadata_id, source_id, raw_df):
     if rows_to_insert:
         cursor.executemany(query, rows_to_insert)
         logging.info(f"Se insertaron {len(rows_to_insert)} filas en staging_tarjeta_credito_banco_de_chile_nacional para metadata_id: {metadata_id}")
+
+def validate_staging_data(conn, metadata_id, expected_count, expected_sum):
+    """Consulta la tabla de staging y valida el conteo y la suma de los montos."""
+    cursor = conn.cursor()
+    try:
+        # Validar conteo
+        cursor.execute("SELECT COUNT(*) FROM staging_tarjeta_credito_banco_de_chile_nacional WHERE metadata_id = %s", (metadata_id,))
+        actual_count = cursor.fetchone()[0]
+
+        # Validar suma
+        query_sum = """
+        SELECT SUM(CAST(REPLACE(`Monto ($)`, '.', '') AS DECIMAL(15,2)))
+        FROM staging_tarjeta_credito_banco_de_chile_nacional
+        WHERE metadata_id = %s
+        """
+        cursor.execute(query_sum, (metadata_id,))
+        actual_sum = cursor.fetchone()[0]
+        
+        # Log de resultados
+        if actual_count == expected_count:
+            logging.info(f"VALIDACIÓN CONTEO: ÉXITO ({actual_count}/{expected_count})")
+        else:
+            logging.error(f"VALIDACIÓN CONTEO: FALLO ({actual_count}/{expected_count})")
+
+        if actual_sum is not None and abs(float(actual_sum) - expected_sum) < 0.01:
+            logging.info(f"VALIDACIÓN SUMA: ÉXITO ({actual_sum}/{expected_sum})")
+        else:
+            logging.error(f"VALIDACIÓN SUMA: FALLO ({actual_sum}/{expected_sum})")
+            
+    except Exception as e:
+        logging.error(f"Ocurrió un error durante la validación de staging: {e}")
+    finally:
+        cursor.close()
+
 
 def main():
     """Función principal para orquestar el procesamiento de archivos XLS de tarjetas de crédito nacionales."""
@@ -234,10 +264,11 @@ def main():
                     conn.rollback()
                     continue
                 
-                raw_df, processed_df = result
+                raw_df, processed_df, expected_count, expected_sum = result
 
                 if raw_df is not None and processed_df is not None and not processed_df.empty:
                     insert_raw_national_cc_to_staging(conn, metadata_id, source_id, raw_df)
+                    validate_staging_data(conn, metadata_id, expected_count, expected_sum)
                     insert_credit_card_transactions(conn, metadata_id, source_id, processed_df)
                     conn.commit()
                     ingestion_status_logger.info(f"FILE: {os.path.basename(xls_path)} | HASH: {file_hash} | STATUS: Processed Successfully")
