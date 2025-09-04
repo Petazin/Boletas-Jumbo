@@ -195,7 +195,6 @@ def insert_raw_national_cc_to_staging(conn, metadata_id, source_id, raw_df):
 
     if rows_to_insert:
         cursor.executemany(query, rows_to_insert)
-        conn.commit()
         logging.info(f"Se insertaron {len(rows_to_insert)} filas en staging_tarjeta_credito_banco_de_chile_nacional para metadata_id: {metadata_id}")
 
 def main():
