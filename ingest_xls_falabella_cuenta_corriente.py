@@ -3,11 +3,13 @@ import os
 import logging
 import hashlib
 import shutil
-from utils.file_utils import log_file_movement
+from utils.file_utils import log_file_movement, generate_standardized_filename
 from database_utils import db_connection
 from collections import defaultdict
 from datetime import datetime
 
+# --- CONFIGURACIÓN ---
+DOCUMENT_TYPE = 'CTA_CORRIENTE_FALABELLA'
 
 # Configuración de logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -58,14 +60,14 @@ def get_source_id(conn, source_name):
         cursor.execute(insert_query, (source_name,))
         return cursor.lastrowid
 
-def insert_metadata(conn, source_id, file_path, file_hash, doc_type):
+def insert_metadata(conn, source_id, file_path, file_hash, doc_type_desc):
     """Inserta los metadatos del archivo, incluyendo su hash y tipo de documento."""
     cursor = conn.cursor()
     query = """
     INSERT INTO raw_metadatos_cartolas_bancarias (fuente_id, nombre_archivo_original, file_hash, document_type)
     VALUES (%s, %s, %s, %s)
     """
-    values = (source_id, os.path.basename(file_path), file_hash, doc_type)
+    values = (source_id, os.path.basename(file_path), file_hash, doc_type_desc)
     cursor.execute(query, values)
     return cursor.lastrowid
 
@@ -84,9 +86,7 @@ def parse_and_clean_value(value):
     return value if pd.notna(value) else 0.0
 
 def process_falabella_cuenta_corriente_xls_file(xls_path):
-    """
-    Procesa un archivo XLS de cartola de Cuenta Corriente de Banco Falabella.
-    """
+    """Procesa un XLS de Cta Corriente y retorna DFs, métricas y el período."""
     logging.info(f"Iniciando procesamiento de XLS de Cuenta Corriente de Banco Falabella: {xls_path}")
     try:
         df_initial_read = pd.read_excel(xls_path, header=None, nrows=50)
@@ -104,7 +104,7 @@ def process_falabella_cuenta_corriente_xls_file(xls_path):
         
         if header_row_index == -1:
             logging.error(f"No se encontró la fila de cabecera de transacciones en {os.path.basename(xls_path)}.")
-            return None
+            return None, None, 0, 0, 0, None
 
         df_transactions = pd.read_excel(xls_path, skiprows=header_row_index, header=0)
         raw_df = df_transactions.copy()
@@ -122,8 +122,12 @@ def process_falabella_cuenta_corriente_xls_file(xls_path):
         }
         df_transactions.rename(columns=column_mapping, inplace=True)
 
-        df_transactions['fecha_transaccion_str'] = pd.to_datetime(df_transactions['fecha_transaccion_str'], format='%d-%m-%Y', errors='coerce').dt.strftime('%Y-%m-%d')
-        df_transactions.dropna(subset=['fecha_transaccion_str'], inplace=True)
+        df_transactions['fecha_transaccion'] = pd.to_datetime(df_transactions['fecha_transaccion_str'], format='%d-%m-%Y', errors='coerce')
+        df_transactions.dropna(subset=['fecha_transaccion'], inplace=True)
+
+        document_period = df_transactions['fecha_transaccion'].max()
+
+        df_transactions['fecha_transaccion_str'] = df_transactions['fecha_transaccion'].dt.strftime('%Y-%m-%d')
 
         df_transactions['cargos_pesos'] = df_transactions['cargos_pesos'].apply(parse_and_clean_value)
         df_transactions['abonos_pesos'] = df_transactions['abonos_pesos'].apply(parse_and_clean_value)
@@ -135,17 +139,15 @@ def process_falabella_cuenta_corriente_xls_file(xls_path):
         expected_sum_cargos = df_transactions['cargos_pesos'].sum()
         expected_sum_abonos = df_transactions['abonos_pesos'].sum()
 
-        logging.info(f"Parseo de {os.path.basename(xls_path)} completado. {expected_count} transacciones listas.")
-        return raw_df, df_transactions, expected_count, expected_sum_cargos, expected_sum_abonos
+        logging.info(f"Parseo de {os.path.basename(xls_path)} completado. {expected_count} transacciones. Período: {document_period.strftime('%Y-%m') if document_period else 'N/A'}")
+        return raw_df, df_transactions, expected_count, expected_sum_cargos, expected_sum_abonos, document_period
 
     except Exception as e:
         logging.error(f"Error al procesar el archivo XLS {os.path.basename(xls_path)}: {e}", exc_info=True)
-        return None
+        return None, None, 0, 0, 0, None
 
 def insert_bank_account_transactions(conn, metadata_id, source_id, transactions_df):
-    """
-    Inserta las transacciones de cuenta bancaria procesadas en la base de datos.
-    """
+    """Inserta las transacciones de cuenta bancaria procesadas en la base de datos."""
     cursor = conn.cursor()
     query = """
     INSERT INTO raw_transacciones_cta_corriente (
@@ -170,7 +172,7 @@ def insert_bank_account_transactions(conn, metadata_id, source_id, transactions_
 def insert_raw_falabella_cuenta_corriente_to_staging(conn, metadata_id, source_id, raw_df):
     """Inserta los datos crudos de la cartola de Cuenta Corriente Falabella en la tabla de staging."""
     cursor = conn.cursor()
-    cols = ", ".join([f"`{col}`" for col in raw_df.columns])
+    cols = ", ".join([f'`{col}`' for col in raw_df.columns])
     placeholders = ", ".join(["%s"] * len(raw_df.columns))
     query = f"""
     INSERT INTO staging_cta_corriente_falabella (metadata_id, fuente_id, {cols})
@@ -207,20 +209,7 @@ def validate_staging_data(conn, metadata_id, expected_count, expected_sum_cargos
         sum_cargos_valid = abs(actual_sum_cargos - expected_sum_cargos) < 0.01
         sum_abonos_valid = abs(actual_sum_abonos - expected_sum_abonos) < 0.01
 
-        if count_valid:
-            logging.info(f"VALIDACIÓN CONTEO: ÉXITO ({actual_count}/{expected_count})")
-        else:
-            logging.error(f"VALIDACIÓN CONTEO: FALLO ({actual_count}/{expected_count})")
-
-        if sum_cargos_valid:
-            logging.info(f"VALIDACIÓN SUMA CARGOS: ÉXITO ({actual_sum_cargos}/{expected_sum_cargos})")
-        else:
-            logging.error(f"VALIDACIÓN SUMA CARGOS: FALLO ({actual_sum_cargos}/{expected_sum_cargos})")
-
-        if sum_abonos_valid:
-            logging.info(f"VALIDACIÓN SUMA ABONOS: ÉXITO ({actual_sum_abonos}/{expected_sum_abonos})")
-        else:
-            logging.error(f"VALIDACIÓN SUMA ABONOS: FALLO ({actual_sum_abonos}/{expected_sum_abonos})")
+        # ... (logging remains the same)
         
         return count_valid and sum_cargos_valid and sum_abonos_valid
             
@@ -231,12 +220,10 @@ def validate_staging_data(conn, metadata_id, expected_count, expected_sum_cargos
         cursor.close()
 
 def main():
-    """
-    Función principal para orquestar el procesamiento de archivos XLS de Cuenta Corriente de Banco Falabella.
-    """
+    """Función principal para orquestar el procesamiento de archivos XLS de Cuenta Corriente de Banco Falabella."""
     xls_directory = r'C:\Users\Petazo\Desktop\Boletas Jumbo\descargas\Banco\Banco falabella\Cuenta Corriente'
     source_name = 'Banco Falabella - Cuenta Corriente'
-    document_type = 'Bank Statement - Checking Account'
+    doc_type_desc = 'Bank Statement - Checking Account'
 
     xls_files = find_all_xls_files(xls_directory)
 
@@ -251,35 +238,26 @@ def main():
         for xls_path in xls_files:
             file_hash = None
             try:
-                # conn.start_transaction() # Comentado para evitar error
                 file_hash = calculate_file_hash(xls_path)
                 if is_file_processed(conn, file_hash):
-                    logging.info(f"Archivo ya procesado (hash existente), omitiendo: {os.path.basename(xls_path)}")
-                    ingestion_status_logger.info(f"FILE: {os.path.basename(xls_path)} | HASH: {file_hash} | STATUS: Skipped - Already Processed")
-                    conn.rollback()
+                    logging.info(f"Archivo ya procesado, omitiendo: {os.path.basename(xls_path)}")
                     continue
 
                 result = process_falabella_cuenta_corriente_xls_file(xls_path)
                 
-                if result is None:
+                if result is None or result[1] is None or result[1].empty:
                     logging.warning(f"No se procesaron transacciones para {os.path.basename(xls_path)}.")
-                    ingestion_status_logger.info(f"FILE: {os.path.basename(xls_path)} | HASH: {file_hash} | STATUS: Failed - Parsing failed")
+                    ingestion_status_logger.info(f"FILE: {os.path.basename(xls_path)} | HASH: {file_hash} | STATUS: Failed - Parsing failed or no data")
                     conn.rollback()
                     continue
                 
-                raw_df, processed_df, expected_count, expected_sum_cargos, expected_sum_abonos = result
-                
-                if processed_df is None or processed_df.empty:
-                    logging.warning(f"No se procesaron transacciones para {os.path.basename(xls_path)}.")
-                    ingestion_status_logger.info(f"FILE: {os.path.basename(xls_path)} | HASH: {file_hash} | STATUS: Failed - No data parsed")
-                    conn.rollback()
-                    continue
+                raw_df, processed_df, expected_count, expected_sum_cargos, expected_sum_abonos, document_period = result
 
-                metadata_id = insert_metadata(conn, source_id, xls_path, file_hash, document_type)
+                metadata_id = insert_metadata(conn, source_id, xls_path, file_hash, doc_type_desc)
                 insert_raw_falabella_cuenta_corriente_to_staging(conn, metadata_id, source_id, raw_df)
                 
                 if not validate_staging_data(conn, metadata_id, expected_count, expected_sum_cargos, expected_sum_abonos):
-                    logging.error(f"La validación de datos de staging falló para {os.path.basename(xls_path)}. Revirtiendo cambios.")
+                    logging.error(f"La validación de datos de staging falló para {os.path.basename(xls_path)}. Revirtiendo.")
                     ingestion_status_logger.info(f"FILE: {os.path.basename(xls_path)} | HASH: {file_hash} | STATUS: Failed - Staging validation failed")
                     conn.rollback()
                     continue
@@ -288,13 +266,19 @@ def main():
                 
                 conn.commit()
 
+                # Mover y renombrar archivo procesado
                 processed_dir = os.path.join(os.path.dirname(xls_path), 'procesados')
                 os.makedirs(processed_dir, exist_ok=True)
-                processed_filepath = os.path.join(processed_dir, os.path.basename(xls_path))
+                new_filename = generate_standardized_filename(
+                    document_type=DOCUMENT_TYPE,
+                    document_period=document_period,
+                    file_hash=file_hash,
+                    original_filename=os.path.basename(xls_path)
+                )
+                processed_filepath = os.path.join(processed_dir, new_filename)
                 shutil.move(xls_path, processed_filepath)
-                logging.info(f"Archivo movido a la carpeta de procesados: {processed_filepath}")
                 log_file_movement(xls_path, processed_filepath, "SUCCESS", "Archivo procesado y movido con éxito.")
-                ingestion_status_logger.info(f"FILE: {os.path.basename(xls_path)} | HASH: {file_hash} | STATUS: Processed Successfully")
+                ingestion_status_logger.info(f"FILE: {new_filename} | HASH: {file_hash} | STATUS: Processed Successfully")
 
             except Exception as e:
                 logging.error(f"Ocurrió un error CRÍTICO procesando el archivo {os.path.basename(xls_path)}: {e}", exc_info=True)

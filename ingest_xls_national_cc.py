@@ -3,10 +3,13 @@ import os
 import logging
 import hashlib
 import shutil
-from utils.file_utils import log_file_movement
+from utils.file_utils import log_file_movement, generate_standardized_filename
 from database_utils import db_connection
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
+
+# --- CONFIGURACIÓN ---
+DOCUMENT_TYPE = 'TC_NACIONAL_BCH'
 
 # Configuración de logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -57,14 +60,14 @@ def get_source_id(conn, source_name):
         cursor.execute("INSERT INTO fuentes (nombre_fuente, tipo_fuente) VALUES (%s, 'Tarjeta de Credito')", (source_name,))
         return cursor.lastrowid
 
-def insert_metadata(conn, source_id, file_path, file_hash, doc_type):
+def insert_metadata(conn, source_id, file_path, file_hash, doc_type_desc):
     """Inserta los metadatos del archivo, incluyendo su hash y tipo de documento."""
     cursor = conn.cursor()
     query = """
     INSERT INTO raw_metadatos_cartolas_bancarias (fuente_id, nombre_archivo_original, file_hash, document_type)
     VALUES (%s, %s, %s, %s)
     """
-    values = (source_id, os.path.basename(file_path), file_hash, doc_type)
+    values = (source_id, os.path.basename(file_path), file_hash, doc_type_desc)
     cursor.execute(query, values)
     return cursor.lastrowid
 
@@ -84,13 +87,13 @@ def load_abono_mappings(conn):
             rows = cursor.fetchall()
             for row in rows:
                 abono_descriptions.add(row['description'].strip())
-        logging.info(f"Cargadas {len(abono_descriptions)} descripciones de abono: {abono_descriptions}")
+        logging.info(f"Cargadas {len(abono_descriptions)} descripciones de abono.")
     except Exception as e:
         logging.error(f"Error al cargar mapeos de abonos: {e}")
     return abono_descriptions
 
 def process_national_cc_xls_file(xls_path, abono_descriptions):
-    """Procesa un archivo XLS de cartola de tarjeta de crédito nacional."""
+    """Procesa un archivo XLS y retorna DFs, métricas y el período del documento."""
     logging.info(f"Iniciando procesamiento de XLS nacional: {xls_path}")
     try:
         df_initial_read = pd.read_excel(xls_path, header=None, nrows=50)
@@ -103,7 +106,7 @@ def process_national_cc_xls_file(xls_path, abono_descriptions):
                 break
         if header_row_index == -1:
             logging.error(f"No se encontró cabecera en {os.path.basename(xls_path)}.")
-            return None
+            return None, None, 0, 0, None
 
         df = pd.read_excel(xls_path, skiprows=header_row_index, header=0)
         raw_df = df.copy()
@@ -122,7 +125,7 @@ def process_national_cc_xls_file(xls_path, abono_descriptions):
 
         if not all(col in df.columns for col in ['fecha_cargo_original', 'descripcion_transaccion', 'monto_bruto']):
             logging.error(f"Columnas esenciales no encontradas en {os.path.basename(xls_path)}.")
-            return None
+            return None, None, 0, 0, None
 
         df['fecha_cargo_original'] = pd.to_datetime(df['fecha_cargo_original'], errors='coerce', dayfirst=True)
         df.dropna(subset=['fecha_cargo_original', 'descripcion_transaccion'], inplace=True)
@@ -140,15 +143,19 @@ def process_national_cc_xls_file(xls_path, abono_descriptions):
 
         df_final = df.astype(object).where(pd.notnull(df), None)
         
+        document_period = df_final['fecha_cargo_cuota'].max()
+        if pd.isna(document_period):
+            document_period = df_final['fecha_cargo_original'].max()
+
         expected_count = len(df_final)
         expected_sum = df['monto_bruto'].apply(parse_and_clean_value).sum()
 
-        logging.info(f"Parseo de {os.path.basename(xls_path)} completado. {expected_count} transacciones listas. Suma esperada: {expected_sum}")
-        return raw_df, df_final, expected_count, expected_sum
+        logging.info(f"Parseo de {os.path.basename(xls_path)} completado. {expected_count} transacciones. Período: {document_period.strftime('%Y-%m') if document_period else 'N/A'}")
+        return raw_df, df_final, expected_count, expected_sum, document_period
 
     except Exception as e:
         logging.error(f"Error procesando {os.path.basename(xls_path)}: {e}", exc_info=True)
-        return None
+        return None, None, 0, 0, None
 
 def insert_credit_card_transactions(conn, metadata_id, source_id, df):
     """Inserta las transacciones de tarjeta de crédito procesadas en la base de datos."""
@@ -161,12 +168,14 @@ def insert_credit_card_transactions(conn, metadata_id, source_id, df):
     """
     rows_to_insert = []
     for _, row in df.iterrows():
-        rows_to_insert.append((
-            metadata_id, source_id,
-            row.get('fecha_cargo_original'), row.get('fecha_cargo_cuota'),
-            row.get('descripcion_transaccion'), row.get('cuota_actual'),
-            row.get('total_cuotas'), row.get('cargos_pesos'), row.get('abonos_pesos')
-        ))
+        rows_to_insert.append(
+            (
+                metadata_id, source_id,
+                row.get('fecha_cargo_original'), row.get('fecha_cargo_cuota'),
+                row.get('descripcion_transaccion'), row.get('cuota_actual'),
+                row.get('total_cuotas'), row.get('cargos_pesos'), row.get('abonos_pesos')
+            )
+        )
     
     if rows_to_insert:
         cursor.executemany(query, rows_to_insert)
@@ -195,41 +204,29 @@ def validate_staging_data(conn, metadata_id, expected_count, expected_sum):
     """Consulta la tabla de staging y valida el conteo y la suma de los montos."""
     cursor = conn.cursor()
     try:
-        # Validar conteo
         cursor.execute("SELECT COUNT(*) FROM staging_tarjeta_credito_banco_de_chile_nacional WHERE metadata_id = %s", (metadata_id,))
         actual_count = cursor.fetchone()[0]
 
-        # Validar suma
-        query_sum = """
-        SELECT SUM(CAST(REPLACE(`Monto ($)`, '.', '') AS DECIMAL(15,2)))
-        FROM staging_tarjeta_credito_banco_de_chile_nacional
-        WHERE metadata_id = %s
-        """
+        query_sum = "SELECT SUM(CAST(REPLACE(`Monto ($)`, '.', '') AS DECIMAL(15,2))) FROM staging_tarjeta_credito_banco_de_chile_nacional WHERE metadata_id = %s"
         cursor.execute(query_sum, (metadata_id,))
         actual_sum = cursor.fetchone()[0]
         
-        # Log de resultados
-        if actual_count == expected_count:
-            logging.info(f"VALIDACIÓN CONTEO: ÉXITO ({actual_count}/{expected_count})")
-        else:
-            logging.error(f"VALIDACIÓN CONTEO: FALLO ({actual_count}/{expected_count})")
+        count_valid = actual_count == expected_count
+        sum_valid = actual_sum is not None and abs(float(actual_sum) - expected_sum) < 0.01
 
-        if actual_sum is not None and abs(float(actual_sum) - expected_sum) < 0.01:
-            logging.info(f"VALIDACIÓN SUMA: ÉXITO ({actual_sum}/{expected_sum})")
-        else:
-            logging.error(f"VALIDACIÓN SUMA: FALLO ({actual_sum}/{expected_sum})")
-            
+        logging.info(f"VALIDACIÓN CONTEO: {'ÉXITO' if count_valid else 'FALLO'} ({actual_count}/{expected_count})")
+        logging.info(f"VALIDACIÓN SUMA: {'ÉXITO' if sum_valid else 'FALLO'} ({actual_sum}/{expected_sum})")
+
     except Exception as e:
         logging.error(f"Ocurrió un error durante la validación de staging: {e}")
     finally:
         cursor.close()
 
-
 def main():
     """Función principal para orquestar el procesamiento de archivos XLS de tarjetas de crédito nacionales."""
     xls_directory = r'c:\Users\Petazo\Desktop\Boletas Jumbo\descargas\Banco\banco de chile\tarjeta de credito\nacional'
     source_name = 'Banco de Chile - Tarjeta Credito Nacional'
-    document_type = 'National Credit Card Statement'
+    doc_type_desc = 'National Credit Card Statement'
 
     with db_connection() as conn:
         abono_descriptions = load_abono_mappings(conn)
@@ -245,40 +242,42 @@ def main():
         for xls_path in xls_files:
             file_hash = None
             try:
-                # conn.start_transaction() # Comentado para evitar error
                 file_hash = calculate_file_hash(xls_path)
                 if is_file_processed(conn, file_hash):
                     logging.info(f"Archivo ya procesado, omitiendo: {os.path.basename(xls_path)}")
                     ingestion_status_logger.info(f"FILE: {os.path.basename(xls_path)} | STATUS: Skipped")
-                    conn.rollback()
                     continue
 
-                metadata_id = insert_metadata(conn, source_id, xls_path, file_hash, document_type)
                 result = process_national_cc_xls_file(xls_path, abono_descriptions)
                 
-                if result is None:
+                if result is None or result[0] is None or result[1] is None or result[1].empty:
                     logging.warning(f"No se procesaron transacciones para {os.path.basename(xls_path)}.")
-                    ingestion_status_logger.info(f"FILE: {os.path.basename(xls_path)} | HASH: {file_hash} | STATUS: Failed - Parsing failed")
+                    ingestion_status_logger.info(f"FILE: {os.path.basename(xls_path)} | HASH: {file_hash} | STATUS: Failed - Parsing failed or no data")
                     conn.rollback()
                     continue
                 
-                raw_df, processed_df, expected_count, expected_sum = result
+                raw_df, processed_df, expected_count, expected_sum, document_period = result
 
-                if raw_df is not None and processed_df is not None and not processed_df.empty:
-                    insert_raw_national_cc_to_staging(conn, metadata_id, source_id, raw_df)
-                    validate_staging_data(conn, metadata_id, expected_count, expected_sum)
-                    insert_credit_card_transactions(conn, metadata_id, source_id, processed_df)
-                    conn.commit()
-                    ingestion_status_logger.info(f"FILE: {os.path.basename(xls_path)} | HASH: {file_hash} | STATUS: Processed Successfully")
-                    
-                    processed_dir = os.path.join(os.path.dirname(xls_path), 'procesados')
-                    os.makedirs(processed_dir, exist_ok=True)
-                    shutil.move(xls_path, os.path.join(processed_dir, os.path.basename(xls_path)))
-                    logging.info(f"Archivo movido a procesados: {os.path.basename(xls_path)}")
-                else:
-                    logging.warning(f"No se procesaron transacciones para {os.path.basename(xls_path)}.")
-                    ingestion_status_logger.info(f"FILE: {os.path.basename(xls_path)} | HASH: {file_hash} | STATUS: Failed - No data parsed")
-                    conn.rollback()
+                metadata_id = insert_metadata(conn, source_id, xls_path, file_hash, doc_type_desc)
+                insert_raw_national_cc_to_staging(conn, metadata_id, source_id, raw_df)
+                validate_staging_data(conn, metadata_id, expected_count, expected_sum)
+                insert_credit_card_transactions(conn, metadata_id, source_id, processed_df)
+                
+                conn.commit()
+                ingestion_status_logger.info(f"FILE: {os.path.basename(xls_path)} | HASH: {file_hash} | STATUS: Processed Successfully")
+                
+                # Mover y renombrar archivo procesado
+                processed_dir = os.path.join(os.path.dirname(xls_path), 'procesados')
+                os.makedirs(processed_dir, exist_ok=True)
+                new_filename = generate_standardized_filename(
+                    document_type=DOCUMENT_TYPE,
+                    document_period=document_period,
+                    file_hash=file_hash,
+                    original_filename=os.path.basename(xls_path)
+                )
+                processed_filepath = os.path.join(processed_dir, new_filename)
+                shutil.move(xls_path, processed_filepath)
+                log_file_movement(xls_path, processed_filepath, "SUCCESS", "Archivo procesado y movido con éxito.")
 
             except Exception as e:
                 logging.error(f"Error CRÍTICO procesando {os.path.basename(xls_path)}: {e}", exc_info=True)

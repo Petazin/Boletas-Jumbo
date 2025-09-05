@@ -6,8 +6,12 @@ import hashlib
 import shutil
 import re
 from datetime import datetime
-from utils.file_utils import log_file_movement
+from utils.file_utils import log_file_movement, generate_standardized_filename
 from database_utils import db_connection
+
+# --- CONFIGURACIÓN ---
+# Define el tipo de documento para usar en el renombrado y metadatos.
+DOCUMENT_TYPE = 'LINEA_CREDITO_BCH'
 
 # Configuración de logging principal
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -90,22 +94,23 @@ def parse_and_clean_value(value):
         return 0.0
 
 def parse_linea_credito_pdf(pdf_path):
-    """Parsea un PDF de línea de crédito, separando datos crudos y procesados."""
-    logging.info(f"Iniciando parseo con lógica de datos crudos/procesados para: {pdf_path}")
+    """Parsea un PDF de línea de crédito, retornando datos y la fecha del documento."""
+    logging.info(f"Iniciando parseo para: {pdf_path}")
     processed_transactions = []
     raw_transactions = []
+    document_date = None
+
     with pdfplumber.open(pdf_path) as pdf:
-        hasta_date = None
         full_text_for_date = "".join([p.extract_text() for p in pdf.pages if p.extract_text()])
         match = re.search(r"HASTA\s*:\s*(\d{2}/\d{2}/(\d{4}))", full_text_for_date)
         if match:
-            hasta_date = datetime.strptime(match.group(1), "%d/%m/%Y")
+            document_date = datetime.strptime(match.group(1), "%d/%m/%Y")
         
-        if not hasta_date:
+        if not document_date:
             logging.error(f"La fecha 'HASTA' no pudo ser determinada para {pdf_path}.")
-            return None
+            return None, None, 0, 0, 0, None
 
-        hasta_year, hasta_month = hasta_date.year, hasta_date.month
+        hasta_year, hasta_month = document_date.year, document_date.month
 
         for page in pdf.pages:
             text = page.extract_text(x_tolerance=2, layout=True)
@@ -185,7 +190,7 @@ def parse_linea_credito_pdf(pdf_path):
     
     if not processed_transactions:
         logging.info(f"No se encontraron transacciones en el archivo: {pdf_path}")
-        return pd.DataFrame(), pd.DataFrame(), 0, 0, 0
+        return pd.DataFrame(), pd.DataFrame(), 0, 0, 0, document_date
 
     processed_df = pd.DataFrame(processed_transactions)
     raw_df = pd.DataFrame(raw_transactions)
@@ -194,7 +199,7 @@ def parse_linea_credito_pdf(pdf_path):
     expected_sum_cargos = processed_df['cargos'].sum()
     expected_sum_abonos = processed_df['abonos'].sum()
 
-    return raw_df, processed_df, expected_count, expected_sum_cargos, expected_sum_abonos
+    return raw_df, processed_df, expected_count, expected_sum_cargos, expected_sum_abonos, document_date
 
 def insert_raw_pdf_linea_credito_to_staging(conn, metadata_id, source_id, raw_df):
     """Inserta los datos crudos en la tabla de staging."""
@@ -253,12 +258,18 @@ def insert_linea_credito_transactions(conn, metadata_id, source_id, transactions
         cursor.executemany(query, rows_to_insert)
         logging.info(f"Insertadas {len(rows_to_insert)} transacciones en raw_transacciones_linea_credito para metadata_id: {metadata_id}")
 
-def move_file_to_processed(pdf_path, file_hash):
+def move_file_to_processed(pdf_path, file_hash, document_type, document_period):
     """Mueve un archivo a la carpeta de procesados con un nombre estandarizado."""
     processed_dir = os.path.join(os.path.dirname(pdf_path), 'procesados')
     os.makedirs(processed_dir, exist_ok=True)
-    short_hash = file_hash[:8]
-    new_filename = f"LC_BChile_{{datetime.now().strftime('%Y%m%d')}}_{short_hash}.pdf"
+    
+    new_filename = generate_standardized_filename(
+        document_type=document_type,
+        document_period=document_period,
+        file_hash=file_hash,
+        original_filename=os.path.basename(pdf_path)
+    )
+    
     processed_filepath = os.path.join(processed_dir, new_filename)
     shutil.move(pdf_path, processed_filepath)
     logging.info(f"Archivo movido a {processed_filepath}")
@@ -279,23 +290,23 @@ def main():
         source_id = get_source_id(conn)
         for pdf_path in pdf_files:
             file_hash = None
+            document_period = None
             try:
                 file_hash = calculate_file_hash(pdf_path)
                 if is_file_processed(conn, file_hash):
                     logging.info(f"Archivo ya procesado, omitiendo: {os.path.basename(pdf_path)}")
                     continue
 
-                result = parse_linea_credito_pdf(pdf_path)
-                if result is None:
-                    ingestion_status_logger.info(f"FILE: {os.path.basename(pdf_path)} | HASH: {file_hash} | STATUS: Failed - Critical parsing error")
-                    continue
+                raw_df, processed_df, count, sum_cargos, sum_abonos, document_period = parse_linea_credito_pdf(pdf_path)
 
-                raw_df, processed_df, count, sum_cargos, sum_abonos = result
+                if document_period is None:
+                    ingestion_status_logger.info(f"FILE: {os.path.basename(pdf_path)} | HASH: {file_hash} | STATUS: Failed - Critical parsing error (Date not found)")
+                    continue
 
                 if processed_df.empty:
                     logging.info(f"No se encontraron transacciones en {os.path.basename(pdf_path)}. Moviendo archivo.")
                     ingestion_status_logger.info(f"FILE: {os.path.basename(pdf_path)} | HASH: {file_hash} | STATUS: Processed - No transactions found")
-                    move_file_to_processed(pdf_path, file_hash)
+                    move_file_to_processed(pdf_path, file_hash, DOCUMENT_TYPE, document_period)
                     continue
 
                 # La transacción comienza implícitamente con la primera inserción
@@ -313,7 +324,7 @@ def main():
 
                 conn.commit()
                 ingestion_status_logger.info(f"FILE: {os.path.basename(pdf_path)} | HASH: {file_hash} | STATUS: Processed Successfully")
-                move_file_to_processed(pdf_path, file_hash)
+                move_file_to_processed(pdf_path, file_hash, DOCUMENT_TYPE, document_period)
 
             except Exception as e:
                 logging.error(f"Error procesando {os.path.basename(pdf_path)}: {e}", exc_info=True)

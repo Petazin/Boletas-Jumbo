@@ -1,0 +1,7 @@
+refactor(db): Refactoriza el esquema de tablas raw y completa flujos
+
+- Se renombra `raw_transacciones_cuenta_bancaria` a `raw_transacciones_cta_corriente` para mayor claridad y consistencia.
+- Se divide la tabla `raw_transacciones_tarjeta_credito` en `_nacional` y `_internacional` para manejar correctamente sus diferentes esquemas.
+- Se actualizan todos los scripts de ingesta y utilidades para reflejar la nueva estructura de la base de datos.
+- Se implementa el flujo de datos final desde `staging` a `raw` para el script de Línea de Crédito PDF, completando su funcionalidad.
+- Se corrigen errores en el script de ingesta de TC Falabella para asegurar su compatibilidad con el nuevo esquema.

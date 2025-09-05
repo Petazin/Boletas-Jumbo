@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Script orquestador para procesar los archivos PDF de boletas."""
+"""Script orquestador para procesar los archivos PDF de boletas.""" 
 
 import logging
 import os
@@ -12,8 +12,11 @@ import hashlib
 from config import PROCESS_LOG_FILE
 from database_utils import db_connection
 from pdf_parser import process_pdf
-from utils.file_utils import log_file_movement
+from utils.file_utils import log_file_movement, generate_standardized_filename
 
+
+# --- CONFIGURACIÓN ---
+DOCUMENT_TYPE = 'BOLETA_JUMBO'
 
 # Configuración del logger para el estado de la ingesta
 ingestion_status_logger = logging.getLogger('ingestion_status')
@@ -65,14 +68,14 @@ def get_source_id(conn, source_name='Jumbo'):
         conn.commit()
         return cursor.lastrowid
 
-def insert_metadata(conn, source_id, file_path, file_hash, doc_type):
+def insert_metadata(conn, source_id, file_path, file_hash, doc_type_desc):
     """Inserta los metadatos del archivo, incluyendo su hash y tipo de documento."""
     cursor = conn.cursor()
     query = """
     INSERT INTO metadatos_cartolas_bancarias_raw (fuente_id, nombre_archivo_original, file_hash, document_type)
     VALUES (%s, %s, %s, %s)
     """
-    values = (source_id, os.path.basename(file_path), file_hash, doc_type)
+    values = (source_id, os.path.basename(file_path), file_hash, doc_type_desc)
     cursor.execute(query, values)
     conn.commit()
     return cursor.lastrowid
@@ -113,24 +116,24 @@ def _process_single_pdf_task(args):
     pdf_path, order_id, file_hash, source_id = args
     try:
         if not os.path.exists(pdf_path):
-            return order_id, "Error - File not found", None, None, None, None, None
+            return order_id, "Error - File not found", None, None, None, None, None, None
 
         conn = None # Initialize conn to None
         try:
             conn = db_connection().__enter__() # Get connection from context manager
-            metadata_id = insert_metadata(conn, source_id, pdf_path, file_hash, 'Jumbo Receipt')
+            metadata_id = insert_metadata(conn, source_id, pdf_path, file_hash, DOCUMENT_TYPE)
             boleta_id, purchase_date, purchase_time, products_data = process_pdf(pdf_path)
 
-            if boleta_id and products_data:
-                return order_id, "Processed", boleta_id, purchase_time, products_data, file_hash, metadata_id
+            if boleta_id and products_data and purchase_date:
+                return order_id, "Processed", boleta_id, purchase_date, purchase_time, products_data, file_hash, metadata_id
             else:
-                return order_id, "Error - Parsing failed", None, None, None, None, None
+                return order_id, "Error - Parsing failed or date not found", None, None, None, None, None, None
         finally:
             if conn:
                 conn.__exit__(None, None, None) # Close connection
 
     except Exception as e:
-        return order_id, f"Error - Unexpected: {e}", None, None, None, None, None
+        return order_id, f"Error - Unexpected: {e}", None, None, None, None, None, None
 
 def main():
     """Función principal que orquesta el proceso de leer y procesar PDFs."""
@@ -154,9 +157,10 @@ def main():
             with multiprocessing.Pool() as pool:
                 results = pool.imap_unordered(_process_single_pdf_task, files_to_process)
 
-                for order_id, status, boleta_id, purchase_time, products_data, file_hash, metadata_id in results:
+                for order_id, status, boleta_id, purchase_date, purchase_time, products_data, file_hash, metadata_id in results:
                     # Get original filename for logging
-                    pdf_file = os.path.basename(file_path_map[order_id][0])
+                    original_filepath = file_path_map[order_id][0]
+                    pdf_file = os.path.basename(original_filepath)
 
                     if status == "Processed":
                         # Insert into staging table
@@ -171,15 +175,22 @@ def main():
                         conn.commit()
                         msg = f"Datos de {pdf_file} insertados correctamente en staging."
                         logging.info(msg)
-                        ingestion_status_logger.info(f"FILE: {pdf_file} | HASH: {file_hash} | STATUS: Processed Successfully")
 
-                        # Mover el archivo PDF a la carpeta de procesados
-                        original_filepath = file_path_map[order_id][0]
+                        # Mover el archivo PDF a la carpeta de procesados con nombre estandarizado
                         processed_dir = os.path.join(os.path.dirname(original_filepath), 'procesados')
                         os.makedirs(processed_dir, exist_ok=True)
-                        processed_filepath = os.path.join(processed_dir, os.path.basename(original_filepath))
+                        
+                        new_filename = generate_standardized_filename(
+                            document_type=DOCUMENT_TYPE,
+                            document_period=purchase_date, # purchase_date is a datetime object
+                            file_hash=file_hash,
+                            original_filename=pdf_file
+                        )
+
+                        processed_filepath = os.path.join(processed_dir, new_filename)
                         shutil.move(original_filepath, processed_filepath)
                         log_file_movement(original_filepath, processed_filepath, "SUCCESS", "Archivo procesado y movido con éxito.")
+                        ingestion_status_logger.info(f"FILE: {new_filename} | HASH: {file_hash} | STATUS: Processed Successfully")
 
                     else:
                         # No update_status for staging, just log failure
