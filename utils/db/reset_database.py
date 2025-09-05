@@ -60,19 +60,23 @@ def main():
             # 1. Crear todas las tablas desde el script base
             execute_sql_from_file(cursor, 'create_new_tables.sql')
             logging.info("Tablas base creadas exitosamente.")
+
+            # 2. Crear las tablas de staging
+            execute_sql_from_file(cursor, 'create_staging_tables.sql')
+            logging.info("Tablas de staging creadas exitosamente.")
             
-            # 2. Crear la tabla de mapeo de abonos
+            # 3. Crear la tabla de mapeo de abonos
             execute_sql_from_file(cursor, 'create_abonos_mapping_table.sql')
             conn.commit()  # Asegurar que el INSERT se guarde
             logging.info("Tabla de mapeo de abonos creada y poblada exitosamente.")
             
-        # 2. Ejecutar la lógica de alter_table.py
+        # 4. Ejecutar la lógica de alter_table.py
         # Esta función se conecta por su cuenta
         logging.info("Ejecutando lógica de 'alter_table.py'...")
         reset_and_setup_bank_tables()
         logging.info("Lógica de 'alter_table.py' completada.")
 
-        # 3. Ejecutar la lógica de setup_linea_credito_table.py
+        # 5. Ejecutar la lógica de setup_linea_credito_table.py
         # Esta función también es autónoma
         logging.info("Ejecutando lógica de 'setup_linea_credito_table.py'...")
         setup_linea_credito_table()

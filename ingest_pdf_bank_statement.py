@@ -42,7 +42,6 @@ def is_file_processed(conn, file_hash):
     query = "SELECT 1 FROM raw_metadatos_cartolas_bancarias WHERE file_hash = %s"
     cursor.execute(query, (file_hash,))
     result = cursor.fetchone() is not None
-    cursor.close()
     return result
 
 def get_source_id(conn, source_name='Banco de Chile'):
@@ -56,7 +55,6 @@ def get_source_id(conn, source_name='Banco de Chile'):
     else:
         insert_query = "INSERT INTO fuentes (nombre_fuente) VALUES (%s)"
         cursor.execute(insert_query, (source_name,))
-        conn.commit()
         return cursor.lastrowid
 
 def insert_metadata(conn, source_id, pdf_path, file_hash):
@@ -68,7 +66,6 @@ def insert_metadata(conn, source_id, pdf_path, file_hash):
     """
     values = (source_id, os.path.basename(pdf_path), file_hash, 'Bank Statement')
     cursor.execute(query, values)
-    conn.commit()
     return cursor.lastrowid
 
 def parse_and_clean_value(value):
@@ -107,7 +104,6 @@ def parse_bank_statement_pdf(pdf_path):
             match = re.search(r"HASTA\s*:\s*(\d{2}/\d{2}/(\d{4}))", full_text)
             if match:
                 hasta_date = datetime.strptime(match.group(1), "%d/%m/%Y")
-                logging.info(f"Fecha 'HASTA' extraída: {hasta_date.strftime('%Y-%m-%d')}")
         except Exception as e:
             logging.error(f"No se pudo extraer la fecha 'HASTA': {e}")
 
@@ -152,12 +148,11 @@ def parse_bank_statement_pdf(pdf_path):
         
         if not table_data:
             logging.error(f"No se pudieron extraer datos de transacciones de {pdf_path}")
-            return None, None
+            return None
         
         raw_df = pd.DataFrame(table_data, columns=headers)
-        logging.info(f"Raw DataFrame construido con éxito para {pdf_path}")
 
-        processed_df = raw_df.copy() # Create a copy for processing
+        processed_df = raw_df.copy()
         
         column_mapping = {
             'FECHA DIA/MES': 'fecha_transaccion_str',
@@ -170,26 +165,18 @@ def parse_bank_statement_pdf(pdf_path):
         }
         processed_df.rename(columns=column_mapping, inplace=True)
 
-        # --- LÓGICA DE CORRECCIÓN DE FECHAS ---
-        # 1. Define una función interna para determinar el año correcto de una transacción.
         def get_correct_date(tx_date_str):
-            """Determina el año correcto para una fecha DD/MM comparándola con la fecha de la cartola."""
             try:
                 tx_day, tx_month = map(int, tx_date_str.split('/'))
                 correct_year = hasta_year
-                # El caso clave: si el mes de la transacción es mayor al mes de la cartola,
-                # significa que la transacción es del año anterior (ej. cartola de Enero con transacción de Diciembre).
                 if tx_month > hasta_month:
                     correct_year = hasta_year - 1
                 return pd.to_datetime(f"{tx_day}/{tx_month}/{correct_year}", format='%d/%m/%Y')
             except (ValueError, TypeError):
-                return pd.NaT # Retorna Not a Time si el formato es inválido
+                return pd.NaT
 
-        # 2. Aplica la función para crear fechas completas y válidas.
         processed_df['fecha_transaccion_str'] = processed_df['fecha_transaccion_str'].apply(get_correct_date)
-        # 3. Elimina cualquier fila que no tenga una fecha válida después de la conversión.
         processed_df.dropna(subset=['fecha_transaccion_str'], inplace=True)
-        # 4. Estandariza la fecha al formato YYYY-MM-DD para la base de datos.
         processed_df['fecha_transaccion_str'] = processed_df['fecha_transaccion_str'].dt.strftime('%Y-%m-%d')
         
         for col in ['cargos_pesos', 'abonos_pesos', 'saldo_pesos']:
@@ -198,8 +185,12 @@ def parse_bank_statement_pdf(pdf_path):
         
         processed_df = processed_df.astype(object).where(pd.notnull(processed_df), None)
         
+        expected_count = len(processed_df)
+        expected_sum_cargos = processed_df['cargos_pesos'].sum()
+        expected_sum_abonos = processed_df['abonos_pesos'].sum()
+
         final_columns = [col for col in column_mapping.values() if col in processed_df.columns]
-        return raw_df, processed_df[final_columns]
+        return raw_df, processed_df[final_columns], expected_count, expected_sum_cargos, expected_sum_abonos
 
 def insert_transactions(conn, metadata_id, source_id, transactions_df):
     """Inserta las transacciones de la cuenta bancaria en la base de datos."""
@@ -210,20 +201,20 @@ def insert_transactions(conn, metadata_id, source_id, transactions_df):
         canal_o_sucursal, cargos_pesos, abonos_pesos, saldo_pesos
     ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
     """
+    rows_to_insert = []
     for _, row in transactions_df.iterrows():
-        values = (
+        rows_to_insert.append((
             metadata_id, source_id, row.get('fecha_transaccion_str'),
             row.get('descripcion_transaccion'), row.get('canal_o_sucursal'),
             row.get('cargos_pesos'), row.get('abonos_pesos'), row.get('saldo_pesos')
-        )
-        cursor.execute(query, values)
-    conn.commit()
-    logging.info(f"Se insertaron {len(transactions_df)} transacciones para metadata_id: {metadata_id}")
+        ))
+    if rows_to_insert:
+        cursor.executemany(query, rows_to_insert)
+        logging.info(f"Insertadas {len(rows_to_insert)} transacciones para metadata_id: {metadata_id}")
 
 def insert_raw_pdf_bank_statement_to_staging(conn, metadata_id, source_id, raw_df):
     """Inserta los datos crudos de la cartola bancaria PDF en la tabla de staging."""
     cursor = conn.cursor()
-    # Construir la consulta de inserción dinámicamente
     cols = ", ".join([f"`{col}`" for col in raw_df.columns])
     placeholders = ", ".join(["%s"] * len(raw_df.columns))
     query = f"""
@@ -233,13 +224,56 @@ def insert_raw_pdf_bank_statement_to_staging(conn, metadata_id, source_id, raw_d
     
     rows_to_insert = []
     for _, row in raw_df.iterrows():
-        values = [metadata_id, source_id] + row.tolist()
+        values = [metadata_id, source_id] + [None if pd.isna(val) else val for val in row.tolist()]
         rows_to_insert.append(tuple(values))
 
     if rows_to_insert:
         cursor.executemany(query, rows_to_insert)
-        conn.commit()
         logging.info(f"Se insertaron {len(rows_to_insert)} filas en staging_cta_corriente_banco_de_chile para metadata_id: {metadata_id}")
+
+def validate_staging_data(conn, metadata_id, expected_count, expected_sum_cargos, expected_sum_abonos):
+    """Consulta la tabla de staging y valida el conteo y la suma de los montos."""
+    cursor = conn.cursor()
+    try:
+        cursor.execute("SELECT COUNT(*) FROM staging_cta_corriente_banco_de_chile WHERE metadata_id = %s", (metadata_id,))
+        actual_count = cursor.fetchone()[0]
+
+        query_sum_cargos = "SELECT SUM(CAST(REPLACE(REPLACE(`MONTO CHEQUES O CARGOS`, '$', ''), '.', '') AS DECIMAL(15,2))) FROM staging_cta_corriente_banco_de_chile WHERE metadata_id = %s"
+        cursor.execute(query_sum_cargos, (metadata_id,))
+        actual_sum_cargos_result = cursor.fetchone()[0]
+        actual_sum_cargos = float(actual_sum_cargos_result) if actual_sum_cargos_result is not None else 0.0
+
+        query_sum_abonos = "SELECT SUM(CAST(REPLACE(REPLACE(`MONTO DEPOSITOS O ABONOS`, '$', ''), '.', '') AS DECIMAL(15,2))) FROM staging_cta_corriente_banco_de_chile WHERE metadata_id = %s"
+        cursor.execute(query_sum_abonos, (metadata_id,))
+        actual_sum_abonos_result = cursor.fetchone()[0]
+        actual_sum_abonos = float(actual_sum_abonos_result) if actual_sum_abonos_result is not None else 0.0
+        
+        count_valid = actual_count == expected_count
+        sum_cargos_valid = abs(actual_sum_cargos - expected_sum_cargos) < 0.01
+        sum_abonos_valid = abs(actual_sum_abonos - expected_sum_abonos) < 0.01
+
+        if count_valid:
+            logging.info(f"VALIDACIÓN CONTEO: ÉXITO ({actual_count}/{expected_count})")
+        else:
+            logging.error(f"VALIDACIÓN CONTEO: FALLO ({actual_count}/{expected_count})")
+
+        if sum_cargos_valid:
+            logging.info(f"VALIDACIÓN SUMA CARGOS: ÉXITO ({actual_sum_cargos}/{expected_sum_cargos})")
+        else:
+            logging.error(f"VALIDACIÓN SUMA CARGOS: FALLO ({actual_sum_cargos}/{expected_sum_cargos})")
+
+        if sum_abonos_valid:
+            logging.info(f"VALIDACIÓN SUMA ABONOS: ÉXITO ({actual_sum_abonos}/{expected_sum_abonos})")
+        else:
+            logging.error(f"VALIDACIÓN SUMA ABONOS: FALLO ({actual_sum_abonos}/{expected_sum_abonos})")
+        
+        return count_valid and sum_cargos_valid and sum_abonos_valid
+            
+    except Exception as e:
+        logging.error(f"Ocurrió un error durante la validación de staging: {e}", exc_info=True)
+        return False
+    finally:
+        cursor.close()
 
 def main():
     """Función principal para orquestar el procesamiento de archivos PDF de cartolas bancarias."""
@@ -253,27 +287,47 @@ def main():
     logging.info(f"Se encontraron {len(pdf_files)} archivos PDF.")
 
     with db_connection() as conn:
+        source_id = get_source_id(conn)
         for pdf_path in pdf_files:
             file_hash = None
             try:
+                # conn.start_transaction() # Comentado para evitar error
                 file_hash = calculate_file_hash(pdf_path)
                 if is_file_processed(conn, file_hash):
                     logging.info(f"Archivo ya procesado (hash existente), omitiendo: {os.path.basename(pdf_path)}")
                     ingestion_status_logger.info(f"FILE: {os.path.basename(pdf_path)} | HASH: {file_hash} | STATUS: Skipped - Already Processed")
+                    conn.rollback()
                     continue
 
-                raw_transactions_df, processed_transactions_df = parse_bank_statement_pdf(pdf_path)
-                if raw_transactions_df is None or raw_transactions_df.empty:
+                result = parse_bank_statement_pdf(pdf_path)
+                if result is None:
                     logging.warning(f"No se procesaron transacciones para {os.path.basename(pdf_path)}. Omitiendo inserción y movimiento.")
                     ingestion_status_logger.info(f"FILE: {os.path.basename(pdf_path)} | HASH: {file_hash} | STATUS: Failed - Parsing failed")
+                    conn.rollback()
                     continue
 
-                source_id = get_source_id(conn)
+                raw_transactions_df, processed_transactions_df, expected_count, expected_sum_cargos, expected_sum_abonos = result
+
+                if raw_transactions_df is None or raw_transactions_df.empty:
+                    logging.warning(f"No se procesaron transacciones para {os.path.basename(pdf_path)}. Omitiendo inserción y movimiento.")
+                    ingestion_status_logger.info(f"FILE: {os.path.basename(pdf_path)} | HASH: {file_hash} | STATUS: Failed - No data parsed")
+                    conn.rollback()
+                    continue
+
                 metadata_id = insert_metadata(conn, source_id, pdf_path, file_hash)
                 
                 insert_raw_pdf_bank_statement_to_staging(conn, metadata_id, source_id, raw_transactions_df)
+
+                if not validate_staging_data(conn, metadata_id, expected_count, expected_sum_cargos, expected_sum_abonos):
+                    logging.error(f"La validación de datos de staging falló para {os.path.basename(pdf_path)}. Revirtiendo cambios.")
+                    ingestion_status_logger.info(f"FILE: {os.path.basename(pdf_path)} | HASH: {file_hash} | STATUS: Failed - Staging validation failed")
+                    conn.rollback()
+                    continue
+
                 insert_transactions(conn, metadata_id, source_id, processed_transactions_df)
                 
+                conn.commit()
+
                 processed_dir = os.path.join(os.path.dirname(pdf_path), 'procesados')
                 os.makedirs(processed_dir, exist_ok=True)
                 processed_filepath = os.path.join(processed_dir, os.path.basename(pdf_path))
@@ -284,6 +338,8 @@ def main():
 
             except Exception as e:
                 logging.error(f"Ocurrió un error procesando el archivo {os.path.basename(pdf_path)}: {e}", exc_info=True)
+                if conn.in_transaction:
+                    conn.rollback()
                 if file_hash:
                     log_file_movement(pdf_path, "N/A", "FAILED", f"Error al procesar: {e}")
                     ingestion_status_logger.info(f"FILE: {os.path.basename(pdf_path)} | HASH: {file_hash} | STATUS: Failed - {e}")

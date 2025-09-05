@@ -44,7 +44,6 @@ def is_file_processed(conn, file_hash):
     cursor = conn.cursor(buffered=True)
     cursor.execute("SELECT 1 FROM raw_metadatos_cartolas_bancarias WHERE file_hash = %s", (file_hash,))
     result = cursor.fetchone() is not None
-    cursor.close()
     return result
 
 def get_source_id(conn, source_name):
@@ -56,7 +55,6 @@ def get_source_id(conn, source_name):
         return result[0]
     else:
         cursor.execute("INSERT INTO fuentes (nombre_fuente, tipo_fuente) VALUES (%s, 'Tarjeta de Credito')", (source_name,))
-        conn.commit()
         return cursor.lastrowid
 
 def insert_metadata(conn, source_id, file_path, file_hash, doc_type):
@@ -247,7 +245,7 @@ def main():
         for xls_path in xls_files:
             file_hash = None
             try:
-                conn.start_transaction()
+                # conn.start_transaction() # Comentado para evitar error
                 file_hash = calculate_file_hash(xls_path)
                 if is_file_processed(conn, file_hash):
                     logging.info(f"Archivo ya procesado, omitiendo: {os.path.basename(xls_path)}")

@@ -1,5 +1,14 @@
 # Historial de Cambios
 
+## 2025-09-05
+- **feat(ingesta)**: Implementa ingesta de Línea de Crédito PDF de Banco de Chile.
+    - Se desarrolla un nuevo parser basado en análisis de texto y división por espaciado para manejar el formato de texto semi-estructurado de los PDFs.
+    - El script ahora maneja correctamente archivos con y sin transacciones.
+    - Se implementa la carga de datos a la tabla de staging `staging_linea_credito_banco_chile_pdf` con su respectiva validación de consistencia de conteo y sumas.
+    - Se corrige un error de tipo de dato en la inserción a la base de datos (`TypeError: can only concatenate list (not "Pandas")`) y un error de casteo en la validación SQL que multiplicaba los montos por 10.
+- **docs(roadmap)**: Actualiza el roadmap del proyecto.
+    - Se añaden nuevas tareas a la Fase 2.2 para la refactorización del esquema de tablas `raw`, incluyendo el renombramiento de la tabla de cuenta corriente y la división de la tabla de tarjetas de crédito.
+
 ## 2025-09-04
 - **refactor(db)**: Estandariza la nomenclatura de tablas `raw` y `staging`.
     - Todas las tablas de datos crudos ahora usan el prefijo `raw_` (ej. `raw_transacciones_tarjeta_credito`).

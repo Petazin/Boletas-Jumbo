@@ -86,6 +86,35 @@ CREATE TABLE IF NOT EXISTS staging_tarjeta_credito_banco_de_chile_nacional (
     FOREIGN KEY (fuente_id) REFERENCES fuentes(fuente_id)
 );
 
+-- Tabla de staging para Línea de Crédito Banco de Chile (XLS)
+CREATE TABLE IF NOT EXISTS staging_linea_credito_banco_chile (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    metadata_id INT NOT NULL,
+    fuente_id INT NOT NULL,
+    `Fecha` VARCHAR(255),
+    `Descripcion` VARCHAR(255),
+    `Cargos` VARCHAR(255),
+    `Abonos` VARCHAR(255),
+    FOREIGN KEY (metadata_id) REFERENCES raw_metadatos_cartolas_bancarias(metadata_id),
+    FOREIGN KEY (fuente_id) REFERENCES fuentes(fuente_id)
+);
+
+-- Tabla de staging para Línea de Crédito Banco de Chile (PDF)
+CREATE TABLE IF NOT EXISTS staging_linea_credito_banco_chile_pdf (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    metadata_id INT NOT NULL,
+    fuente_id INT NOT NULL,
+    `FECHA DIA/MES` VARCHAR(255),
+    `DETALLE DE TRANSACCION` VARCHAR(255),
+    `SUCURSAL` VARCHAR(255),
+    `N° DOCTO` VARCHAR(255),
+    `MONTO CHEQUES O CARGOS` VARCHAR(255),
+    `MONTO DEPOSITOS O ABONOS` VARCHAR(255),
+    `SALDO` VARCHAR(255),
+    FOREIGN KEY (metadata_id) REFERENCES raw_metadatos_cartolas_bancarias(metadata_id),
+    FOREIGN KEY (fuente_id) REFERENCES fuentes(fuente_id)
+);
+
 -- NOTA: Las tablas tarjeta_credito_banco_de_chile_nacional_staging e internacional_staging
 -- ya están definidas arriba, pero los scripts ingest_xls_national_cc.py e ingest_xls_international_cc.py 
 -- deberían usar estas tablas respectivamente.
