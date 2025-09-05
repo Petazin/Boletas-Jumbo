@@ -1,5 +1,16 @@
 # Historial de Cambios
 
+## 2025-09-05 (Refactor)
+- **refactor(db)**: Refactoriza y estandariza el esquema de las tablas `raw`.
+    - Se renombra `raw_transacciones_cuenta_bancaria` a `raw_transacciones_cta_corriente` para mayor claridad.
+    - Se divide la tabla `raw_transacciones_tarjeta_credito` en `raw_transacciones_tarjeta_credito_nacional` y `raw_transacciones_tarjeta_credito_internacional` para manejar sus esquemas diferentes de forma explícita.
+    - Se actualizan todos los scripts de ingesta, SQL y de utilidad (`alter_table.py`) para usar los nuevos nombres de tabla.
+- **feat(ingesta)**: Completa el flujo Staging -> Raw para la Línea de Crédito PDF.
+    - Se añade la lógica en `ingest_pdf_banco_chile_linea_credito.py` para insertar las transacciones validadas desde la tabla de staging a la tabla `raw_transacciones_linea_credito`.
+- **fix(ingesta)**: Corrige errores y mejora la robustez en los scripts de ingesta de Falabella.
+    - Se soluciona un `KeyError` en `ingest_xls_falabella_cc.py` al restaurar la lógica de detección dinámica de cabeceras.
+    - Se mejora el manejo de cuotas para casos donde no existen, evitando errores en la conversión de datos.
+
 ## 2025-09-05
 - **feat(ingesta)**: Implementa ingesta de Línea de Crédito PDF de Banco de Chile.
     - Se desarrolla un nuevo parser basado en análisis de texto y división por espaciado para manejar el formato de texto semi-estructurado de los PDFs.

@@ -154,7 +154,7 @@ def insert_credit_card_transactions(conn, metadata_id, source_id, df):
     """Inserta las transacciones de tarjeta de crédito procesadas en la base de datos."""
     cursor = conn.cursor()
     query = """
-    INSERT INTO raw_transacciones_tarjeta_credito (
+    INSERT INTO raw_transacciones_tarjeta_credito_nacional (
         metadata_id, fuente_id, fecha_cargo_original, fecha_cargo_cuota, 
         descripcion_transaccion, cuota_actual, total_cuotas, cargos_pesos, abonos_pesos
     ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)

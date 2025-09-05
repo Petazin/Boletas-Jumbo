@@ -81,10 +81,10 @@ Esta sección define la arquitectura y los principios para la capa de staging de
 *   `[x]` **Manejo Transaccional de la Ingesta:** Modificar todos los scripts para que el `hash` de un archivo se guarde en la base de datos únicamente si el archivo y **todas** sus transacciones han sido procesadas e insertadas con éxito. Esto evitará registros "huérfanos" que impiden el reprocesamiento.
 *   `[x]` **Reubicación Inteligente de Archivos:** Mejorar la lógica de movimiento de archivos para que al pasar un documento a la carpeta `procesados/` dentro de su directorio de origen, se conserve su estructura de carpetas original. Esto facilitará los ciclos de prueba y la re-ingesta manual de datos, y se complementa con un logging centralizado de movimientos de archivos.
 
-#### Fase 2.2: Refactorización del Esquema Raw (Pendiente)
-*   `[ ]` **Implementar Flujo Staging->Raw para Línea de Crédito PDF:** Añadir la lógica para transferir los datos desde `staging_linea_credito_banco_chile_pdf` a `raw_transacciones_linea_credito`.
-*   `[ ]` **Renombrar Tabla Raw de Cuenta Corriente:** Cambiar `raw_transacciones_cuenta_bancaria` por `raw_transacciones_cta_corriente` y actualizar todos los scripts dependientes.
-*   `[ ]` **Dividir Tabla Raw de Tarjeta de Crédito:** Reemplazar `raw_transacciones_tarjeta_credito` por `raw_transacciones_tarjeta_credito_nacional` y `raw_transacciones_tarjeta_credito_internacional`, y actualizar los scripts de ingesta correspondientes.
+#### Fase 2.2: Refactorización del Esquema Raw (Completada)
+*   `[x]` **Implementar Flujo Staging->Raw para Línea de Crédito PDF:** Añadir la lógica para transferir los datos desde `staging_linea_credito_banco_chile_pdf` a `raw_transacciones_linea_credito`.
+*   `[x]` **Renombrar Tabla Raw de Cuenta Corriente:** Cambiar `raw_transacciones_cuenta_bancaria` por `raw_transacciones_cta_corriente` y actualizar todos los scripts dependientes.
+*   `[x]` **Dividir Tabla Raw de Tarjeta de Crédito:** Reemplazar `raw_transacciones_tarjeta_credito` por `raw_transacciones_tarjeta_credito_nacional` y `raw_transacciones_tarjeta_credito_internacional`, y actualizar los scripts de ingesta correspondientes.
 
 #### Fase 3: Sistema Genérico de Ingesta de Documentos (Planificada)
 *   `[ ]` **Extracción de Datos de Diferentes Dominios:** Implementar la lógica para extraer información de los distintos dominios web donde se publican las cartolas.

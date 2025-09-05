@@ -225,7 +225,7 @@ def insert_credit_card_transactions(conn, metadata_id, source_id, transactions_d
     transactions_df = transactions_df.where(pd.notnull(transactions_df), None)
     cursor = conn.cursor()
     query = """
-    INSERT INTO raw_transacciones_tarjeta_credito (
+    INSERT INTO raw_transacciones_tarjeta_credito_internacional (
         metadata_id, fuente_id, fecha_cargo_original, fecha_cargo_cuota, descripcion_transaccion, 
         categoria, cuota_actual, total_cuotas, cargos_pesos, abonos_pesos, monto_usd, tipo_cambio, pais
     ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)

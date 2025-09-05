@@ -50,8 +50,8 @@ CREATE TABLE IF NOT EXISTS raw_metadatos_cartolas_bancarias (
     FOREIGN KEY (fuente_id) REFERENCES fuentes(fuente_id)
 );
 
--- Table: transacciones_cuenta_bancaria_raw
-CREATE TABLE IF NOT EXISTS raw_transacciones_cuenta_bancaria (
+-- Table: transacciones_cta_corriente_raw
+CREATE TABLE IF NOT EXISTS raw_transacciones_cta_corriente (
     raw_id INT AUTO_INCREMENT PRIMARY KEY,
     fuente_id INT NOT NULL,
     metadata_id INT NOT NULL,
@@ -67,16 +67,40 @@ CREATE TABLE IF NOT EXISTS raw_transacciones_cuenta_bancaria (
     FOREIGN KEY (metadata_id) REFERENCES raw_metadatos_cartolas_bancarias(metadata_id)
 );
 
--- Table: transacciones_tarjeta_credito_raw
-CREATE TABLE IF NOT EXISTS raw_transacciones_tarjeta_credito (
+-- Table: transacciones_tarjeta_credito_nacional_raw
+CREATE TABLE IF NOT EXISTS raw_transacciones_tarjeta_credito_nacional (
     raw_id INT AUTO_INCREMENT PRIMARY KEY,
     fuente_id INT NOT NULL,
     metadata_id INT NOT NULL,
-    fecha_transaccion_str VARCHAR(10),
+    fecha_cargo_original DATE,
+    fecha_cargo_cuota DATE,
     descripcion_transaccion TEXT,
-    cuotas VARCHAR(10),
-    monto_pesos DECIMAL(15, 2),
+    cuota_actual INT,
+    total_cuotas INT,
+    cargos_pesos DECIMAL(15, 2),
+    abonos_pesos DECIMAL(15, 2),
     linea_original_datos TEXT,
+    procesado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (fuente_id) REFERENCES fuentes(fuente_id),
+    FOREIGN KEY (metadata_id) REFERENCES raw_metadatos_cartolas_bancarias(metadata_id)
+);
+
+-- Table: transacciones_tarjeta_credito_internacional_raw
+CREATE TABLE IF NOT EXISTS raw_transacciones_tarjeta_credito_internacional (
+    raw_id INT AUTO_INCREMENT PRIMARY KEY,
+    fuente_id INT NOT NULL,
+    metadata_id INT NOT NULL,
+    fecha_cargo_original DATE,
+    fecha_cargo_cuota DATE,
+    descripcion_transaccion TEXT,
+    categoria VARCHAR(255),
+    cuota_actual INT,
+    total_cuotas INT,
+    cargos_pesos DECIMAL(15, 2),
+    abonos_pesos DECIMAL(15, 2),
+    monto_usd DECIMAL(15, 2),
+    tipo_cambio DECIMAL(10, 4),
+    pais VARCHAR(255),
     procesado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (fuente_id) REFERENCES fuentes(fuente_id),
     FOREIGN KEY (metadata_id) REFERENCES raw_metadatos_cartolas_bancarias(metadata_id)

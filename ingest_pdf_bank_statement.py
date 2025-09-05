@@ -196,7 +196,7 @@ def insert_transactions(conn, metadata_id, source_id, transactions_df):
     """Inserta las transacciones de la cuenta bancaria en la base de datos."""
     cursor = conn.cursor()
     query = """
-    INSERT INTO raw_transacciones_cuenta_bancaria (
+    INSERT INTO raw_transacciones_cta_corriente (
         metadata_id, fuente_id, fecha_transaccion_str, descripcion_transaccion, 
         canal_o_sucursal, cargos_pesos, abonos_pesos, saldo_pesos
     ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)

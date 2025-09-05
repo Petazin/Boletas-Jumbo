@@ -122,7 +122,7 @@ def parse_linea_credito_pdf(pdf_path):
                     continue
                 if not in_transaction_block or not line.strip():
                     continue
-                if not re.match(r'^\d{2}\/\d{2}', line.strip()):
+                if not re.match(r'^\d{2}/\d{2}', line.strip()):
                     continue
 
                 parts = re.split(r'\s{2,}', line.strip())
@@ -132,7 +132,7 @@ def parse_linea_credito_pdf(pdf_path):
                 desc_part = parts[0]
                 numbers_part = parts[-1]
 
-                date_match = re.match(r'^(\d{2}\/\d{2})\s+(.*)', desc_part)
+                date_match = re.match(r'^(\d{2}/\d{2})\s+(.*)', desc_part)
                 if not date_match:
                     continue
                 
@@ -230,6 +230,29 @@ def validate_staging_data(conn, metadata_id, expected_count, expected_sum_cargos
 
     return count_valid and sum_cargos_valid and sum_abonos_valid
 
+def insert_linea_credito_transactions(conn, metadata_id, source_id, transactions_df):
+    """Inserta las transacciones de línea de crédito procesadas en la tabla raw."""
+    cursor = conn.cursor()
+    query = """
+    INSERT INTO raw_transacciones_linea_credito (
+        metadata_id, fuente_id, fecha_transaccion, descripcion, cargos, abonos
+    ) VALUES (%s, %s, %s, %s, %s, %s)
+    """
+    rows_to_insert = []
+    for _, row in transactions_df.iterrows():
+        rows_to_insert.append((
+            metadata_id,
+            source_id,
+            row.get('fecha_transaccion'),
+            row.get('descripcion'),
+            row.get('cargos'),
+            row.get('abonos')
+        ))
+    
+    if rows_to_insert:
+        cursor.executemany(query, rows_to_insert)
+        logging.info(f"Insertadas {len(rows_to_insert)} transacciones en raw_transacciones_linea_credito para metadata_id: {metadata_id}")
+
 def move_file_to_processed(pdf_path, file_hash):
     """Mueve un archivo a la carpeta de procesados con un nombre estandarizado."""
     processed_dir = os.path.join(os.path.dirname(pdf_path), 'procesados')
@@ -285,6 +308,9 @@ def main():
                     conn.rollback()
                     continue
                 
+                # Transferir de staging a raw
+                insert_linea_credito_transactions(conn, metadata_id, source_id, processed_df)
+
                 conn.commit()
                 ingestion_status_logger.info(f"FILE: {os.path.basename(pdf_path)} | HASH: {file_hash} | STATUS: Processed Successfully")
                 move_file_to_processed(pdf_path, file_hash)
