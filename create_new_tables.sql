@@ -1,3 +1,12 @@
+-- ==================================================================================================
+-- ARCHIVO MAESTRO DE ESQUEMA DE BASE DE DATOS
+-- Este archivo contiene la definición de todas las tablas del proyecto.
+-- ==================================================================================================
+
+-- --------------------------------------------------------------------------------------------------
+-- Tablas Fundamentales
+-- --------------------------------------------------------------------------------------------------
+
 -- Table: fuentes
 CREATE TABLE IF NOT EXISTS fuentes (
     fuente_id INT AUTO_INCREMENT PRIMARY KEY,
@@ -21,8 +30,22 @@ CREATE TABLE IF NOT EXISTS subcategorias (
     UNIQUE (nombre_subcategoria, categoria_principal_id)
 );
 
--- Table: metadatos_cartolas_bancarias_raw
-CREATE TABLE IF NOT EXISTS raw_metadatos_cartolas_bancarias (
+-- Table: abonos_mapping
+CREATE TABLE IF NOT EXISTS abonos_mapping (
+    description VARCHAR(255) NOT NULL,
+    PRIMARY KEY (description)
+);
+
+-- Insertar la descripción inicial para los pagos de tarjeta de crédito
+INSERT INTO abonos_mapping (description) VALUES ('Pago Pesos TEF')
+ON DUPLICATE KEY UPDATE description = description; -- No hacer nada si ya existe
+
+-- --------------------------------------------------------------------------------------------------
+-- Tabla de Metadatos Unificada
+-- --------------------------------------------------------------------------------------------------
+
+-- Table: raw_metadatos_documentos (RENAMED from raw_metadatos_cartolas_bancarias)
+CREATE TABLE IF NOT EXISTS raw_metadatos_documentos (
     metadata_id INT AUTO_INCREMENT PRIMARY KEY,
     fuente_id INT NOT NULL,
     nombre_titular_cuenta VARCHAR(255),
@@ -50,6 +73,283 @@ CREATE TABLE IF NOT EXISTS raw_metadatos_cartolas_bancarias (
     FOREIGN KEY (fuente_id) REFERENCES fuentes(fuente_id)
 );
 
+-- --------------------------------------------------------------------------------------------------
+-- Tablas de Staging
+-- --------------------------------------------------------------------------------------------------
+
+-- Tabla de staging para Boletas Jumbo (PDF)
+CREATE TABLE IF NOT EXISTS staging_boletas_jumbo (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    metadata_id INT NOT NULL,
+    fuente_id INT NOT NULL,
+    boleta_id VARCHAR(255),
+    fecha_compra VARCHAR(255),
+    hora_compra VARCHAR(255),
+    sku VARCHAR(255),
+    descripcion_producto VARCHAR(255),
+    precio_total_item_str VARCHAR(255),
+    cantidad_str VARCHAR(255),
+    precio_unitario_str VARCHAR(255),
+    descripcion_oferta VARCHAR(255),
+    monto_descuento_str VARCHAR(255),
+    FOREIGN KEY (metadata_id) REFERENCES raw_metadatos_documentos(metadata_id),
+    FOREIGN KEY (fuente_id) REFERENCES fuentes(fuente_id)
+);
+
+-- Tabla de staging para cartolas de Cuenta Corriente Banco de Chile (PDF)
+CREATE TABLE IF NOT EXISTS staging_cta_corriente_banco_de_chile (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    metadata_id INT NOT NULL,
+    fuente_id INT NOT NULL,
+    `FECHA DIA/MES` VARCHAR(255),
+    `DETALLE DE TRANSACCION` VARCHAR(255),
+    `SUCURSAL` VARCHAR(255),
+    `N° DOCTO` VARCHAR(255),
+    `MONTO CHEQUES O CARGOS` VARCHAR(255),
+    `MONTO DEPOSITOS O ABONOS` VARCHAR(255),
+    `SALDO` VARCHAR(255),
+    FOREIGN KEY (metadata_id) REFERENCES raw_metadatos_documentos(metadata_id),
+    FOREIGN KEY (fuente_id) REFERENCES fuentes(fuente_id)
+);
+
+-- Tabla de staging para Tarjeta de Crédito Falabella Nacional (XLS)
+CREATE TABLE IF NOT EXISTS staging_tarjeta_credito_falabella_nacional (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    metadata_id INT NOT NULL,
+    fuente_id INT NOT NULL,
+    `FECHA` VARCHAR(255),
+    `DESCRIPCION` VARCHAR(255),
+    `VALOR CUOTA` VARCHAR(255),
+    `CUOTAS PENDIENTES` VARCHAR(255),
+    FOREIGN KEY (metadata_id) REFERENCES raw_metadatos_documentos(metadata_id),
+    FOREIGN KEY (fuente_id) REFERENCES fuentes(fuente_id)
+);
+
+-- Tabla de staging para Cuenta Corriente Falabella (XLS)
+CREATE TABLE IF NOT EXISTS staging_cta_corriente_falabella (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    metadata_id INT NOT NULL,
+    fuente_id INT NOT NULL,
+    `Fecha` VARCHAR(255),
+    `Descripcion` VARCHAR(255),
+    `Cargo` VARCHAR(255),
+    `Abono` VARCHAR(255),
+    `Saldo` VARCHAR(255),
+    FOREIGN KEY (metadata_id) REFERENCES raw_metadatos_documentos(metadata_id),
+    FOREIGN KEY (fuente_id) REFERENCES fuentes(fuente_id)
+);
+
+-- Tabla de staging para Línea de Crédito Falabella (XLS)
+CREATE TABLE IF NOT EXISTS staging_linea_credito_falabella (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    metadata_id INT NOT NULL,
+    fuente_id INT NOT NULL,
+    `Fecha` VARCHAR(255),
+    `Descripcion` VARCHAR(255),
+    `Cargos` VARCHAR(255),
+    `Abonos` VARCHAR(255),
+    `Monto utilizado` VARCHAR(255),
+    `Tasa diaria` VARCHAR(255),
+    `Intereses` VARCHAR(255),
+    FOREIGN KEY (metadata_id) REFERENCES raw_metadatos_documentos(metadata_id),
+    FOREIGN KEY (fuente_id) REFERENCES fuentes(fuente_id)
+);
+
+-- Tabla de staging para Tarjeta de Crédito Banco de Chile Internacional (XLS)
+CREATE TABLE IF NOT EXISTS staging_tarjeta_credito_banco_de_chile_internacional (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    metadata_id INT NOT NULL,
+    fuente_id INT NOT NULL,
+    `Fecha` VARCHAR(255),
+    `Descripción` VARCHAR(255),
+    `Categoría` VARCHAR(255),
+    `Cuotas` VARCHAR(255),
+    `Monto Moneda Origen` VARCHAR(255),
+    `Monto (USD)` VARCHAR(255),
+    `País` VARCHAR(255),
+    FOREIGN KEY (metadata_id) REFERENCES raw_metadatos_documentos(metadata_id),
+    FOREIGN KEY (fuente_id) REFERENCES fuentes(fuente_id)
+);
+
+-- Tabla de staging para Tarjeta de Crédito Banco de Chile Nacional (XLS)
+CREATE TABLE IF NOT EXISTS staging_tarjeta_credito_banco_de_chile_nacional (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    metadata_id INT NOT NULL,
+    fuente_id INT NOT NULL,
+    `Fecha` VARCHAR(255),
+    `Descripción` VARCHAR(255),
+    `Cuotas` VARCHAR(255),
+    `Monto ($)` VARCHAR(255),
+    FOREIGN KEY (metadata_id) REFERENCES raw_metadatos_documentos(metadata_id),
+    FOREIGN KEY (fuente_id) REFERENCES fuentes(fuente_id)
+);
+
+-- Tabla de staging para Línea de Crédito Banco de Chile (XLS)
+CREATE TABLE IF NOT EXISTS staging_linea_credito_banco_chile (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    metadata_id INT NOT NULL,
+    fuente_id INT NOT NULL,
+    `Fecha` VARCHAR(255),
+    `Descripcion` VARCHAR(255),
+    `Cargos` VARCHAR(255),
+    `Abonos` VARCHAR(255),
+    FOREIGN KEY (metadata_id) REFERENCES raw_metadatos_documentos(metadata_id),
+    FOREIGN KEY (fuente_id) REFERENCES fuentes(fuente_id)
+);
+
+-- Tabla de staging para Línea de Crédito Banco de Chile (PDF)
+CREATE TABLE IF NOT EXISTS staging_linea_credito_banco_chile_pdf (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    metadata_id INT NOT NULL,
+    fuente_id INT NOT NULL,
+    `FECHA DIA/MES` VARCHAR(255),
+    `DETALLE DE TRANSACCION` VARCHAR(255),
+    `SUCURSAL` VARCHAR(255),
+    `N° DOCTO` VARCHAR(255),
+    `MONTO CHEQUES O CARGOS` VARCHAR(255),
+    `MONTO DEPOSITOS O ABONOS` VARCHAR(255),
+    `SALDO` VARCHAR(255),
+    FOREIGN KEY (metadata_id) REFERENCES raw_metadatos_documentos(metadata_id),
+    FOREIGN KEY (fuente_id) REFERENCES fuentes(fuente_id)
+);
+
+-- Tabla de staging para metadatos de extractos bancarios de Banco de Chile (de bank_ingestion.py)
+CREATE TABLE IF NOT EXISTS banco_chile_cuenta_corriente_metadata_staging (
+    metadata_id INT AUTO_INCREMENT PRIMARY KEY,
+    source_id INT NOT NULL,
+    original_filename VARCHAR(255) NOT NULL,
+    file_hash VARCHAR(64) NOT NULL UNIQUE,
+    account_holder_name VARCHAR(255),
+    rut VARCHAR(50),
+    account_number VARCHAR(100),
+    currency VARCHAR(10),
+    statement_issue_date DATE,
+    statement_folio VARCHAR(100),
+    accounting_balance DECIMAL(18, 2),
+    retentions_24hrs DECIMAL(18, 2),
+    retentions_48hrs DECIMAL(18, 2),
+    initial_balance DECIMAL(18, 2),
+    available_balance DECIMAL(18, 2),
+    credit_line_amount DECIMAL(18, 2),
+    ingestion_timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_bcc_meta_src FOREIGN KEY (source_id) REFERENCES fuentes(fuente_id)
+);
+
+-- Tabla de staging para metadatos de documentos en general (todos los demás scripts)
+CREATE TABLE IF NOT EXISTS document_metadata_staging (
+    metadata_id INT AUTO_INCREMENT PRIMARY KEY,
+    source_id INT NOT NULL,
+    original_filename VARCHAR(255) NOT NULL,
+    file_hash VARCHAR(64) NOT NULL UNIQUE,
+    document_type VARCHAR(100),
+    ingestion_timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_doc_meta_src FOREIGN KEY (source_id) REFERENCES fuentes(fuente_id)
+);
+
+-- Tabla de staging para transacciones de extractos bancarios de Banco de Chile (de bank_ingestion.py)
+CREATE TABLE IF NOT EXISTS banco_chile_cuenta_corriente_transactions_staging (
+    transaction_id INT AUTO_INCREMENT PRIMARY KEY,
+    metadata_id INT NOT NULL,
+    source_id INT NOT NULL,
+    transaction_date_str VARCHAR(50),
+    transaction_description VARCHAR(255),
+    channel_or_branch VARCHAR(255),
+    charges_pesos VARCHAR(50),
+    credits_pesos VARCHAR(50),
+    balance_pesos VARCHAR(50),
+    original_line_data TEXT,
+    file_hash VARCHAR(64) NOT NULL,
+    ingestion_timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_bcct_meta FOREIGN KEY (metadata_id) REFERENCES banco_chile_cuenta_corriente_metadata_staging(metadata_id),
+    CONSTRAINT fk_bcct_src FOREIGN KEY (source_id) REFERENCES fuentes(fuente_id)
+);
+
+-- Tabla de staging para transacciones de tarjetas de crédito nacionales (de ingest_xls_national_cc.py)
+CREATE TABLE IF NOT EXISTS banco_chile_tarjeta_credito_nacional_transactions_staging (
+    transaction_id INT AUTO_INCREMENT PRIMARY KEY,
+    metadata_id INT NOT NULL,
+    source_id INT NOT NULL,
+    Fecha VARCHAR(50),
+    Descripcion VARCHAR(255),
+    Cuotas VARCHAR(50),
+    `Monto ($)` VARCHAR(50), -- Column name with special characters
+    file_hash VARCHAR(64) NOT NULL,
+    ingestion_timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_bctcn_meta FOREIGN KEY (metadata_id) REFERENCES document_metadata_staging(metadata_id),
+    CONSTRAINT fk_bctcn_src FOREIGN KEY (source_id) REFERENCES fuentes(fuente_id)
+);
+
+-- Tabla de staging para transacciones de tarjetas de crédito internacionales (de ingest_xls_international_cc.py)
+CREATE TABLE IF NOT EXISTS banco_chile_tarjeta_credito_internacional_transactions_staging (
+    transaction_id INT AUTO_INCREMENT PRIMARY KEY,
+    metadata_id INT NOT NULL,
+    source_id INT NOT NULL,
+    Fecha VARCHAR(50),
+    Descripcion VARCHAR(255),
+    Categoria VARCHAR(100),
+    Cuotas VARCHAR(50),
+    `Monto Moneda Origen` VARCHAR(50), -- Column name with special characters
+    `Monto (USD)` VARCHAR(50), -- Column name with special characters
+    Pais VARCHAR(100),
+    file_hash VARCHAR(64) NOT NULL,
+    ingestion_timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_bctci_meta FOREIGN KEY (metadata_id) REFERENCES document_metadata_staging(metadata_id),
+    CONSTRAINT fk_bctci_src FOREIGN KEY (source_id) REFERENCES fuentes(fuente_id)
+);
+
+-- Tabla de staging para transacciones de tarjetas de crédito Falabella (de ingest_xls_falabella_cc.py)
+CREATE TABLE IF NOT EXISTS falabella_tarjeta_credito_transactions_staging (
+    transaction_id INT AUTO_INCREMENT PRIMARY KEY,
+    metadata_id INT NOT NULL,
+    source_id INT NOT NULL,
+    FECHA VARCHAR(50),
+    DESCRIPCION VARCHAR(255),
+    `VALOR CUOTA` VARCHAR(50), -- Column name with special characters
+    `CUOTAS PENDIENTES` VARCHAR(50), -- Column name with special characters
+    file_hash VARCHAR(64) NOT NULL,
+    ingestion_timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_ftc_meta FOREIGN KEY (metadata_id) REFERENCES document_metadata_staging(metadata_id),
+    CONSTRAINT fk_ftc_src FOREIGN KEY (source_id) REFERENCES fuentes(fuente_id)
+);
+
+-- Tabla de staging para transacciones de cuenta corriente Falabella (de ingest_xls_falabella_cuenta_corriente.py)
+CREATE TABLE IF NOT EXISTS falabella_cuenta_corriente_transactions_staging (
+    transaction_id INT AUTO_INCREMENT PRIMARY KEY,
+    metadata_id INT NOT NULL,
+    source_id INT NOT NULL,
+    Fecha VARCHAR(50),
+    Descripcion VARCHAR(255),
+    Cargo VARCHAR(50),
+    Abono VARCHAR(50),
+    Saldo VARCHAR(50),
+    file_hash VARCHAR(64) NOT NULL,
+    ingestion_timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_fcc_meta FOREIGN KEY (metadata_id) REFERENCES document_metadata_staging(metadata_id),
+    CONSTRAINT fk_fcc_src FOREIGN KEY (source_id) REFERENCES fuentes(fuente_id)
+);
+
+-- Tabla de staging para transacciones de línea de crédito Falabella (de ingest_xls_falabella_linea_credito.py)
+CREATE TABLE IF NOT EXISTS falabella_linea_credito_transactions_staging (
+    transaction_id INT AUTO_INCREMENT PRIMARY KEY,
+    metadata_id INT NOT NULL,
+    source_id INT NOT NULL,
+    Fecha VARCHAR(50),
+    Descripcion VARCHAR(255),
+    Cargos VARCHAR(50),
+    Abonos VARCHAR(50),
+    `Monto utilizado` VARCHAR(50), -- Column name with special characters
+    `Tasa diaria` VARCHAR(50), -- Column name with special characters
+    Intereses VARCHAR(50),
+    file_hash VARCHAR(64) NOT NULL,
+    ingestion_timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_flc_meta FOREIGN KEY (metadata_id) REFERENCES document_metadata_staging(metadata_id),
+    CONSTRAINT fk_flc_src FOREIGN KEY (source_id) REFERENCES fuentes(fuente_id)
+);
+
+-- --------------------------------------------------------------------------------------------------
+-- Tablas Raw (Datos Crudos Consolidados)
+-- --------------------------------------------------------------------------------------------------
+
 -- Table: transacciones_cta_corriente_raw
 CREATE TABLE IF NOT EXISTS raw_transacciones_cta_corriente (
     raw_id INT AUTO_INCREMENT PRIMARY KEY,
@@ -64,7 +364,7 @@ CREATE TABLE IF NOT EXISTS raw_transacciones_cta_corriente (
     linea_original_datos TEXT,
     procesado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (fuente_id) REFERENCES fuentes(fuente_id),
-    FOREIGN KEY (metadata_id) REFERENCES raw_metadatos_cartolas_bancarias(metadata_id)
+    FOREIGN KEY (metadata_id) REFERENCES raw_metadatos_documentos(metadata_id)
 );
 
 -- Table: transacciones_tarjeta_credito_nacional_raw
@@ -82,7 +382,7 @@ CREATE TABLE IF NOT EXISTS raw_transacciones_tarjeta_credito_nacional (
     linea_original_datos TEXT,
     procesado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (fuente_id) REFERENCES fuentes(fuente_id),
-    FOREIGN KEY (metadata_id) REFERENCES raw_metadatos_cartolas_bancarias(metadata_id)
+    FOREIGN KEY (metadata_id) REFERENCES raw_metadatos_documentos(metadata_id)
 );
 
 -- Table: transacciones_tarjeta_credito_internacional_raw
@@ -103,8 +403,33 @@ CREATE TABLE IF NOT EXISTS raw_transacciones_tarjeta_credito_internacional (
     pais VARCHAR(255),
     procesado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (fuente_id) REFERENCES fuentes(fuente_id),
-    FOREIGN KEY (metadata_id) REFERENCES raw_metadatos_cartolas_bancarias(metadata_id)
+    FOREIGN KEY (metadata_id) REFERENCES raw_metadatos_documentos(metadata_id)
 );
+
+-- Table: raw_transacciones_linea_credito
+CREATE TABLE IF NOT EXISTS `raw_transacciones_linea_credito` (
+    `raw_id` INT NOT NULL AUTO_INCREMENT,
+    `fuente_id` INT NOT NULL,
+    `metadata_id` INT NOT NULL,
+    `fecha_transaccion` DATE DEFAULT NULL,
+    `descripcion` TEXT,
+    `cargos` DECIMAL(15,2) DEFAULT NULL,
+    `abonos` DECIMAL(15,2) DEFAULT NULL,
+    `monto_utilizado` DECIMAL(15,2) DEFAULT NULL,
+    `tasa_diaria` DECIMAL(15,4) DEFAULT NULL,
+    `intereses` DECIMAL(15,2) DEFAULT NULL,
+    `linea_original_datos` TEXT,
+    `procesado_en` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (`raw_id`),
+    KEY `fuente_id` (`fuente_id`),
+    KEY `metadata_id` (`metadata_id`),
+    CONSTRAINT `fk_linea_credito_fuente` FOREIGN KEY (`fuente_id`) REFERENCES `fuentes` (`fuente_id`),
+    CONSTRAINT `fk_linea_credito_metadata` FOREIGN KEY (`metadata_id`) REFERENCES `raw_metadatos_documentos` (`metadata_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------------------------------------------------
+-- Tablas de Negocio y Finales
+-- --------------------------------------------------------------------------------------------------
 
 -- Table: transacciones
 CREATE TABLE IF NOT EXISTS transacciones (
@@ -123,7 +448,7 @@ CREATE TABLE IF NOT EXISTS transacciones (
     creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     actualizado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (fuente_id) REFERENCES fuentes(fuente_id),
-    FOREIGN KEY (metadata_id_original) REFERENCES raw_metadatos_cartolas_bancarias(metadata_id),
+    FOREIGN KEY (metadata_id_original) REFERENCES raw_metadatos_documentos(metadata_id),
     FOREIGN KEY (categoria_principal_id) REFERENCES categorias_principales(categoria_principal_id),
     FOREIGN KEY (subcategoria_id) REFERENCES subcategorias(subcategoria_id)
 );

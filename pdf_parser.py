@@ -48,11 +48,11 @@ def process_pdf(pdf_path):
 
     except Exception as e:
         quarantine_pdf(pdf_path, f"Error al leer PDF: {e}")
-        return None, None, None, []
+        return None, None, None, [], None
 
     if not text.strip():
         quarantine_pdf(pdf_path, "PDF vacío o ilegible.")
-        return None, None, None, []
+        return None, None, None, [], None
 
     boleta_id_match = re.search(
         config.REGEX_PATTERNS["BOLETA_NUMERO"], text, re.IGNORECASE
@@ -60,7 +60,7 @@ def process_pdf(pdf_path):
     boleta_id = boleta_id_match.group(1) if boleta_id_match else None
     if not boleta_id:
         quarantine_pdf(pdf_path, "No se pudo extraer el ID de boleta.")
-        return None, None, None, []
+        return None, None, None, [], None
 
     date_time_match = re.search(
         config.REGEX_PATTERNS["FECHA_HORA"], text, re.DOTALL
@@ -106,7 +106,7 @@ def process_pdf(pdf_path):
 
     if not purchase_date:
         quarantine_pdf(pdf_path, "No se pudo extraer la fecha de compra.")
-        return None, None, None, []
+        return None, None, None, [], None
 
     products = {}
     product_pattern = re.compile(
@@ -165,6 +165,26 @@ def process_pdf(pdf_path):
 
     if not products:
         quarantine_pdf(pdf_path, "No se pudieron extraer productos del PDF.")
-        return None, None, None, []
+        return None, None, None, [], None
 
-    return boleta_id, purchase_date, purchase_time, list(products.values())
+    # Extract summary totals
+    sub_total_match = re.search(config.REGEX_PATTERNS["SUB_TOTAL"], text)
+    discounts_match = re.search(config.REGEX_PATTERNS["DISCOUNTS"], text)
+    total_match = re.search(config.REGEX_PATTERNS["TOTAL"], text, re.MULTILINE)
+
+    sub_total = parse_chilean_number(sub_total_match.group(1)) if sub_total_match else 0.0
+    discounts = parse_chilean_number(discounts_match.group(1)) if discounts_match else 0.0
+    total = parse_chilean_number(total_match.group(1)) if total_match else 0.0
+    
+    # Basic sanity check for totals
+    if not (sub_total > 0 and total > 0):
+        quarantine_pdf(pdf_path, f"No se pudieron extraer los totales del resumen (SubTotal: {sub_total}, Total: {total}).")
+        return None, None, None, [], None
+
+    totals = {
+        "sub_total": sub_total,
+        "discounts": discounts,
+        "total": total,
+    }
+
+    return boleta_id, purchase_date, purchase_time, list(products.values()), totals

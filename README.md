@@ -47,7 +47,7 @@ La capa de staging es un componente fundamental de la arquitectura de ingesta de
 
 ### Esquema de la Base de Datos
 
-El proyecto utiliza un esquema de base de datos escalable y completamente en español para manejar diversos tipos de transacciones. Además de las tablas principales como `fuentes`, `categorias_principales`, `subcategorias`, `raw_metadatos_cartolas_bancarias`, `raw_transacciones_cta_corriente`, `raw_transacciones_tarjeta_credito_nacional`, `raw_transacciones_tarjeta_credito_internacional`, `transacciones`, `items_transaccion`, `historial_descargas` y `transacciones_jumbo`, el esquema ahora incluye una **capa de tablas de staging** dedicada para la ingesta de datos crudos. Para el esquema completo, consulta el archivo `create_new_tables.sql` y `create_staging_tables.sql`.
+El proyecto utiliza un esquema de base de datos escalable y completamente en español para manejar diversos tipos de transacciones. Además de las tablas principales como `fuentes`, `categorias_principales`, `subcategorias`, `raw_metadatos_documentos`, `raw_transacciones_cta_corriente`, `raw_transacciones_tarjeta_credito_nacional`, `raw_transacciones_tarjeta_credito_internacional`, `transacciones`, `items_transaccion`, `historial_descargas` y `transacciones_jumbo`, el esquema ahora incluye una **capa de tablas de staging** dedicada para la ingesta de datos crudos. Para el esquema completo, consulta el archivo `create_new_tables.sql`.
 
 Una tabla de soporte importante es `abonos_mapping`, que contiene descripciones de transacciones que deben ser tratadas como pagos (abonos) en las tarjetas de crédito, permitiendo una correcta clasificación de los flujos de dinero.
 

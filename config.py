@@ -62,4 +62,7 @@ REGEX_PATTERNS = {
     "PRODUCTO": r"^\s*(\d{8,13})\s+(.+?)\s+([\d.,]+)\s*$",
     "CANTIDAD_PRECIO": r"^\s*(\d+)\s*X\s*\$([\d.,]+)",
     "OFERTA_DESCUENTO": r"(TMP\s*(?:OFERTA|DESCUENTO).*?)(-?[\d.,]+)\s*$",
+    "SUB_TOTAL": r"SUB\s*TOTAL\s+\$\s*([\d\.,]+)",
+    "DISCOUNTS": r"DESCUENTOS\s+\$\s*([\d\.,]+)",
+    "TOTAL": r"^\s*TOTAL\s+\$\s*([\d\.,]+)",
 }

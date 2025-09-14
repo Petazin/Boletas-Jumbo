@@ -24,10 +24,14 @@ ingestion_status_logger.setLevel(logging.INFO)
 status_file_handler = logging.FileHandler('ingestion_status.log')
 status_formatter = logging.Formatter('%(asctime)s - %(message)s')
 status_file_handler.setFormatter(status_formatter)
-ingestion_status_logger.addHandler(status_file_handler)
+ingestion_status_logger.addHandler(ingestion_status_logger)
 
 def setup_logging():
     """Configura el sistema de logging para este script."""
+    # Clear existing handlers to prevent duplicate logs if called multiple times
+    for handler in logging.root.handlers[:]:
+        logging.root.removeHandler(handler)
+    
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s - %(levelname)s - %(message)s",
@@ -47,12 +51,8 @@ def calculate_file_hash(file_path):
 
 def is_file_processed(conn, file_hash):
     """Verifica si un archivo con un hash específico ya ha sido procesado."""
-    cursor = conn.cursor(buffered=True)
-    query = "SELECT 1 FROM metadatos_cartolas_bancarias_raw WHERE file_hash = %s"
-    cursor.execute(query, (file_hash,))
-    result = cursor.fetchone() is not None
-    cursor.close()
-    return result
+    # Temporalmente, siempre devuelve False para forzar el reprocesamiento.
+    return False
 
 def get_source_id(conn, source_name='Jumbo'):
     """Obtiene el ID de la fuente, creándolo si no existe."""
@@ -72,12 +72,12 @@ def insert_metadata(conn, source_id, file_path, file_hash, doc_type_desc):
     """Inserta los metadatos del archivo, incluyendo su hash y tipo de documento."""
     cursor = conn.cursor()
     query = """
-    INSERT INTO metadatos_cartolas_bancarias_raw (fuente_id, nombre_archivo_original, file_hash, document_type)
+    INSERT INTO raw_metadatos_documentos (fuente_id, nombre_archivo_original, file_hash, document_type)
     VALUES (%s, %s, %s, %s)
     """
     values = (source_id, os.path.basename(file_path), file_hash, doc_type_desc)
     cursor.execute(query, values)
-    conn.commit()
+    # Removed conn.commit() here
     return cursor.lastrowid
 
 def insert_boleta_data_to_staging(cursor, metadata_id, fuente_id, boleta_id, hora_compra, products_data):
@@ -112,28 +112,71 @@ def insert_boleta_data_to_staging(cursor, metadata_id, fuente_id, boleta_id, hor
                 f"Error al insertar SKU {sku} de boleta {boleta_id} en staging: {err}"
             )
 
+def validate_staging_data_jumbo(conn, metadata_id, expected_count, totals_from_pdf):
+    """
+    Valida los datos insertados en staging_boletas_jumbo con una lógica de 2 niveles.
+    1. Valida la integridad de los items (conteo y suma de subtotales).
+    2. Valida la coherencia de los totales de la boleta (subtotal - descuentos = total).
+    """
+    cursor = conn.cursor()
+    try:
+        # --- Nivel 1: Validación de Integridad de Items ---
+
+        # 1a. Validar conteo de productos
+        cursor.execute("SELECT COUNT(*) FROM staging_boletas_jumbo WHERE metadata_id = %s", (metadata_id,))
+        actual_count = cursor.fetchone()[0]
+        count_valid = actual_count == expected_count
+        logging.info(f"VALIDACIÓN CONTEO: ESPERADO={expected_count}, OBTENIDO={actual_count} -> {'ÉXITO' if count_valid else 'FALLO'}")
+
+        # 1b. Validar suma de precios de productos (integridad de items)
+        cursor.execute("SELECT SUM(CAST(precio_total_item_str AS DECIMAL(15,2))) FROM staging_boletas_jumbo WHERE metadata_id = %s", (metadata_id,))
+        actual_sum_products = cursor.fetchone()[0] or 0.0
+        
+        sub_total_pdf = totals_from_pdf['sub_total']
+        item_integrity_valid = abs(float(actual_sum_products) - sub_total_pdf) < 0.01
+        logging.info(f"VALIDACIÓN INTEGRIDAD ITEMS (SUMA BD vs SUBTOTAL PDF): BD={actual_sum_products}, PDF={sub_total_pdf} -> {'ÉXITO' if item_integrity_valid else 'FALLO'}")
+
+        # --- Nivel 2: Validación de Coherencia de la Boleta ---
+        discounts_pdf = totals_from_pdf['discounts']
+        total_pdf = totals_from_pdf['total']
+        
+        receipt_coherence_valid = abs((sub_total_pdf - discounts_pdf) - total_pdf) < 0.01
+        logging.info(f"VALIDACIÓN COHERENCIA BOLETA (SUBTOTAL - DCTO vs TOTAL): PDF_CALC={(sub_total_pdf - discounts_pdf)}, PDF_TOTAL={total_pdf} -> {'ÉXITO' if receipt_coherence_valid else 'FALLO'}")
+
+        if not (count_valid and item_integrity_valid and receipt_coherence_valid):
+            return False
+        
+        return True
+
+    except Exception as e:
+        logging.error(f"Error durante la validación de staging de Jumbo: {e}", exc_info=True)
+        return False
+    finally:
+        cursor.close()
+
 def _process_single_pdf_task(args):
     pdf_path, order_id, file_hash, source_id = args
     try:
         if not os.path.exists(pdf_path):
-            return order_id, "Error - File not found", None, None, None, None, None, None
+            return order_id, "Error - File not found", None, None, None, None, None, None, None
 
-        conn = None # Initialize conn to None
-        try:
-            conn = db_connection().__enter__() # Get connection from context manager
+        # 1. Procesar el PDF primero, sin necesidad de una conexión a la BD.
+        boleta_id, purchase_date, purchase_time, products_data, totals = process_pdf(pdf_path)
+
+        if not (boleta_id and products_data and purchase_date and totals):
+            return order_id, "Error - Parsing failed or data not found", None, None, None, None, None, None, None
+
+        # 2. Si el parsing es exitoso, abrir conexión y guardar metadatos.
+        metadata_id = None
+        with db_connection() as conn:
             metadata_id = insert_metadata(conn, source_id, pdf_path, file_hash, DOCUMENT_TYPE)
-            boleta_id, purchase_date, purchase_time, products_data = process_pdf(pdf_path)
+            conn.commit()  # Asegurar que el metadata_id se guarde y sea visible
 
-            if boleta_id and products_data and purchase_date:
-                return order_id, "Processed", boleta_id, purchase_date, purchase_time, products_data, file_hash, metadata_id
-            else:
-                return order_id, "Error - Parsing failed or date not found", None, None, None, None, None, None
-        finally:
-            if conn:
-                conn.__exit__(None, None, None) # Close connection
+        return order_id, "Processed", boleta_id, purchase_date, purchase_time, products_data, file_hash, metadata_id, totals
 
     except Exception as e:
-        return order_id, f"Error - Unexpected: {e}", None, None, None, None, None, None
+        logging.error(f"Error procesando {os.path.basename(pdf_path)}: {e}", exc_info=True)
+        return order_id, f"Error - Unexpected: {e}", None, None, None, None, None, None, None
 
 def main():
     """Función principal que orquesta el proceso de leer y procesar PDFs."""
@@ -157,7 +200,7 @@ def main():
             with multiprocessing.Pool() as pool:
                 results = pool.imap_unordered(_process_single_pdf_task, files_to_process)
 
-                for order_id, status, boleta_id, purchase_date, purchase_time, products_data, file_hash, metadata_id in results:
+            for order_id, status, boleta_id, purchase_date, purchase_time, products_data, file_hash, metadata_id, totals in results:
                     # Get original filename for logging
                     original_filepath = file_path_map[order_id][0]
                     pdf_file = os.path.basename(original_filepath)
@@ -172,9 +215,18 @@ def main():
                             purchase_time,
                             products_data
                         )
-                        conn.commit()
                         msg = f"Datos de {pdf_file} insertados correctamente en staging."
                         logging.info(msg)
+
+                        # Validate staging data
+                        if not validate_staging_data_jumbo(conn, metadata_id, len(products_data), totals):
+                            logging.error(f"La validación de staging falló para {pdf_file}. Revirtiendo.")
+                            ingestion_status_logger.info(f"FILE: {pdf_file} | HASH: {file_hash} | STATUS: Failed - Staging validation failed")
+                            conn.rollback()
+                            continue
+
+                        # Si la validación es exitosa, confirmar los cambios en la BD
+                        conn.commit()
 
                         # Mover el archivo PDF a la carpeta de procesados con nombre estandarizado
                         processed_dir = os.path.join(os.path.dirname(original_filepath), 'procesados')

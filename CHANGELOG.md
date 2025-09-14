@@ -1,3 +1,12 @@
+## 2025-09-14 (Refactor)
+- **refactor(db)**: Consolida toda la creación de tablas en un único archivo `create_new_tables.sql`.
+    - Se han migrado las sentencias `CREATE TABLE` desde `alter_table.py`, `execute_staging_sql.py` y `utils/db/setup_linea_credito_table.py` al archivo maestro `create_new_tables.sql`.
+    - Se ha refactorizado el script `utils/db/reset_database.py` para que utilice únicamente el archivo `create_new_tables.sql` para la creación de todo el esquema.
+    - Se han eliminado los archivos `alter_table.py`, `execute_staging_sql.py` y `utils/db/setup_linea_credito_table.py`, que ya no son necesarios.
+- **refactor(db)**: Renombra la tabla de metadatos a `raw_metadatos_documentos`.
+    - Se ha renombrado la tabla `raw_metadatos_cartolas_bancarias` a `raw_metadatos_documentos` para reflejar que contiene metadatos de todos los tipos de documentos, no solo cartolas bancarias.
+    - Se han actualizado todos los scripts de ingesta para que utilicen el nuevo nombre de la tabla.
+
 # Historial de Cambios
 
 ## 2025-09-05 (Refactor)

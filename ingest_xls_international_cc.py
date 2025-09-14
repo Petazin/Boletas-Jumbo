@@ -65,7 +65,7 @@ def insert_metadata(conn, source_id, file_path, file_hash, doc_type_desc):
     """Inserta los metadatos del archivo, incluyendo su hash y tipo de documento."""
     cursor = conn.cursor()
     query = """
-    INSERT INTO raw_metadatos_cartolas_bancarias (fuente_id, nombre_archivo_original, file_hash, document_type)
+    INSERT INTO raw_metadatos_documentos (fuente_id, nombre_archivo_original, file_hash, document_type)
     VALUES (%s, %s, %s, %s)
     """
     values = (source_id, os.path.basename(file_path), file_hash, doc_type_desc)

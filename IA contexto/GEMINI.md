@@ -65,7 +65,7 @@ Esta sección define la arquitectura y los principios para la capa de staging de
 *   `[x]` **Implementar Sistema de Abonos/Cargos:** Crear y utilizar la tabla 'abonos_mapping' para diferenciar pagos en tarjetas de crédito.
 *   `[x]` **Implementar Ingestión Robusta de XLS para Banco Falabella:** Desarrollar un mecanismo de parsing específico para los archivos XLS de tarjetas de crédito de Banco Falabella.
 *   `[x]` **Expandir Ingesta de Banco Falabella:** Añadir soporte para Cuenta Corriente y Línea de Crédito.
-*   `[x]` **Revisar y Validar Esquema de BD:** Confirmado que el esquema actual (`create_new_tables.sql`) es adecuado para el escalamiento y las necesidades futuras, y se han realizado ajustes en `alter_table.py` para su compatibilidad.
+*   `[x]` **Revisar y Validar Esquema de BD:** Confirmado que el esquema actual (`create_new_tables.sql`) es adecuado para el escalamiento y las necesidades futuras.
 *   `[x]` **Implementar capa de staging para datos extraídos de archivos:** Crear tablas por tipo de documento/origen con la estructura original de los datos extraídos, antes de cualquier manipulación o transformación. (Esta tarea ahora se detalla en la sección 2.2)
 *   `[ ]` **Implementar Validación Post-Ingesta en Staging:** Añadir validación de conteo de registros y suma de montos para todos los scripts de ingesta.
     *   `[x]` Implementado en `ingest_xls_national_cc.py`.
@@ -82,6 +82,7 @@ Esta sección define la arquitectura y los principios para la capa de staging de
 *   `[x]` **Reubicación Inteligente de Archivos:** Mejorar la lógica de movimiento de archivos para que al pasar un documento a la carpeta `procesados/` dentro de su directorio de origen, se conserve su estructura de carpetas original. Esto facilitará los ciclos de prueba y la re-ingesta manual de datos, y se complementa con un logging centralizado de movimientos de archivos.
 
 #### Fase 2.2: Refactorización del Esquema Raw (Completada)
+*   `[x]` **Consolidar Creación de Tablas:** Unificar todos los scripts de creación de tablas en `create_new_tables.sql`.
 *   `[x]` **Implementar Flujo Staging->Raw para Línea de Crédito PDF:** Añadir la lógica para transferir los datos desde `staging_linea_credito_banco_chile_pdf` a `raw_transacciones_linea_credito`.
 *   `[x]` **Renombrar Tabla Raw de Cuenta Corriente:** Cambiar `raw_transacciones_cuenta_bancaria` por `raw_transacciones_cta_corriente` y actualizar todos los scripts dependientes.
 *   `[x]` **Dividir Tabla Raw de Tarjeta de Crédito:** Reemplazar `raw_transacciones_tarjeta_credito` por `raw_transacciones_tarjeta_credito_nacional` y `raw_transacciones_tarjeta_credito_internacional`, y actualizar los scripts de ingesta correspondientes.

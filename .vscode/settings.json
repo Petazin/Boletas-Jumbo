@@ -1,4 +1,6 @@
 {
     "geminicodeassist.project": "app-gemini-470914",
-    "geminicodeassist.updateChannel": "Insiders"
+    "geminicodeassist.updateChannel": "Insiders",
+    "python-envs.defaultEnvManager": "ms-python.python:system",
+    "python-envs.pythonProjects": []
 }
