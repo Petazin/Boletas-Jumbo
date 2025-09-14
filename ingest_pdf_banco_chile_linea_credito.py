@@ -41,7 +41,7 @@ def find_all_pdf_files(directory):
 def is_file_processed(conn, file_hash):
     """Verifica si un archivo con el mismo hash ya existe en la tabla de metadatos."""
     cursor = conn.cursor()
-    query = "SELECT metadata_id FROM raw_metadatos_cartolas_bancarias WHERE file_hash = %s"
+    query = "SELECT metadata_id FROM raw_metadatos_documentos WHERE file_hash = %s"
     cursor.execute(query, (file_hash,))
     result = cursor.fetchone()
     # Si fetchone() devuelve algo, significa que el hash ya existe.
