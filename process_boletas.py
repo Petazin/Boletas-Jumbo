@@ -222,9 +222,6 @@ def main():
 
                 if status == "Processed":
                     try:
-                        # Start transaction for this file
-                        conn.start_transaction()
-
                         # Insert metadata
                         metadata_id = insert_metadata(conn, source_id, original_filepath, file_hash, DOCUMENT_TYPE)
                         

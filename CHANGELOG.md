@@ -1,6 +1,6 @@
 ## 2025-09-14 (Fix)
-- **fix(process)**: Corrige error de recursión en el logger de `process_boletas.py`.
-    - Se ha solucionado un `RecursionError` causado por añadir incorrectamente el logger a sí mismo como un manejador en lugar del manejador de archivos correspondiente.
+- **fix(process)**: Corrige el manejo de transacciones en `process_boletas.py`.
+    - Se ha eliminado la llamada redundante a `start_transaction()` que causaba un error `Transaction already in progress` debido a que la conexión de la base de datos ya inicia en modo transaccional.
 
 ## 2025-09-14 (Refactor)
 - **refactor(process)**: Mejora el manejo de multiprocesamiento en `process_boletas.py`.
