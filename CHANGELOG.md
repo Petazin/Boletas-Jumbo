@@ -1,3 +1,8 @@
+## 2025-09-14 (Feat)
+- **feat(pipeline)**: Crea script orquestador `run_pipeline.py` para ejecución automática.
+    - Se ha creado un nuevo script `run_pipeline.py` que automatiza la ejecución de todo el pipeline de ingesta, desde el reseteo de la base de datos hasta el procesamiento de todos los tipos de documentos.
+    - El script muestra la salida de cada subproceso en tiempo real, permitiendo la intervención manual para el login en `download_boletas.py`.
+
 ## 2025-09-14 (Fix)
 - **fix(ingest)**: Corrige `IndentationError` en `ingest_pdf_bank_statement.py`.
     - Se ha solucionado un `IndentationError` causado por una operación de reemplazo defectuosa que corrompió la indentación del archivo.
