@@ -227,11 +227,13 @@ def validate_staging_data(conn, metadata_id, validation_data):
         # Se usa REPLACE anidado para manejar '1.234,56' -> '1234.56'
         query_sum_cargos = "SELECT SUM(CAST(REPLACE(REPLACE(`MONTO CHEQUES O CARGOS`, '.', ''), ',', '.') AS DECIMAL(15,2))) FROM staging_linea_credito_banco_chile_pdf WHERE metadata_id = %s AND `MONTO CHEQUES O CARGOS` != ''"
         cursor.execute(query_sum_cargos, (metadata_id,))
-        sum_cargos_db = cursor.fetchone()[0] or 0.0
+        sum_cargos_db_decimal = cursor.fetchone()[0]
+        sum_cargos_db = float(sum_cargos_db_decimal) if sum_cargos_db_decimal is not None else 0.0
         
         query_sum_abonos = "SELECT SUM(CAST(REPLACE(REPLACE(`MONTO DEPOSITOS O ABONOS`, '.', ''), ',', '.') AS DECIMAL(15,2))) FROM staging_linea_credito_banco_chile_pdf WHERE metadata_id = %s AND `MONTO DEPOSITOS O ABONOS` != ''"
         cursor.execute(query_sum_abonos, (metadata_id,))
-        sum_abonos_db = cursor.fetchone()[0] or 0.0
+        sum_abonos_db_decimal = cursor.fetchone()[0]
+        sum_abonos_db = float(sum_abonos_db_decimal) if sum_abonos_db_decimal is not None else 0.0
 
         calculated_final_balance = initial_balance_pdf + sum_abonos_db - sum_cargos_db
         reconciliation_valid = abs(calculated_final_balance - final_balance_pdf) < 0.01

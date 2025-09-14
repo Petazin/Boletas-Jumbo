@@ -1,4 +1,8 @@
 ## 2025-09-14 (Fix)
+- **fix(ingest)**: Corrige `TypeError` en la validación de staging de PDF.
+    - Se ha solucionado un `TypeError` en `ingest_pdf_banco_chile_linea_credito.py` que ocurría al intentar operar con tipos `float` y `decimal.Decimal`. Se ha añadido una conversión explícita a `float` para asegurar la compatibilidad.
+
+## 2025-09-14 (Fix)
 - **fix(process)**: Corrige el manejo de transacciones en `process_boletas.py`.
     - Se ha eliminado la llamada redundante a `start_transaction()` que causaba un error `Transaction already in progress` debido a que la conexión de la base de datos ya inicia en modo transaccional.
 
