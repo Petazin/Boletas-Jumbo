@@ -13,7 +13,7 @@ from database_utils import db_connection
 DOCUMENT_TYPE = 'LINEA_CREDITO_BCH'
 
 # Configuración de logging principal
-logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 # Logger para el estado de la ingesta
 ingestion_status_logger = logging.getLogger('ingestion_status')
