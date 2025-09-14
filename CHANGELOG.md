@@ -1,4 +1,8 @@
 ## 2025-09-14 (Fix)
+- **fix(ingest)**: Corrige `IndentationError` en `ingest_pdf_bank_statement.py`.
+    - Se ha solucionado un `IndentationError` causado por una operación de reemplazo defectuosa que corrompió la indentación del archivo.
+
+## 2025-09-14 (Fix)
 - **fix(ingest)**: Mejora el parsing de montos en PDFs de Línea de Crédito.
     - Se ha refactorizado la lógica de extracción de números para que solo considere valores monetarios al final de la línea, evitando la captura incorrecta de números de cuenta y otros dígitos que aparecían en la descripción. Esto soluciona los fallos en la validación de saldos.
 - **fix(ingest)**: Corrige `TypeError` en la validación de staging de PDF.
