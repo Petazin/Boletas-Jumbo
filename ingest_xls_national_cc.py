@@ -45,7 +45,7 @@ def find_all_xls_files(directory):
 def is_file_processed(conn, file_hash):
     """Verifica si un archivo con un hash específico ya ha sido procesado."""
     cursor = conn.cursor(buffered=True)
-    cursor.execute("SELECT 1 FROM raw_metadatos_cartolas_bancarias WHERE file_hash = %s", (file_hash,))
+    cursor.execute("SELECT 1 FROM raw_metadatos_documentos WHERE file_hash = %s", (file_hash,))
     result = cursor.fetchone() is not None
     return result
 

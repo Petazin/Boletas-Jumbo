@@ -37,7 +37,7 @@ def find_all_xls_files(directory):
 
 def is_file_processed(conn, file_hash):
     cursor = conn.cursor(buffered=True)
-    query = "SELECT 1 FROM raw_metadatos_cartolas_bancarias WHERE file_hash = %s"
+    query = "SELECT 1 FROM raw_metadatos_documentos WHERE file_hash = %s"
     cursor.execute(query, (file_hash,))
     return cursor.fetchone() is not None
 
