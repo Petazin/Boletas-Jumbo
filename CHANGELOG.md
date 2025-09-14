@@ -1,3 +1,7 @@
+## 2025-09-14 (Fix)
+- **fix(process)**: Corrige error de recursión en el logger de `process_boletas.py`.
+    - Se ha solucionado un `RecursionError` causado por añadir incorrectamente el logger a sí mismo como un manejador en lugar del manejador de archivos correspondiente.
+
 ## 2025-09-14 (Refactor)
 - **refactor(process)**: Mejora el manejo de multiprocesamiento en `process_boletas.py`.
     - Se ha refactorizado la función principal para separar la lectura de la base de datos del procesamiento en paralelo, evitando bloqueos (`deadlocks`) relacionados con la herencia de conexiones de base de datos en subprocesos en Windows.

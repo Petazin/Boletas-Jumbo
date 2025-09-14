@@ -24,7 +24,7 @@ ingestion_status_logger.setLevel(logging.INFO)
 status_file_handler = logging.FileHandler('ingestion_status.log')
 status_formatter = logging.Formatter('%(asctime)s - %(message)s')
 status_file_handler.setFormatter(status_formatter)
-ingestion_status_logger.addHandler(ingestion_status_logger)
+ingestion_status_logger.addHandler(status_file_handler)
 
 def setup_logging():
     """Configura el sistema de logging para este script."""
