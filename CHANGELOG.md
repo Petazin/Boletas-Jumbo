@@ -1,4 +1,6 @@
 ## 2025-09-14 (Fix)
+- **fix(download)**: Mejora la lógica de paginación en la descarga de boletas.
+    - Se ha implementado una espera explícita (`staleness_of`) para asegurar que la página se haya actualizado completamente antes de intentar leer el contenido de la página siguiente. Esto soluciona un error de condición de carrera que provocaba que la paginación se detuviera prematuramente.
 - **fix(download)**: Corrige error de desempaquetado en la descarga de boletas.
     - Se ha ajustado la llamada a la función `process_pdf` en `download_boletas.py` para manejar correctamente el número de valores devueltos, solucionando el error `too many values to unpack`.
 

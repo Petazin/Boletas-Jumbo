@@ -184,6 +184,9 @@ def main():
                 )
                 time.sleep(4)
 
+                # Obtenemos una referencia a un elemento de la página actual para luego detectar cuándo cambia.
+                order_list_element_for_staleness_check = driver.find_element(By.XPATH, "(//p[contains(text(),'Número de pedido:')])[1]")
+
                 order_id_elements = driver.find_elements(
                     By.XPATH, "//p[contains(text(),'Número de pedido:')]"
                 )
@@ -213,9 +216,6 @@ def main():
                     order_id = current_order_p.text.split(":")[1].strip()
                     logging.info(f"Procesando pedido: {order_id}")
 
-                    # Check if order_id or file_hash already exists
-                    # This requires reading the file to calculate its hash before downloading
-                    # For now, we will rely on the order_id check and the file_hash check in process_boletas.py
                     if order_id in downloaded_order_ids:
                         msg = (
                             f"El pedido {order_id} ya existe en la base de datos. "
@@ -262,6 +262,12 @@ def main():
                 time.sleep(1)
 
                 driver.execute_script("arguments[0].click();", next_page_button)
+                
+                # NUEVO: Esperar a que el contenido de la página vieja desaparezca antes de continuar.
+                logging.info("Esperando que la página actual se actualice...")
+                wait.until(EC.staleness_of(order_list_element_for_staleness_check))
+                logging.info("La página se ha actualizado.")
+
                 page_number += 1
                 logging.info(f"Pasando a la página {page_number}...")
             except NoSuchElementException:
