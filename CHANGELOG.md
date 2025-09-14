@@ -1,4 +1,6 @@
 ## 2025-09-14 (Fix)
+- **fix(ingest)**: Mejora el parsing de montos en PDFs de Línea de Crédito.
+    - Se ha refactorizado la lógica de extracción de números para que solo considere valores monetarios al final de la línea, evitando la captura incorrecta de números de cuenta y otros dígitos que aparecían en la descripción. Esto soluciona los fallos en la validación de saldos.
 - **fix(ingest)**: Corrige `TypeError` en la validación de staging de PDF.
     - Se ha solucionado un `TypeError` en `ingest_pdf_banco_chile_linea_credito.py` que ocurría al intentar operar con tipos `float` y `decimal.Decimal`. Se ha añadido una conversión explícita a `float` para asegurar la compatibilidad.
 

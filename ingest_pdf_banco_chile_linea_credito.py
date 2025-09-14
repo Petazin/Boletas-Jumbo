@@ -136,34 +136,48 @@ def parse_linea_credito_pdf(pdf_path):
 
             date_str = date_match.group(1)
             
-            # Regex para encontrar valores numericos que parecen dinero (con puntos como separadores de miles)
-            number_values = re.findall(r'[\d\.]+\d', line)
-            potential_numbers = [p for p in number_values if '/' not in p and p.count('.') > 0 or p.isdigit()]
+            # Nueva lógica para extraer solo los números al final de la línea
+            parts = line.split()
+            numbers_at_end = []
+            for part in reversed(parts):
+                # Limpia puntos y comas para verificar si es un número
+                cleaned_part = part.replace('.', '').replace(',', '')
+                if cleaned_part.isdigit():
+                    numbers_at_end.append(part)
+                else:
+                    # Detenerse al encontrar la primera parte que no es un número desde la derecha
+                    break
+            
+            potential_numbers = list(reversed(numbers_at_end))
 
             if len(potential_numbers) < 1:
-                logging.warning(f"No se encontraron valores numéricos en la línea: {line}")
+                logging.warning(f"No se encontraron valores numéricos monetarios en la línea: {line}")
                 continue
 
-            raw_saldo = potential_numbers[-1]
             raw_cargo = ""
             raw_abono = ""
-            desc_str = ""
+            
+            # La descripción es todo lo que está antes de los números que encontramos
+            end_of_desc_pos = line.rfind(potential_numbers[0])
+            desc_str = line[len(date_str):end_of_desc_pos].strip()
 
-            if len(potential_numbers) > 1:
-                main_value = potential_numbers[-2]
-                try:
-                    main_value_pos = line.rfind(main_value)
-                    desc_str = line[len(date_str):main_value_pos].strip()
-                    
-                    if "ABONO" in desc_str.upper() or "PAGO" in desc_str.upper():
-                        raw_abono = main_value
-                    else:
-                        raw_cargo = main_value
-                except Exception:
-                    desc_str = "Error al parsear descripción"
+            if len(potential_numbers) == 2: # Caso normal: [monto, saldo]
+                main_value = potential_numbers[0]
+                raw_saldo = potential_numbers[1]
+                if "ABONO" in desc_str.upper() or "PAGO" in desc_str.upper() or "AMORTIZACION" in desc_str.upper():
+                    raw_abono = main_value
+                else:
                     raw_cargo = main_value
-            else:
-                desc_str = line[len(date_str):].replace(raw_saldo, '').strip()
+            elif len(potential_numbers) == 1: # Caso sin saldo: [monto]
+                main_value = potential_numbers[0]
+                raw_saldo = "" # No hay saldo en esta línea
+                if "ABONO" in desc_str.upper() or "PAGO" in desc_str.upper() or "AMORTIZACION" in desc_str.upper():
+                    raw_abono = main_value
+                else:
+                    raw_cargo = main_value
+            else: # Casos inesperados, como 3 números al final
+                logging.warning(f"Se encontró un número inesperado de valores monetarios en la línea: {line}")
+                continue
 
             tx_day, tx_month = map(int, date_str.split('/'))
             correct_year = hasta_year if tx_month <= hasta_month else hasta_year - 1
