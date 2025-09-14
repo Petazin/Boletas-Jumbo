@@ -92,7 +92,7 @@ def process_downloaded_file(order_id):
 
         file_hash = calculate_file_hash(original_filepath)
 
-        boleta_id, purchase_date, purchase_time, products_data = process_pdf(
+        boleta_id, purchase_date, purchase_time, products_data, _ = process_pdf(
             original_filepath
         )
         if not boleta_id:

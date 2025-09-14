@@ -1,3 +1,7 @@
+## 2025-09-14 (Fix)
+- **fix(download)**: Corrige error de desempaquetado en la descarga de boletas.
+    - Se ha ajustado la llamada a la función `process_pdf` en `download_boletas.py` para manejar correctamente el número de valores devueltos, solucionando el error `too many values to unpack`.
+
 ## 2025-09-14 (Refactor)
 - **refactor(db)**: Elimina tablas de staging no utilizadas.
     - Se han eliminado del script `create_new_tables.sql` las tablas de staging que seguían una convención de nombres antigua (terminadas en `_staging`) y no estaban en uso por ningún script de ingesta.
