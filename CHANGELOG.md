@@ -1,4 +1,6 @@
 ## 2025-09-14 (Refactor)
+- **refactor(db)**: Elimina tablas de staging no utilizadas.
+    - Se han eliminado del script `create_new_tables.sql` las tablas de staging que seguían una convención de nombres antigua (terminadas en `_staging`) y no estaban en uso por ningún script de ingesta.
 - **refactor(db)**: Consolida toda la creación de tablas en un único archivo `create_new_tables.sql`.
     - Se han migrado las sentencias `CREATE TABLE` desde `alter_table.py`, `execute_staging_sql.py` y `utils/db/setup_linea_credito_table.py` al archivo maestro `create_new_tables.sql`.
     - Se ha refactorizado el script `utils/db/reset_database.py` para que utilice únicamente el archivo `create_new_tables.sql` para la creación de todo el esquema.
