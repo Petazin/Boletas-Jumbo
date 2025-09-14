@@ -1,3 +1,9 @@
+## 2025-09-14 (Refactor)
+- **refactor(process)**: Mejora el manejo de multiprocesamiento en `process_boletas.py`.
+    - Se ha refactorizado la función principal para separar la lectura de la base de datos del procesamiento en paralelo, evitando bloqueos (`deadlocks`) relacionados con la herencia de conexiones de base de datos en subprocesos en Windows.
+    - Los subprocesos ahora solo se encargan del parseo de PDFs (trabajo intensivo de CPU) y devuelven los resultados al proceso principal.
+    - El proceso principal se encarga de toda la comunicación con la base de datos (inserción y validación) de forma secuencial y transaccional por cada archivo.
+
 ## 2025-09-14 (Fix)
 - **fix(download)**: Mejora la lógica de paginación y corrige errores en la descarga de boletas.
     - Se reemplaza el selector del botón "Siguiente" por uno más específico basado en el número de página, solucionando el problema de clics incorrectos.

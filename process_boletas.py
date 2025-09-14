@@ -155,69 +155,84 @@ def validate_staging_data_jumbo(conn, metadata_id, expected_count, totals_from_p
         cursor.close()
 
 def _process_single_pdf_task(args):
-    pdf_path, order_id, file_hash, source_id = args
+    pdf_path, order_id, file_hash = args
     try:
         if not os.path.exists(pdf_path):
-            return order_id, "Error - File not found", None, None, None, None, None, None, None
+            return order_id, "Error - File not found", None, None, None, None, file_hash, None
 
-        # 1. Procesar el PDF primero, sin necesidad de una conexión a la BD.
+        # Parse the PDF. This is the CPU-intensive part.
         boleta_id, purchase_date, purchase_time, products_data, totals = process_pdf(pdf_path)
 
         if not (boleta_id and products_data and purchase_date and totals):
-            return order_id, "Error - Parsing failed or data not found", None, None, None, None, None, None, None
+            return order_id, "Error - Parsing failed", None, None, None, None, file_hash, None
 
-        # 2. Si el parsing es exitoso, abrir conexión y guardar metadatos.
-        metadata_id = None
-        with db_connection() as conn:
-            metadata_id = insert_metadata(conn, source_id, pdf_path, file_hash, DOCUMENT_TYPE)
-            conn.commit()  # Asegurar que el metadata_id se guarde y sea visible
-
-        return order_id, "Processed", boleta_id, purchase_date, purchase_time, products_data, file_hash, metadata_id, totals
+        # Return all data to the parent process
+        return order_id, "Processed", boleta_id, purchase_date, purchase_time, products_data, file_hash, totals
 
     except Exception as e:
-        logging.error(f"Error procesando {os.path.basename(pdf_path)}: {e}", exc_info=True)
-        return order_id, f"Error - Unexpected: {e}", None, None, None, None, None, None, None
+        logging.error(f"Error en el subproceso para {os.path.basename(pdf_path)}: {e}", exc_info=True)
+        return order_id, f"Error - Unexpected: {e}", None, None, None, None, file_hash, None
 
 def main():
     """Función principal que orquesta el proceso de leer y procesar PDFs."""
     setup_logging()
+    
+    files_to_process = []
+    # --- PASO 1: Obtener lista de archivos a procesar ---
+    logging.info("Obteniendo lista de archivos a procesar desde la base de datos...")
     try:
         with db_connection() as conn:
             cursor = conn.cursor()
-            conn.commit()
-
-            source_id = get_source_id(conn, 'Jumbo') # Get Jumbo source_id
-
-            files_to_process = []
             query = "SELECT ruta_archivo, order_id, file_hash FROM historial_descargas WHERE estado = 'Descargado'"
             cursor.execute(query)
-            for ruta_archivo, order_id, file_hash in cursor.fetchall():
-                files_to_process.append((ruta_archivo, order_id, file_hash, source_id)) # Pass source_id
+            files_to_process = cursor.fetchall()
+        logging.info(f"Se encontraron {len(files_to_process)} boletas para procesar.")
+    except Exception as e:
+        logging.error(f"No se pudo obtener la lista de archivos de la BD: {e}")
+        return
 
-            file_path_map = {order_id: (file_path, file_hash) for file_path, order_id, file_hash, _ in files_to_process}
+    if not files_to_process:
+        logging.info("No hay boletas nuevas para procesar.")
+        return
 
-            # Use multiprocessing Pool to process PDFs in parallel
-            with multiprocessing.Pool() as pool:
-                results = pool.imap_unordered(_process_single_pdf_task, files_to_process)
+    # --- PASO 2: Procesar PDFs en paralelo ---
+    logging.info("Iniciando procesamiento en paralelo de archivos PDF...")
+    with multiprocessing.Pool() as pool:
+        results = pool.map(_process_single_pdf_task, files_to_process)
+    logging.info("Procesamiento en paralelo completado.")
 
-            for order_id, status, boleta_id, purchase_date, purchase_time, products_data, file_hash, metadata_id, totals in results:
-                    # Get original filename for logging
-                    original_filepath = file_path_map[order_id][0]
-                    pdf_file = os.path.basename(original_filepath)
+    # --- PASO 3: Insertar resultados en la BD secuencialmente ---
+    logging.info("Insertando resultados en la base de datos...")
+    try:
+        with db_connection() as conn:
+            source_id = get_source_id(conn, 'Jumbo')
+            cursor = conn.cursor()
+            
+            # Create a map for original file paths
+            file_path_map = {order_id: file_path for file_path, order_id, _ in files_to_process}
 
-                    if status == "Processed":
-                        # Insert into staging table
+            for result in results:
+                if not result:
+                    continue
+                
+                order_id, status, boleta_id, purchase_date, purchase_time, products_data, file_hash, totals = result
+                
+                original_filepath = file_path_map.get(order_id)
+                pdf_file = os.path.basename(original_filepath) if original_filepath else f"ID: {order_id}"
+
+                if status == "Processed":
+                    try:
+                        # Start transaction for this file
+                        conn.start_transaction()
+
+                        # Insert metadata
+                        metadata_id = insert_metadata(conn, source_id, original_filepath, file_hash, DOCUMENT_TYPE)
+                        
+                        # Insert staging data
                         insert_boleta_data_to_staging(
-                            cursor,
-                            metadata_id,
-                            source_id,
-                            boleta_id,
-                            purchase_time,
-                            products_data
+                            cursor, metadata_id, source_id, boleta_id, purchase_time, products_data
                         )
-                        msg = f"Datos de {pdf_file} insertados correctamente en staging."
-                        logging.info(msg)
-
+                        
                         # Validate staging data
                         if not validate_staging_data_jumbo(conn, metadata_id, len(products_data), totals):
                             logging.error(f"La validación de staging falló para {pdf_file}. Revirtiendo.")
@@ -225,40 +240,40 @@ def main():
                             conn.rollback()
                             continue
 
-                        # Si la validación es exitosa, confirmar los cambios en la BD
+                        # Update status in historial_descargas
+                        cursor.execute("UPDATE historial_descargas SET estado = 'Procesado' WHERE order_id = %s", (order_id,))
+                        
+                        # If all good, commit the transaction for this file
                         conn.commit()
+                        logging.info(f"Boleta {pdf_file} procesada y guardada exitosamente.")
 
-                        # Mover el archivo PDF a la carpeta de procesados con nombre estandarizado
+                        # Move the file only after successful commit
                         processed_dir = os.path.join(os.path.dirname(original_filepath), 'procesados')
                         os.makedirs(processed_dir, exist_ok=True)
-                        
                         new_filename = generate_standardized_filename(
-                            document_type=DOCUMENT_TYPE,
-                            document_period=purchase_date, # purchase_date is a datetime object
-                            file_hash=file_hash,
-                            original_filename=pdf_file
+                            document_type=DOCUMENT_TYPE, document_period=purchase_date,
+                            file_hash=file_hash, original_filename=pdf_file
                         )
-
                         processed_filepath = os.path.join(processed_dir, new_filename)
                         shutil.move(original_filepath, processed_filepath)
                         log_file_movement(original_filepath, processed_filepath, "SUCCESS", "Archivo procesado y movido con éxito.")
                         ingestion_status_logger.info(f"FILE: {new_filename} | HASH: {file_hash} | STATUS: Processed Successfully")
 
-                    else:
-                        # No update_status for staging, just log failure
-                        msg = (f"No se pudo procesar completamente {pdf_file}. "
-                               f"Estado: {status}. Saltando.")
-                        logging.warning(msg)
-                        log_file_movement(file_path_map[order_id][0], "N/A", "FAILED", f"Error al procesar: {status}")
-                        ingestion_status_logger.info(f"FILE: {pdf_file} | HASH: {file_hash} | STATUS: Failed - {status}")
+                    except Exception as e:
+                        logging.error(f"Error al guardar datos para {pdf_file} en la BD: {e}")
+                        ingestion_status_logger.info(f"FILE: {pdf_file} | HASH: {file_hash} | STATUS: Failed - DB insertion error")
+                        conn.rollback()
 
+                else:
+                    # Handle parsing errors from the child process
+                    logging.warning(f"No se pudo procesar completamente {pdf_file}. Estado: {status}.")
+                    log_file_movement(original_filepath, "N/A", "FAILED", f"Error al procesar: {status}")
+                    ingestion_status_logger.info(f"FILE: {pdf_file} | HASH: {file_hash} | STATUS: Failed - {status}")
+        
         logging.info("Proceso completado. Revisa tu base de datos MySQL.")
 
-    except mysql.connector.Error:
-        logging.error("El script terminó debido a un error con la base de datos.")
-        ingestion_status_logger.info(f"GLOBAL_ERROR: Database error occurred.")
     except Exception as e:
-        logging.error(f"Ocurrió un error inesperado en el proceso principal: {e}")
+        logging.error(f"Ocurrió un error inesperado en el proceso principal: {e}", exc_info=True)
         ingestion_status_logger.info(f"GLOBAL_ERROR: Unexpected error - {e}")
 
 
