@@ -1,8 +1,8 @@
 ## 2025-09-14 (Fix)
-- **fix(download)**: Mejora la lógica de paginación en la descarga de boletas.
-    - Se ha implementado una espera explícita (`staleness_of`) para asegurar que la página se haya actualizado completamente antes de intentar leer el contenido de la página siguiente. Esto soluciona un error de condición de carrera que provocaba que la paginación se detuviera prematuramente.
-- **fix(download)**: Corrige error de desempaquetado en la descarga de boletas.
-    - Se ha ajustado la llamada a la función `process_pdf` en `download_boletas.py` para manejar correctamente el número de valores devueltos, solucionando el error `too many values to unpack`.
+- **fix(download)**: Mejora la lógica de paginación y corrige errores en la descarga de boletas.
+    - Se reemplaza el selector del botón "Siguiente" por uno más específico basado en el número de página, solucionando el problema de clics incorrectos.
+    - Se implementa una espera inteligente que verifica que el contenido de la página ha cambiado antes de continuar, solucionando una condición de carrera que detenía la paginación.
+    - Se corrige un error de desempaquetado que ocurría al procesar el PDF debido a un número incorrecto de valores de retorno.
 
 ## 2025-09-14 (Refactor)
 - **refactor(db)**: Elimina tablas de staging no utilizadas.

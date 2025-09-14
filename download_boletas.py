@@ -184,8 +184,8 @@ def main():
                 )
                 time.sleep(4)
 
-                # Obtenemos una referencia a un elemento de la página actual para luego detectar cuándo cambia.
-                order_list_element_for_staleness_check = driver.find_element(By.XPATH, "(//p[contains(text(),'Número de pedido:')])[1]")
+                # Obtenemos el texto del primer pedido en la página para saber cuándo ha cambiado.
+                first_order_text_on_page = driver.find_element(By.XPATH, "(//p[contains(text(),'Número de pedido:')])[1]").text
 
                 order_id_elements = driver.find_elements(
                     By.XPATH, "//p[contains(text(),'Número de pedido:')]"
@@ -252,28 +252,39 @@ def main():
                 break
 
             try:
-                logging.info("Buscando el botón de 'Siguiente Página'...")
-                next_page_button = driver.find_element(
-                    By.XPATH, "(//div[@data-testid='icon-container'])[last()]"
-                )
-                driver.execute_script(
-                    "arguments[0].scrollIntoView(true);", next_page_button
-                )
-                time.sleep(1)
+                # --- NEW PAGINATION LOGIC ---
+                logging.info("Iniciando nueva lógica de paginación por número.")
 
-                driver.execute_script("arguments[0].click();", next_page_button)
+                # 1. Encontrar el número de la página activa actual
+                active_page_element = driver.find_element(By.XPATH, "//div[contains(@class, 'cux-bg-primary')]/p")
+                current_page_number = int(active_page_element.text)
+                logging.info(f"Página activa actual detectada: {current_page_number}")
+
+                # 2. Calcular y buscar el botón de la siguiente página
+                next_page_number = current_page_number + 1
+                logging.info(f"Buscando el botón para la página {next_page_number}...")
                 
-                # NUEVO: Esperar a que el contenido de la página vieja desaparezca antes de continuar.
+                next_page_button_xpath = f"//div[@role='button'][.//p[text()='{next_page_number}']]"
+                next_page_button = driver.find_element(By.XPATH, next_page_button_xpath)
+
+                # Guardar referencia de la página actual para la espera inteligente
+                first_order_text_on_page = driver.find_element(By.XPATH, "(//p[contains(text(),'Número de pedido:')])[1]").text
+
+                # 3. Hacer clic en el botón de la siguiente página
+                driver.execute_script("arguments[0].click();", next_page_button)
+
+                # 4. Esperar a que el contenido de la página cambie
                 logging.info("Esperando que la página actual se actualice...")
-                wait.until(EC.staleness_of(order_list_element_for_staleness_check))
+                wait.until(
+                    lambda d: d.find_element(By.XPATH, "(//p[contains(text(),'Número de pedido:')])[1]").text != first_order_text_on_page
+                )
                 logging.info("La página se ha actualizado.")
 
-                page_number += 1
-                logging.info(f"Pasando a la página {page_number}...")
+                page_number = next_page_number # Actualizar nuestro contador de página
+
             except NoSuchElementException:
                 logging.info(
-                    "No se encontró el botón de 'Siguiente Página'. Fin de la "
-                    "paginación."
+                    "No se encontró el botón para la siguiente página. Fin de la paginación."
                 )
                 break
     except Exception as e:
