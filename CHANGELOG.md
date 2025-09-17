@@ -1,3 +1,14 @@
+## 2025-09-17 (Refactor)
+- **refactor(core)**: Reestructura el proyecto a una arquitectura modular basada en `src`.
+    - Todos los scripts de Python han sido movidos a un directorio `src` con sub-módulos (`core`, `db`, `ingestion`, `utils`) para mejorar la organización, mantenibilidad y escalabilidad del proyecto.
+    - Se creó y utilizó un script de migración (`migrate_structure.py`) para automatizar esta transición.
+- **fix(imports)**: Corrige todas las importaciones de módulos tras la reestructuración.
+    - Se actualizaron todos los scripts para usar rutas de importación absolutas relativas al directorio `src`, solucionando múltiples `ModuleNotFoundError` y `ImportError`.
+- **fix(paths)**: Actualiza las rutas de directorios codificadas en los scripts de ingesta.
+    - Se reemplazaron las rutas que apuntaban al antiguo directorio `descargas` por el nuevo directorio `fuentes`, eliminando los errores `FileNotFoundError`.
+- **fix(db)**: Aumenta la robustez de la ingesta de fuentes de datos.
+    - Se modificó la función `get_source_id` en todos los scripts de ingesta para manejar correctamente la restricción `UNIQUE` en la tabla `fuentes`, previniendo errores de `IntegrityError` por duplicados y asegurando que el pipeline pueda procesar múltiples tipos de instrumentos de una misma institución financiera.
+
 ## 2025-09-14 (Feat)
 - **feat(pipeline)**: Crea script orquestador `run_pipeline.py` para ejecución automática.
     - Se ha creado un nuevo script `run_pipeline.py` que automatiza la ejecución de todo el pipeline de ingesta, desde el reseteo de la base de datos hasta el procesamiento de todos los tipos de documentos.
@@ -120,7 +131,7 @@
     - Se reordena la lógica en `product_categorizer.py` para que la categoría "Lácteos y Huevos" se verifique antes que "Productos de Limpieza", solucionando la clasificación incorrecta de yogures en bolsa.
 - **feat(ingestion)**: Implementa la ingesta de cartolas de Banco Falabella.
     - Se creó el script `ingest_xls_falabella_cc.py` para procesar archivos XLS de tarjetas de crédito de Banco Falabella.
-    - El script identifica dinámicamente la cabecera de transacciones y mapea las columnas específicas del formato.
+    - El script identifica dinámicamente la cabecera de las transacciones y mapea las columnas específicas del formato.
     - Se añadió la librería `openpyxl` a `requirements.txt` como nueva dependencia para el manejo de archivos `.xlsx`.
 
 ## 2025-08-28
@@ -165,7 +176,7 @@
     - El sistema ahora puede procesar un directorio completo de archivos PDF, omitiendo los que ya han sido registrados en la base de datos.
 - **feat(ingestion)**: Implementa ingesta robusta de cartolas de tarjeta de crédito en formato XLS.
     - Se creó el script `ingest_xls_bank_statement.py` para procesar múltiples archivos XLS de cartolas de tarjeta de crédito.
-    - Se implementó la detección dinámica de la fila de cabecera de transacciones.
+    - Se implementó la detección dinámica de la fila de cabecera de las transacciones.
     - Se añadió el cálculo de `original_charge_date` y `installment_charge_date` a partir de la columna 'Cuotas'.
     - Se aseguró la creación de la tabla `credit_card_transactions_raw` con el esquema adecuado.
 - **refactor(db)**: Reestructura la tabla de metadatos (`bank_statement_metadata_raw`) para añadir la columna `file_hash` con un índice `UNIQUE`, asegurando la integridad de los datos.

@@ -11,7 +11,7 @@
     *   **Fase 3 (Planificada):** Implementar un sistema genérico de ingesta de documentos, capaz de procesar cualquier tipo de PDF o documento estructurado, inferir su esquema y mapearlo a la base de datos.
 
 *   **Estado Actual:**
-    > La Fase 1 es funcional. La Fase 2 ha avanzado significativamente con la implementación de la **capa de staging de datos** (descrita en la sección 2.2). Todos los scripts de ingesta ahora cargan los datos crudos en tablas de staging dedicadas, sentando una base robusta para el procesamiento posterior. Los siguientes pasos son validar la ingesta de todos los tipos de documentos y luego construir el proceso de transformación y traspaso de datos desde staging a las tablas `raw`.
+    > La Fase 1 es funcional. La Fase 2 ha avanzado significativamente. Se completó una refactorización mayor de la arquitectura del proyecto, moviendo todo el código a una estructura de directorios `src` modular. Se corrigieron todos los problemas de importación y rutas de archivos derivados de este cambio. La capa de staging es funcional y todos los scripts de ingesta cargan los datos crudos en sus tablas dedicadas. Se solucionaron errores de integridad de datos en la tabla `fuentes`, permitiendo que el pipeline de ingesta se ejecute de manera completa y exitosa.
 
 ### 2.2. Capa de Staging de Datos
 
@@ -47,6 +47,12 @@ Esta sección define la arquitectura y los principios para la capa de staging de
     > Los mensajes deben ser en español y explicar el 'porqué' del cambio, no solo el 'qué'.
 
 ### 2.4. Roadmap Activo y Tareas Prioritarias
+
+#### Fase 2.3: Refactorización de Arquitectura y Corrección de Pipeline (Completado)
+*   `[x]` **Reestructurar Proyecto:** Mover todo el código fuente a un directorio `src` con sub-módulos (`core`, `db`, `ingestion`, `utils`).
+*   `[x]` **Corregir Importaciones:** Actualizar todas las importaciones de módulos para que funcionen con la nueva estructura `src`.
+*   `[x]` **Corregir Rutas de Archivos:** Actualizar rutas codificadas en los scripts de ingesta para apuntar al directorio `fuentes`.
+*   `[x]` **Solucionar Errores de Integridad de BD:** Corregir la lógica de `get_source_id` para prevenir errores de duplicados en la tabla `fuentes`.
 
 #### Fase 1: Mejoras del Motor de Boletas (Completado)
 *   `[x]` **Centralizar Configuración:** Mover regex y constantes a `config.py`.

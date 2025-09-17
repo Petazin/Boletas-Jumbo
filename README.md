@@ -13,26 +13,25 @@ El desarrollo se ha dividido en dos fases principales:
 
 ## Arquitectura y Módulos del Proyecto
 
-El proyecto sigue una arquitectura modular, donde cada archivo tiene una responsabilidad única, facilitando la mantenibilidad y escalabilidad:
+El proyecto ha sido reestructurado en una arquitectura modular dentro del directorio `src`, facilitando la mantenibilidad y escalabilidad.
 
-*   **`config.py`**: Módulo central de configuración con constantes, credenciales, rutas y expresiones regulares.
-*   **`database_utils.py`**: Utilidad para la gestión centralizada de la conexión a la base de datos MySQL.
-*   **`ingest_pdf_bank_statement.py`**: Script para procesar cartolas bancarias en formato PDF. Extrae transacciones, calcula un hash único para cada uno para evitar duplicados y los inserta primero en una tabla de staging dedicada.
-*   **`ingest_xls_national_cc.py`**: Script para procesar cartolas de tarjeta de crédito nacional en formato XLS. Extrae transacciones, calcula un hash único para evitar duplicados y los inserta primero en una tabla de staging dedicada.
-*   **`ingest_xls_international_cc.py`**: Script para procesar cartolas de tarjeta de crédito internacional en formato XLS. Extrae transacciones, calcula un hash único para evitar duplicados y los inserta primero en una tabla de staging dedicada.
-*   **`ingest_xls_falabella_cc.py`**: Script para procesar cartolas de tarjeta de crédito de Banco Falabella en formato XLS. Extrae transacciones, calcula un hash único para evitar duplicados y los inserta primero en una tabla de staging dedicada.
-*   **`ingest_xls_falabella_cuenta_corriente.py`**: Script para procesar cartolas de cuenta corriente de Banco Falabella en formato XLS. Extrae transacciones, calcula un hash único para evitar duplicados y los inserta primero en una tabla de staging dedicada.
-*   **`ingest_xls_falabella_linea_credito.py`**: Script para procesar cartolas de línea de crédito de Banco Falabella en formato XLS. Extrae transacciones, calcula un hash único para evitar duplicados y los inserta primero en una tabla de staging dedicada.
-
-*   **`product_categorizer.py`**: Módulo de lógica de negocio para categorizar productos de boletas.
-*   **`pdf_parser.py`**: Módulo de extracción y parsing para boletas de supermercado en PDF.
-*   **`download_boletas.py`**: Script de automatización para descargar boletas de Jumbo.cl.
-*   **`process_boletas.py`**: Script orquestador que procesa los PDFs de boletas de supermercado en paralelo. Extrae los datos de productos y los guarda primero en una tabla de staging dedicada.
-*   **`export_data.py`**: Script para exportar datos de boletas a un archivo CSV.
-*   **`utils/db/`**: Directorio con scripts de utilidad para la base de datos (resetear, configurar tablas, etc.).
-*   **`utils/file_utils.py`**: Módulo de utilidades para la gestión de archivos, incluyendo el logging centralizado de movimientos de archivos.
-*   **`cuarentena_pdfs/`**: Directorio para PDFs de boletas que no pudieron ser procesados.
-*   **`descargas/`**: Directorio que contiene las subcarpetas para los archivos descargados de `Jumbo` y `Banco`. Dentro de estas subcarpetas, los archivos procesados se moverán a una subcarpeta `procesados/` y los datos extraídos se dirigirán a la capa de staging.
+*   **`src/`**: Contiene todo el código fuente de la aplicación.
+    *   **`config.py`**: Módulo central de configuración con constantes, credenciales, rutas y expresiones regulares.
+    *   **`run_pipeline.py`**: Script orquestador principal que ejecuta todo el flujo de ingesta de datos.
+    *   **`core/`**: Contiene la lógica de negocio principal.
+        *   `pdf_parser.py`: Módulo de extracción y parsing para boletas de supermercado en PDF.
+        *   `product_categorizer.py`: Módulo de lógica de negocio para categorizar productos.
+    *   **`db/`**: Módulos relacionados con la base de datos.
+        *   `database_utils.py`: Utilidad para la gestión centralizada de la conexión a la base de datos.
+        *   `reset_database.py`: Script para resetear la base de datos a su estado inicial.
+    *   **`ingestion/`**: Contiene todos los scripts para la ingesta de datos desde diferentes fuentes.
+        *   `download_boletas.py`: Automatización para descargar boletas de Jumbo.cl.
+        *   `process_boletas.py`: Orquestador que procesa los PDFs de boletas en paralelo.
+        *   `ingest_*.py`: Scripts especializados para procesar cartolas bancarias y de tarjetas de crédito desde archivos PDF y XLS.
+    *   **`utils/`**: Módulos de utilidad.
+        *   `file_utils.py`: Utilidades para la gestión de archivos y logging de movimientos.
+*   **`fuentes/`**: Directorio raíz para los archivos de datos a ser procesados (anteriormente `descargas`).
+*   **`cuarentena/`**: Directorio para archivos que no pudieron ser procesados.
 *   **`tests/`**: Directorio de pruebas unitarias con `pytest`.
 
 ### Capa de Staging de Datos
@@ -55,57 +54,30 @@ Una tabla de soporte importante es `abonos_mapping`, que contiene descripciones 
 
 ## Uso Detallado y Flujos de Trabajo
 
-El sistema tiene dos flujos de trabajo principales:
+El sistema se opera principalmente a través del script orquestador `run_pipeline.py`.
 
-### Flujo 1: Procesamiento de Boletas de Supermercado
+### Flujo Principal: Ejecución del Pipeline Completo
 
-1.  **Descargar Boletas (`download_boletas.py`):**
-    ```bash
-    python download_boletas.py
-    ```
-    Inicia sesión manualmente en Jumbo.cl cuando Selenium abra Chrome. El script descargará las boletas, calculará su hash SHA-256 y registrará los archivos en `historial_descargas`.
+Para ejecutar todo el proceso de ingesta de datos de forma automatizada, utiliza el siguiente comando desde la raíz del proyecto:
 
-2.  **Procesar Boletas (`process_boletas.py`):**
-    ```bash
-    python process_boletas.py
-    ```
-    Lee los PDFs descargados, extrae los datos de productos y los guarda primero en la tabla de staging `staging_boletas_jumbo`. Utiliza el hash del archivo para evitar el reprocesamiento de duplicados y mueve a cuarentena los que fallan.
+```bash
+python src/run_pipeline.py
+```
 
-### Flujo 2: Procesamiento de Cartolas Bancarias (PDF y XLS)
+Este script ejecutará en orden los siguientes pasos:
+1.  **Reseteo de la Base de Datos:** Limpia y recrea la base de datos desde cero (opcional, configurable en el script).
+2.  **Descarga de Boletas:** Inicia el proceso de descarga de boletas de Jumbo.cl (requiere intervención manual para el login).
+3.  **Procesamiento de Boletas:** Procesa las boletas descargadas.
+4.  **Procesamiento de Cartolas:** Ejecuta todos los scripts de ingesta para los diferentes tipos de cartolas bancarias y de tarjetas de crédito (PDF y XLS).
 
-1.  **Descargar Cartolas (Manual):**
-    Descarga tus cartolas o estados de cuenta en formato PDF o XLS y guárdalos en el directorio correspondiente (ej. `descargas/Banco/banco de chile/cuenta corriente/` para PDFs, o `descargas/Banco/banco de chile/tarjeta de credito/nacional/` para XLS).
+### Ejecución de Scripts Individuales (Para Depuración)
 
-2.  **Procesar Cartolas PDF (`ingest_pdf_bank_statement.py`):**
-    ```bash
-    python ingest_pdf_bank_statement.py
-    ```
-    *   **Proceso:** El script buscará todos los archivos PDF en el directorio configurado. Para cada archivo, calculará un hash único, verificará duplicados y, si es nuevo, lo procesará y guardará las transacciones en la tabla de staging `staging_cta_corriente_banco_de_chile`. Los archivos procesados se moverán a una subcarpeta `procesados/` dentro de su directorio de origen.
+Si bien el pipeline principal es la forma recomendada de operar, los scripts individuales pueden ejecutarse para propósitos de depuración:
 
-3.  **Procesar Cartolas Nacionales XLS (`ingest_xls_national_cc.py`):**
-    ```bash
-    python ingest_xls_national_cc.py
-    ```
-    *   **Proceso:** Similar al procesamiento de PDFs, este script buscará archivos XLS/XLSX en el directorio configurado para cartolas nacionales. Identificará dinámicamente la cabecera de las transacciones, extraerá los datos (incluyendo el manejo de cuotas y fechas de cargo/originales) y los insertará en la tabla de staging `staging_tarjeta_credito_banco_de_chile_nacional`, evitando duplicados por hash. Los archivos procesados se moverán a una subcarpeta `procesados/` dentro de su directorio de origen.
-
-4.  **Procesar Cartolas Internacionales XLS (`ingest_xls_international_cc.py`):**
-    ```bash
-    python ingest_xls_international_cc.py
-    ```
-    *   **Proceso:** Similar a los otros scripts de ingesta de XLS, procesa las cartolas de tarjetas de crédito internacionales y las inserta en la tabla de staging `staging_tarjeta_credito_banco_de_chile_internacional`. Los archivos procesados se moverán a una subcarpeta `procesados/` dentro de su directorio de origen.
-
-5.  **Procesar Cartolas de Banco Falabella (XLS):**
-    ```bash
-    # Para Tarjeta de Crédito
-    python ingest_xls_falabella_cc.py
-
-    # Para Cuenta Corriente
-    python ingest_xls_falabella_cuenta_corriente.py
-
-    # Para Línea de Crédito
-    python ingest_xls_falabella_linea_credito.py
-    ```
-    *   **Proceso:** Cada uno de estos scripts está especializado en un producto de Banco Falabella, buscando los archivos en su directorio correspondiente y guardando los datos en la tabla de staging apropiada (ej. `staging_tarjeta_credito_falabella_nacional`, `staging_cta_corriente_falabella`, `staging_linea_credito_falabella`). Los archivos procesados se moverán a una subcarpeta `procesados/` dentro de su directorio de origen.
+```bash
+# Ejemplo: Ejecutar solo la ingesta de tarjetas de crédito nacionales
+python src/ingestion/ingest_xls_national_cc.py
+```
 
 ---
 
