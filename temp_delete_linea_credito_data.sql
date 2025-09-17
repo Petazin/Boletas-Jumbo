@@ -1,2 +1,0 @@
-DELETE FROM raw_metadatos_documentos WHERE document_type = 'LINEA_CREDITO_BCH';
-DELETE FROM staging_linea_credito_banco_chile_pdf WHERE fuente_id = (SELECT fuente_id FROM fuentes WHERE nombre_fuente = 'Banco de Chile - Línea de Crédito');
