@@ -73,11 +73,13 @@ Esta sección define la arquitectura y los principios para la capa de staging de
 *   `[x]` **Expandir Ingesta de Banco Falabella:** Añadir soporte para Cuenta Corriente y Línea de Crédito.
 *   `[x]` **Revisar y Validar Esquema de BD:** Confirmado que el esquema actual (`create_new_tables.sql`) es adecuado para el escalamiento y las necesidades futuras.
 *   `[x]` **Implementar capa de staging para datos extraídos de archivos:** Crear tablas por tipo de documento/origen con la estructura original de los datos extraídos, antes de cualquier manipulación o transformación. (Esta tarea ahora se detalla en la sección 2.2)
-*   `[ ]` **Implementar Validación Post-Ingesta en Staging:** Añadir validación de conteo de registros y suma de montos para todos los scripts de ingesta.
-    *   `[x]` Implementado en `ingest_xls_national_cc.py`.
+*   `[x]` **Implementar Validación Post-Ingesta en Staging:** Añadir validación de conteo de registros y suma de montos para todos los scripts de ingesta.
+    *   `[x]` Implementado en todos los scripts de ingesta.
 *   `[x]` **Renombrar Archivos Procesados:** Implementado un sistema para renombrar los archivos PDF/XLS procesados con un formato estandarizado: `[FechaProcesamiento]_[TipoDocumento]_[PeriodoDocumento]_[HashCorto].[Extension]`.
 *   `[ ]` **Clasificación de Transacciones Bancarias:** Diseñar e implementar un sistema de clasificación para las transacciones bancarias (cuenta corriente y tarjetas), similar al categorizador de productos. Debe utilizar una tabla de mapeo en la BD para asignar categorías basadas en la descripción de las transacciones.
-*   `[ ]` **Procesamiento de Datos Bancarios:** Implementar la lógica para transformar los datos crudos de las tablas de staging a las tablas raw consolidadas, y posteriormente a la tabla `transactions` para análisis final.
+*   `[ ]` **Procesamiento de Datos Bancarios:** Implementar la lógica para transformar y consolidar los datos bancarios.
+    *   `[x]` Implementar flujo de Staging a Raw.
+    *   `[ ]` Implementar flujo de Raw a la tabla final `transactions`.
 *   `[ ]` **Desarrollar Interfaz de Usuario:** Construir un dashboard interactivo para la visualización de datos, alertas y presupuestos.
 *   `[ ]` **Manejo de Duplicados y Actualizaciones (Nivel Transacción):** Implementar lógica para identificar y manejar transacciones individuales duplicadas.
 *   `[ ]` **Optimización de Consultas:** Revisar y optimizar las consultas SQL para asegurar un rendimiento eficiente.
