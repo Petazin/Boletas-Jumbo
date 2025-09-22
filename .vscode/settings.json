@@ -1,6 +1,9 @@
 {
     "geminicodeassist.project": "app-gemini-470914",
-    "geminicodeassist.updateChannel": "Insiders",
+    "geminicodeassist.updateChannel": "",
     "python-envs.defaultEnvManager": "ms-python.python:system",
-    "python-envs.pythonProjects": []
+    "python-envs.pythonProjects": [],
+    "geminicodeassist.agentDebugMode": true,
+    "geminicodeassist.enableTelemetry": false,
+    "geminicodeassist.inlineSuggestions.enableAuto": false
 }

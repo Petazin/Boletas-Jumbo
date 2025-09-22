@@ -1,4 +1,19 @@
-## 2025-09-17 (Refactor)
+## 2025-09-21 (Feat)
+- **feat(categorization)**: Crea script para poblar la base de categorías y reglas.
+    - Se ha creado el script `src/utils/populate_categories.py` que define e inserta en la base de datos una estructura jerárquica y estandarizada de categorías, subcategorías y reglas de mapeo basadas en palabras clave.
+    - El script limpia las tablas relevantes antes de la inserción para garantizar un estado consistente, y está diseñado para ser idempotente.
+    - Este es el primer paso fundamental para el nuevo motor de clasificación de transacciones.
+
+## 2025-09-21 (Feat)
+- **feat(categorization)**: Implementa la base del sistema de clasificación de transacciones.
+    - Se crea el script `src/utils/populate_categories.py` que inserta en la base de datos un conjunto inicial y completo de categorías principales, subcategorías y reglas de mapeo con palabras clave.
+    - El script es idempotente, permitiendo su ejecución múltiple sin generar duplicados.
+    - Esto sienta las bases para el motor de clasificación automática de transacciones (`transaction_categorizer.py`).
+- **fix(db)**: Estandariza los nombres de columnas en todas las tablas de staging.
+    - Se han renombrado las columnas en las tablas `staging_*` en `create_new_tables.sql` para usar `snake_case`, eliminando caracteres especiales, tildes y espacios.
+    - Esto soluciona un `SyntaxError` al crear las tablas y mejora la consistencia del esquema.
+- **fix(utils)**: Mejora la robustez de las importaciones en scripts de utilidades.
+    - Se ha refactorizado la lógica de `sys.path` en `src/utils/execute_sql_script.py` para usar rutas absolutas desde la raíz del proyecto, solucionando errores de `ModuleNotFoundError`.
 - **refactor(core)**: Reestructura el proyecto a una arquitectura modular basada en `src`.
     - Todos los scripts de Python han sido movidos a un directorio `src` con sub-módulos (`core`, `db`, `ingestion`, `utils`) para mejorar la organización, mantenibilidad y escalabilidad del proyecto.
     - Se creó y utilizó un script de migración (`migrate_structure.py`) para automatizar esta transición.

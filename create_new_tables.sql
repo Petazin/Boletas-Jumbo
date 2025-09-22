@@ -30,16 +30,6 @@ CREATE TABLE IF NOT EXISTS subcategorias (
     UNIQUE (nombre_subcategoria, categoria_principal_id)
 );
 
--- Table: abonos_mapping
-CREATE TABLE IF NOT EXISTS abonos_mapping (
-    description VARCHAR(255) NOT NULL,
-    PRIMARY KEY (description)
-);
-
--- Insertar la descripción inicial para los pagos de tarjeta de crédito
-INSERT INTO abonos_mapping (description) VALUES ('Pago Pesos TEF')
-ON DUPLICATE KEY UPDATE description = description; -- No hacer nada si ya existe
-
 -- --------------------------------------------------------------------------------------------------
 -- Tabla de Metadatos Unificada
 -- --------------------------------------------------------------------------------------------------
@@ -101,13 +91,13 @@ CREATE TABLE IF NOT EXISTS staging_cta_corriente_banco_de_chile (
     id INT AUTO_INCREMENT PRIMARY KEY,
     metadata_id INT NOT NULL,
     fuente_id INT NOT NULL,
-    `FECHA DIA/MES` VARCHAR(255),
-    `DETALLE DE TRANSACCION` VARCHAR(255),
-    `SUCURSAL` VARCHAR(255),
-    `N° DOCTO` VARCHAR(255),
-    `MONTO CHEQUES O CARGOS` VARCHAR(255),
-    `MONTO DEPOSITOS O ABONOS` VARCHAR(255),
-    `SALDO` VARCHAR(255),
+    fecha_dia_mes VARCHAR(255),
+    detalle_transaccion VARCHAR(255),
+    sucursal VARCHAR(255),
+    num_docto VARCHAR(255),
+    monto_cheques_cargos VARCHAR(255),
+    monto_depositos_abonos VARCHAR(255),
+    saldo VARCHAR(255),
     FOREIGN KEY (metadata_id) REFERENCES raw_metadatos_documentos(metadata_id),
     FOREIGN KEY (fuente_id) REFERENCES fuentes(fuente_id)
 );
@@ -117,10 +107,10 @@ CREATE TABLE IF NOT EXISTS staging_tarjeta_credito_falabella_nacional (
     id INT AUTO_INCREMENT PRIMARY KEY,
     metadata_id INT NOT NULL,
     fuente_id INT NOT NULL,
-    `FECHA` VARCHAR(255),
-    `DESCRIPCION` VARCHAR(255),
-    `VALOR CUOTA` VARCHAR(255),
-    `CUOTAS PENDIENTES` VARCHAR(255),
+    fecha VARCHAR(255),
+    descripcion VARCHAR(255),
+    valor_cuota VARCHAR(255),
+    cuotas_pendientes VARCHAR(255),
     FOREIGN KEY (metadata_id) REFERENCES raw_metadatos_documentos(metadata_id),
     FOREIGN KEY (fuente_id) REFERENCES fuentes(fuente_id)
 );
@@ -130,11 +120,11 @@ CREATE TABLE IF NOT EXISTS staging_cta_corriente_falabella (
     id INT AUTO_INCREMENT PRIMARY KEY,
     metadata_id INT NOT NULL,
     fuente_id INT NOT NULL,
-    `Fecha` VARCHAR(255),
-    `Descripcion` VARCHAR(255),
-    `Cargo` VARCHAR(255),
-    `Abono` VARCHAR(255),
-    `Saldo` VARCHAR(255),
+    fecha VARCHAR(255),
+    descripcion VARCHAR(255),
+    cargo VARCHAR(255),
+    abono VARCHAR(255),
+    saldo VARCHAR(255),
     FOREIGN KEY (metadata_id) REFERENCES raw_metadatos_documentos(metadata_id),
     FOREIGN KEY (fuente_id) REFERENCES fuentes(fuente_id)
 );
@@ -144,13 +134,13 @@ CREATE TABLE IF NOT EXISTS staging_linea_credito_falabella (
     id INT AUTO_INCREMENT PRIMARY KEY,
     metadata_id INT NOT NULL,
     fuente_id INT NOT NULL,
-    `Fecha` VARCHAR(255),
-    `Descripcion` VARCHAR(255),
-    `Cargos` VARCHAR(255),
-    `Abonos` VARCHAR(255),
-    `Monto utilizado` VARCHAR(255),
-    `Tasa diaria` VARCHAR(255),
-    `Intereses` VARCHAR(255),
+    fecha VARCHAR(255),
+    descripcion VARCHAR(255),
+    cargos VARCHAR(255),
+    abonos VARCHAR(255),
+    monto_utilizado VARCHAR(255),
+    tasa_diaria VARCHAR(255),
+    intereses VARCHAR(255),
     FOREIGN KEY (metadata_id) REFERENCES raw_metadatos_documentos(metadata_id),
     FOREIGN KEY (fuente_id) REFERENCES fuentes(fuente_id)
 );
@@ -160,13 +150,13 @@ CREATE TABLE IF NOT EXISTS staging_tarjeta_credito_banco_de_chile_internacional 
     id INT AUTO_INCREMENT PRIMARY KEY,
     metadata_id INT NOT NULL,
     fuente_id INT NOT NULL,
-    `Fecha` VARCHAR(255),
-    `Descripción` VARCHAR(255),
-    `Categoría` VARCHAR(255),
-    `Cuotas` VARCHAR(255),
-    `Monto Moneda Origen` VARCHAR(255),
-    `Monto (USD)` VARCHAR(255),
-    `País` VARCHAR(255),
+    fecha VARCHAR(255),
+    descripcion VARCHAR(255),
+    categoria VARCHAR(255),
+    cuotas VARCHAR(255),
+    monto_moneda_origen VARCHAR(255),
+    monto_usd VARCHAR(255),
+    pais VARCHAR(255),
     FOREIGN KEY (metadata_id) REFERENCES raw_metadatos_documentos(metadata_id),
     FOREIGN KEY (fuente_id) REFERENCES fuentes(fuente_id)
 );
@@ -176,10 +166,10 @@ CREATE TABLE IF NOT EXISTS staging_tarjeta_credito_banco_de_chile_nacional (
     id INT AUTO_INCREMENT PRIMARY KEY,
     metadata_id INT NOT NULL,
     fuente_id INT NOT NULL,
-    `Fecha` VARCHAR(255),
-    `Descripción` VARCHAR(255),
-    `Cuotas` VARCHAR(255),
-    `Monto ($)` VARCHAR(255),
+    fecha VARCHAR(255),
+    descripcion VARCHAR(255),
+    cuotas VARCHAR(255),
+    monto_clp VARCHAR(255),
     FOREIGN KEY (metadata_id) REFERENCES raw_metadatos_documentos(metadata_id),
     FOREIGN KEY (fuente_id) REFERENCES fuentes(fuente_id)
 );
@@ -189,10 +179,10 @@ CREATE TABLE IF NOT EXISTS staging_linea_credito_banco_chile (
     id INT AUTO_INCREMENT PRIMARY KEY,
     metadata_id INT NOT NULL,
     fuente_id INT NOT NULL,
-    `Fecha` VARCHAR(255),
-    `Descripcion` VARCHAR(255),
-    `Cargos` VARCHAR(255),
-    `Abonos` VARCHAR(255),
+    fecha VARCHAR(255),
+    descripcion VARCHAR(255),
+    cargos VARCHAR(255),
+    abonos VARCHAR(255),
     FOREIGN KEY (metadata_id) REFERENCES raw_metadatos_documentos(metadata_id),
     FOREIGN KEY (fuente_id) REFERENCES fuentes(fuente_id)
 );
@@ -202,13 +192,13 @@ CREATE TABLE IF NOT EXISTS staging_linea_credito_banco_chile_pdf (
     id INT AUTO_INCREMENT PRIMARY KEY,
     metadata_id INT NOT NULL,
     fuente_id INT NOT NULL,
-    `FECHA DIA/MES` VARCHAR(255),
-    `DETALLE DE TRANSACCION` VARCHAR(255),
-    `SUCURSAL` VARCHAR(255),
-    `N° DOCTO` VARCHAR(255),
-    `MONTO CHEQUES O CARGOS` VARCHAR(255),
-    `MONTO DEPOSITOS O ABONOS` VARCHAR(255),
-    `SALDO` VARCHAR(255),
+    fecha_dia_mes VARCHAR(255),
+    detalle_transaccion VARCHAR(255),
+    sucursal VARCHAR(255),
+    num_docto VARCHAR(255),
+    monto_cheques_cargos VARCHAR(255),
+    monto_depositos_abonos VARCHAR(255),
+    saldo VARCHAR(255),
     FOREIGN KEY (metadata_id) REFERENCES raw_metadatos_documentos(metadata_id),
     FOREIGN KEY (fuente_id) REFERENCES fuentes(fuente_id)
 );
@@ -293,6 +283,37 @@ CREATE TABLE IF NOT EXISTS `raw_transacciones_linea_credito` (
     CONSTRAINT `fk_linea_credito_fuente` FOREIGN KEY (`fuente_id`) REFERENCES `fuentes` (`fuente_id`),
     CONSTRAINT `fk_linea_credito_metadata` FOREIGN KEY (`metadata_id`) REFERENCES `raw_metadatos_documentos` (`metadata_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------------------------------------------------
+-- Tablas de Clasificación y Mapeo
+-- --------------------------------------------------------------------------------------------------
+
+-- Table: abonos_mapping
+-- Almacena descripciones de transacciones que deben ser tratadas como abonos o pagos.
+CREATE TABLE IF NOT EXISTS abonos_mapping (
+    description VARCHAR(255) NOT NULL,
+    PRIMARY KEY (description)
+);
+
+-- Insertar la descripción inicial para los pagos de tarjeta de crédito
+INSERT INTO abonos_mapping (description) VALUES ('Pago Pesos TEF')
+ON DUPLICATE KEY UPDATE description = description; -- No hacer nada si ya existe
+
+-- Table: mapeo_clasificacion_transacciones
+-- Almacena las reglas para clasificar automáticamente las transacciones bancarias.
+-- Cada fila representa una regla que asocia una palabra clave en la descripción de una transacción
+-- con una subcategoría específica.
+CREATE TABLE IF NOT EXISTS mapeo_clasificacion_transacciones (
+    map_id INT AUTO_INCREMENT PRIMARY KEY, -- ID único para la regla de mapeo.
+    palabra_clave VARCHAR(255) NOT NULL, -- La palabra o frase a buscar en la descripción de la transacción (ej: "UBER", "COPEC").
+    subcategoria_id INT NOT NULL, -- FK a la tabla 'subcategorias'. Define a qué subcategoría pertenece la transacción.
+    tipo_matching ENUM('contiene', 'exacto', 'empieza_con', 'termina_con') NOT NULL DEFAULT 'contiene', -- Define cómo se debe comparar la 'palabra_clave'.
+    prioridad INT NOT NULL DEFAULT 100, -- Resuelve conflictos si una descripción coincide con múltiples reglas. Un número más alto indica mayor prioridad.
+    comentarios TEXT, -- Campo opcional para añadir contexto o justificación sobre la regla.
+    FOREIGN KEY (subcategoria_id) REFERENCES subcategorias(subcategoria_id),
+    UNIQUE KEY idx_unique_rule (palabra_clave, subcategoria_id, tipo_matching) -- Evita reglas duplicadas exactas.
+);
+
 
 -- --------------------------------------------------------------------------------------------------
 -- Tablas de Negocio y Finales

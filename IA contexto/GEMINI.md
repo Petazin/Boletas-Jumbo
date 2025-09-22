@@ -76,7 +76,10 @@ Esta sección define la arquitectura y los principios para la capa de staging de
 *   `[x]` **Implementar Validación Post-Ingesta en Staging:** Añadir validación de conteo de registros y suma de montos para todos los scripts de ingesta.
     *   `[x]` Implementado en todos los scripts de ingesta.
 *   `[x]` **Renombrar Archivos Procesados:** Implementado un sistema para renombrar los archivos PDF/XLS procesados con un formato estandarizado: `[FechaProcesamiento]_[TipoDocumento]_[PeriodoDocumento]_[HashCorto].[Extension]`.
-*   `[ ]` **Clasificación de Transacciones Bancarias:** Diseñar e implementar un sistema de clasificación para las transacciones bancarias (cuenta corriente y tarjetas), similar al categorizador de productos. Debe utilizar una tabla de mapeo en la BD para asignar categorías basadas en la descripción de las transacciones.
+*   `[ ]` **Clasificación de Transacciones Bancarias:** Diseñar e implementar un sistema de clasificación para las transacciones bancarias (cuenta corriente y tarjetas), similar al categorizador de productos.
+    *   `[x]` **Fase 1: Crear la Base de Categorías y Reglas:** Crear un script (`src/utils/populate_categories.py`) que puebla la base de datos con un conjunto estándar y robusto de categorías, subcategorías y reglas de mapeo iniciales en la tabla `mapeo_clasificacion_transacciones`.
+    *   `[ ]` **Fase 2: Implementar el Motor de Clasificación:** Desarrollar la lógica en `src/core/transaction_categorizer.py` para que, dada una descripción, utilice las reglas de la base de datos para asignar la categoría correcta o "Otros" por defecto.
+    *   `[ ]` **Fase 3: Proceso de Clasificación Masiva y Validación:** Crear un flujo de trabajo para leer las descripciones de las tablas `raw` y `staging`, aplicar el motor de clasificación y analizar los resultados para refinar las reglas.
 *   `[ ]` **Procesamiento de Datos Bancarios:** Implementar la lógica para transformar y consolidar los datos bancarios.
     *   `[x]` Implementar flujo de Staging a Raw.
     *   `[ ]` Implementar flujo de Raw a la tabla final `transactions`.

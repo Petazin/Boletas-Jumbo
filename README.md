@@ -20,7 +20,8 @@ El proyecto ha sido reestructurado en una arquitectura modular dentro del direct
     *   **`run_pipeline.py`**: Script orquestador principal que ejecuta todo el flujo de ingesta de datos.
     *   **`core/`**: Contiene la lógica de negocio principal.
         *   `pdf_parser.py`: Módulo de extracción y parsing para boletas de supermercado en PDF.
-        *   `product_categorizer.py`: Módulo de lógica de negocio para categorizar productos.
+        *   `product_categorizer.py`: Módulo de lógica de negocio para categorizar productos de supermercado.
+        *   `transaction_categorizer.py`: (En desarrollo) Módulo que contendrá el motor para clasificar transacciones financieras.
     *   **`db/`**: Módulos relacionados con la base de datos.
         *   `database_utils.py`: Utilidad para la gestión centralizada de la conexión a la base de datos.
         *   `reset_database.py`: Script para resetear la base de datos a su estado inicial.
@@ -30,6 +31,7 @@ El proyecto ha sido reestructurado en una arquitectura modular dentro del direct
         *   `ingest_*.py`: Scripts especializados para procesar cartolas bancarias y de tarjetas de crédito desde archivos PDF y XLS.
     *   **`utils/`**: Módulos de utilidad.
         *   `file_utils.py`: Utilidades para la gestión de archivos y logging de movimientos.
+        *   `populate_categories.py`: Script para poblar la base de datos con categorías y reglas de clasificación.
 *   **`fuentes/`**: Directorio raíz para los archivos de datos a ser procesados (anteriormente `descargas`).
 *   **`cuarentena/`**: Directorio para archivos que no pudieron ser procesados.
 *   **`tests/`**: Directorio de pruebas unitarias con `pytest`.
@@ -49,6 +51,25 @@ La capa de staging es un componente fundamental de la arquitectura de ingesta de
 El proyecto utiliza un esquema de base de datos escalable y completamente en español para manejar diversos tipos de transacciones. Además de las tablas principales como `fuentes`, `categorias_principales`, `subcategorias`, `raw_metadatos_documentos`, `raw_transacciones_cta_corriente`, `raw_transacciones_tarjeta_credito_nacional`, `raw_transacciones_tarjeta_credito_internacional`, `transacciones`, `items_transaccion`, `historial_descargas` y `transacciones_jumbo`, el esquema ahora incluye una **capa de tablas de staging** dedicada para la ingesta de datos crudos. Para el esquema completo, consulta el archivo `create_new_tables.sql`.
 
 Una tabla de soporte importante es `abonos_mapping`, que contiene descripciones de transacciones que deben ser tratadas como pagos (abonos) en las tarjetas de crédito, permitiendo una correcta clasificación de los flujos de dinero.
+
+---
+
+### Sistema de Clasificación de Transacciones
+
+El proyecto incluye un sistema para clasificar automáticamente las transacciones financieras en categorías y subcategorías predefinidas, facilitando el análisis de gastos e ingresos.
+
+#### Poblado de Categorías
+
+La base de este sistema es un conjunto estandarizado de categorías, subcategorías y reglas de mapeo. Para poblar o resetear esta información en la base de datos, se debe ejecutar el siguiente script:
+
+```bash
+python src/utils/populate_categories.py
+```
+
+Este script se encarga de:
+1.  Limpiar las tablas `categorias_principales`, `subcategorias` y `mapeo_clasificacion_transacciones`.
+2.  Insertar una estructura jerárquica de categorías (ej. "Gastos Variables" -> "Alimentación y Supermercado").
+3.  Insertar reglas basadas en palabras clave (ej. "JUMBO", "LIDER") que asocian descripciones de transacciones a una subcategoría.
 
 ---
 

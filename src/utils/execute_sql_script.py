@@ -1,6 +1,12 @@
 import mysql.connector
-from database_utils import db_connection
 import logging
+import sys
+import os
+
+# Añadir el directorio raíz del proyecto al sys.path para resolver las importaciones
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
+
+from src.db.database_utils import db_connection
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
@@ -34,5 +40,8 @@ def execute_sql_from_file(sql_file_path):
         logging.error(f"Ocurrió un error inesperado al ejecutar el script SQL: {e}")
 
 if __name__ == "__main__":
-    sql_file = r"c:\Users\Petazo\Desktop\Boletas Jumbo\create_staging_tables.sql"
-    execute_sql_from_file(sql_file)
+    if len(sys.argv) > 1:
+        sql_file = sys.argv[1]
+        execute_sql_from_file(sql_file)
+    else:
+        logging.warning("No se proporcionó ninguna ruta de archivo SQL. Por favor, pase la ruta del archivo como un argumento de línea de comandos.")

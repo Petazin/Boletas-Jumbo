@@ -1,26 +1,35 @@
 import sys
 import os
+import argparse
+import pandas as pd
 
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '.')))
+# Añadir el directorio 'src' al sys.path para resolver las importaciones absolutas
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from database_utils import db_connection
+from db.database_utils import db_connection
 
-def show_full_table(table_name):
-    """Muestra todos los registros de una tabla."""
+def execute_query(query):
+    """Ejecuta una consulta SQL y muestra los resultados en un formato tabular."""
     try:
         with db_connection() as conn:
-            cursor = conn.cursor(dictionary=True)
-            query = f"SELECT * FROM {table_name}"
-            print(f"Contenido de la tabla '{table_name}':")
-            cursor.execute(query)
-            results = cursor.fetchall()
-            if results:
-                for row in results:
-                    print(row)
+            print(f"Ejecutando consulta: \"{query}\"")
+            # Usar pandas para leer la consulta y mostrar un formato amigable
+            df = pd.read_sql(query, conn)
+            
+            if df.empty:
+                print("La consulta no devolvió resultados.")
             else:
-                print("La tabla está vacía.")
+                print("Resultados de la consulta:")
+                print(df.to_string())
+
     except Exception as e:
-        print(f"Ocurrió un error al consultar la tabla: {e}")
+        print(f"Ocurrió un error al ejecutar la consulta: {e}")
 
 if __name__ == "__main__":
-    show_full_table("historial_descargas")
+    parser = argparse.ArgumentParser(description='Ejecuta una consulta SQL en la base de datos del proyecto.')
+    parser.add_argument('-q', '--query', type=str, required=True,
+                        help='La consulta SQL a ejecutar.')
+    
+    args = parser.parse_args()
+    
+    execute_query(args.query)
