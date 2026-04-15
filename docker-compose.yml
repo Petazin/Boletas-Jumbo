@@ -1,0 +1,57 @@
+services:
+  db:
+    image: mysql:8.0
+    container_name: zenith_db
+    restart: always
+    environment:
+      MYSQL_DATABASE: ${DB_NAME}
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}_root
+    ports:
+      - "${DB_PORT}:3306"
+    volumes:
+      - zenith_db_data:/var/lib/mysql
+      - ./database/init_schema.sql:/docker-entrypoint-initdb.d/init_schema.sql
+    networks:
+      - zenith_network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: zenith_backend
+    restart: always
+    ports:
+      - "${BACKEND_PORT}:8000"
+    environment:
+      - DB_HOST=db
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_NAME=${DB_NAME}
+    depends_on:
+      - db
+    networks:
+      - zenith_network
+    volumes:
+      - ./storage:/app/storage
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: zenith_frontend
+    restart: always
+    ports:
+      - "${FRONTEND_PORT}:3000"
+    depends_on:
+      - backend
+    networks:
+      - zenith_network
+
+networks:
+  zenith_network:
+    driver: bridge
+
+volumes:
+  zenith_db_data:

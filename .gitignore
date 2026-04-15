@@ -1,15 +1,54 @@
-# Directorios de caché y compilados
+# Entorno y Secretos
+.env
+.env.local
+.env.*.local
+
+# Bases de Datos / Almacenamiento Local
+storage/
+zenith_db_data/
+
+# Python
 __pycache__/
-tests/__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+.venv
+venv
+ENV
+env.bak
+venv.bak
 
-# Directorios de datos y descargas
-descargas/
-archivos_procesados/
-
-# Archivos de Log
+# Logs
 *.log
+agent_activity.log
 
-# Archivos de datos (PDFs, CSVs, etc.)
-*.pdf
-*.csv
-*.pbix
+# VS Code
+.vscode/
+
+# Node (Frontend)
+node_modules/
+dist/
+coverage/
+.npm
+.eslintcache
+.stylelintcache
+.vite
