@@ -21,6 +21,21 @@ CREATE TABLE IF NOT EXISTS archivos_fuente (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------------------------------------------------
+-- TABLA DE METADATOS UNIVERSALES (Capa 0.5)
+-- --------------------------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS metadatos_documento (
+    metadata_id INT AUTO_INCREMENT PRIMARY KEY,
+    archivo_id INT NOT NULL,
+    entidad_emisora VARCHAR(100),
+    titular VARCHAR(255),
+    identificador_cuenta VARCHAR(100), 
+    periodo_desde DATE,
+    periodo_hasta DATE,
+    atributos_adicionales JSON, 
+    FOREIGN KEY (archivo_id) REFERENCES archivos_fuente(archivo_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- --------------------------------------------------------------------------------------------------
 -- CAPA 1: STAGING (DATOS CRUDOS POR ORIGEN)
 -- --------------------------------------------------------------------------------------------------
 

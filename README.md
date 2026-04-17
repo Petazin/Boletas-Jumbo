@@ -1,16 +1,45 @@
-# Zenith Finance
+# Zenith Finance 🏦
 
-**Zenith Finance** es tu centro de inteligencia financiera personal. Esta aplicación te permite cargar tus cartolas bancarias, analizar tus gastos a nivel de detalle de productos y recibir consejos de ahorro inteligentes impulsados por IA.
+Sistema inteligente de ingesta y análisis de finanzas personales, diseñado para automatizar la extracción de datos desde PDFs bancarios (escaneados o digitales) y boletas de supermercado, utilizando IA Visual Local (OCR + LLM).
 
-## Características Principales
-- **Perfiles de Gasto:** Identifica automáticamente tu comportamiento financiero.
-- **Trazabilidad Total:** Desde el archivo original hasta el item comprado en el supermercado.
-- **Detección de Gastos Innecesarios:** Identifica suscripciones y variaciones de precio inusuales.
-- **Sugerencias Inteligentes:** Consejos de ahorro personalizados basados en tu patrón de consumo real.
-- **Diseño Premium:** Interfaz moderna, personalizable y segura.
+## Características (v0.5.0)
 
-## Inicio Rápido
-*Próximamente... (En desarrollo)*
+- **IA Visual Multimodal**: Extracción de datos sin depender de capas de texto nativas, ideal para cartolas escaneadas.
+- **Estrategia Two-Pass**: Captura de metadatos ( Pass 1) y transacciones (Pass 2) para máxima precisión sin alucinaciones.
+- **Soporte de PDFs Protegidos**: Sistema de **Llavero de Contraseñas (Keychain)** que recuerda las claves de tus cartolas por banco.
+- **OCR Híbrido**: Integración con Poppler y Tesseract para pre-procesamiento de alta resolución.
+- **Privacidad Local**: Procesamiento mediante LM Studio (host.docker.internal:1234) sin enviar datos a la nube.
 
-## Estado del Proyecto
-Actualmente en **Fase 1: Infraestructura y Base de Datos**.
+## Bancos Soportados
+
+- [x] **Banco de Chile**: Cartola de Cuenta Corriente (PDF Escaneado/Digital).
+- [x] **Banco Falabella**: Cartola de Cuenta de Crédito/Corriente (PDF con Password).
+- [ ] **Jumbo**: Boletas de Supermercado (OCR Térmico) - *En desarrollo*.
+
+## Requisitos
+
+- **Docker Desktop** (con WSL2 habilitado).
+- **LM Studio** corriendo en el puerto `1234` con un modelo multimodal (ej. Llava o Gemma 2).
+- **Python 3.10+** (para ejecución de scripts de prueba locales).
+
+## Instalación Desarrollador
+
+1. Clonar el repositorio.
+2. Levantar el entorno Docker:
+   ```bash
+   docker-compose up -d --build
+   ```
+3. Ejecutar la consola de ingesta para probar:
+   ```bash
+   python test_ingesta.py
+   ```
+
+## Esquema de Datos
+
+El sistema utiliza una arquitectura de 3 capas:
+1. **Capa 0 (Raw)**: Almacenamiento del archivo original con hash SHA256.
+2. **Capa 1 (Staging)**: Datos crudos extraídos por la IA por cada entidad emisora.
+3. **Capa 2 (Consolidada)**: Datos normalizados, deduplicados y categorizados unificados.
+
+---
+*Desarrollado con ❤️ para organizar el caos financiero.*

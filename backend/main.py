@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from app.api.endpoints import upload
 import os
 from dotenv import load_dotenv
 
@@ -7,14 +8,17 @@ load_dotenv()
 
 app = FastAPI(title="Zenith Finance API")
 
-# Configuración de CORS para el frontend
+# Configuración de CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # En producción cambiar por el dominio real
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Incluir Routers
+app.include_router(upload.router, prefix="/api/v1/files", tags=["Ingesta de Archivos"])
 
 @app.get("/")
 async def root():

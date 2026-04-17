@@ -34,6 +34,7 @@ services:
     networks:
       - zenith_network
     volumes:
+      - ./backend:/app
       - ./storage:/app/storage
 
   frontend:
