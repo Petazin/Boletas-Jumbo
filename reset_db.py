@@ -31,10 +31,10 @@ def reset_database():
         cursor.execute("SET FOREIGN_KEY_CHECKS = 1;")
         conn.commit()
         
-        print("\n✅ Base de datos restaurada al estado original con éxito.")
+        print("\n[OK] Base de datos restaurada al estado original con exito.")
         
     except Exception as e:
-        print(f"❌ Error al limpiar la BD: {e}")
+        print(f"[ERROR] Hubo un error al limpiar la BD: {e}")
     finally:
         if 'cursor' in locals():
             cursor.close()
