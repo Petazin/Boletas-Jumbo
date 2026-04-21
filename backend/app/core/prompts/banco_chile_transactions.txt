@@ -31,6 +31,7 @@ Ejemplo:
 - Une descripciones multilínea en una sola frase coherente.
 - El monto debe ser un número positivo (el signo lo determina la columna "Tipo").
 - Procesa el documento COMPLETO del principio al fin.
+- IGNORA absolutamente filas que digan "SALDO INICIAL", "SALDO FINAL", "SALDO TOTAL", "CUPO LINEA DE CREDITO" u otros balances informativos. Sólo extrae movimientos reales. Si el documento solo tiene esas filas, asume que está vacío de transacciones reales (no retornar ninguna fila en la tabla).
 - La columna Categoría Sugerida DEBE ser una de las siguientes opciones (selecciona la más lógica):
   'Alimentación/Supermercado', 'Vivienda y Servicios', 'Transporte', 'Salud', 'Ocio y Entretenimiento', 'Educación', 'Impuestos y Tasas', 'Otros'
 </RULES>

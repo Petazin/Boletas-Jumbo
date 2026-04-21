@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS archivos_fuente (
     nombre_original VARCHAR(255) NOT NULL,
     nombre_almacenamiento VARCHAR(255) NOT NULL,
     hash_archivo VARCHAR(64) UNIQUE NOT NULL, -- Para evitar duplicados de archivos
-    tipo_documento ENUM('Cartola_CC', 'Cartola_TC', 'Boleta_Supermercado', 'Otro') NOT NULL,
+    tipo_documento ENUM('Cartola_CC', 'Cartola_TC', 'Cartola_LC', 'Boleta_Supermercado', 'Otro') NOT NULL,
     origen ENUM('Banco_Chile', 'Falabella', 'Jumbo', 'Lider', 'Otro') NOT NULL,
     extension VARCHAR(10) NOT NULL,
     tamano_bytes BIGINT,

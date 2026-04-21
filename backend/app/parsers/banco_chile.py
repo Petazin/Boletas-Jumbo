@@ -120,7 +120,9 @@ class BancoChileParser(BaseParser):
             self.save_metadata(data["metadata"])
             
         if not data.get("transactions"):
-            raise ValueError("No se encontraron transacciones en el PDF.")
+            logger.warning("No se encontraron transacciones devueltas por la IA. El documento podría estar vacío de movimientos (típico en LC).")
+            return
+
             
         cursor = self.db.cursor()
         sql = """
@@ -158,6 +160,12 @@ class BancoChileParser(BaseParser):
             abono = float(row["monto_depositos_abonos"]) if row["monto_depositos_abonos"] else 0.0
             monto = cargo if cargo > 0 else abono
             tipo = "Gasto" if cargo > 0 else "Ingreso"
+            
+            # Bloqueo de saldos falsamente catalogados
+            desc_upper = row["descripcion_cruda"].upper()
+            if any(term in desc_upper for term in ["SALDO INICIAL", "SALDO FINAL", "SALDO TOTAL", "CUPO LINEA DE CREDITO"]):
+                logger.info(f"Omitiendo fila de balance detectada erróneamente: {row['descripcion_cruda']}")
+                continue
             
             # Hybrid categorization
             cat_id = cat_service.categorizar(row["descripcion_cruda"], row.get("categoria_sugerida"))
