@@ -92,6 +92,10 @@ class BaseParser(ABC):
         """Orquestador principal del flujo del parser con soporte de contraseñas."""
         self.file_hash = self._calculate_hash(file_content)
 
+        if not file_content:
+            logger.warning(f"Archivo vacio omitido: {filename}")
+            return {"status": "error", "message": "El archivo esta vacio (0 bytes)."}
+
         if self._is_duplicate(self.file_hash):
             logger.warning(f"Archivo duplicado omitido: {filename}")
             return {"status": "duplicate", "message": "El archivo ya ha sido procesado anteriormente."}
@@ -138,7 +142,8 @@ class BaseParser(ABC):
             logger.warning(f"Error de seguridad en {filename}: {str(e)}")
             return {"status": "security_error", "error_code": type(e).__name__, "message": str(e)}
         except Exception as e:
-            logger.error(f"Error procesando {filename}: {str(e)}")
+            import traceback
+            logger.error(f"Error procesando {filename}: {repr(e)}\n{traceback.format_exc()}")
             if self.db:
                 self.db.rollback()
-            return {"status": "error", "message": str(e)}
+            return {"status": "error", "message": repr(e)}

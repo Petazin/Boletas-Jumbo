@@ -1,5 +1,13 @@
 # Changelog: Zenith Finance
 
+## [v0.6.0] - 2026-04-21
+### Añadido
+- **Motor de Categorización Híbrido**: Implementación de `CategorizationService` con soporte para reglas locales (SQL) y sugerencias inteligentes de IA.
+- **Ingesta Masiva**: Script `mass_ingest.py` para procesamiento recursivo de carpetas por origen/tipo.
+- **Soporte Línea de Crédito (LC)**: Adaptación de parsers y esquema de DB para soportar cartolas de Línea de Crédito del Banco de Chile.
+- **Escudo Anti-Saldos**: Lógica de filtrado en servidor para ignorar automáticamente filas de "SALDO INICIAL/FINAL" y evitar ruido en la data consolidada.
+- **Manejo de Errores de Entrada**: Validación de archivos vacíos (0 bytes) con reporte de error 400 controlado.
+
 ## [v0.5.1] - 2026-04-20
 ### Añadido y Corregido
 - **Afinamiento OCR Extremo (Falabella)**: Corrección de prompts IA para concatenar de manera estricta descripciones multilínea complejas ("One-Pass" mejorado).

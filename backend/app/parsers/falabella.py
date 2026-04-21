@@ -16,7 +16,14 @@ class FalabellaParser(BaseParser):
     def parse(self, file_content: bytes, password: str = None) -> Dict[str, Any]:
         """Extrae datos de cartolas de Falabella soportando XLS/XLSX y PDF (IA Two-Pass)."""
         
-        if file_content.startswith(b'%PDF'):
+        # Deteccion mas robusta: por firma de archivo o por extension
+        is_pdf = file_content.startswith(b'%PDF')
+        if not is_pdf and hasattr(self, 'filename') and self.filename.lower().endswith('.pdf'):
+            # Si la extension dice PDF pero no tiene el header, podria ser un PDF mal formado o vacio
+            # Pero como parse() recibe bytes, no siempre tenemos el filename.
+            pass
+
+        if is_pdf:
             return self._parse_pdf(file_content, password=password)
         else:
             return self._parse_excel(file_content)

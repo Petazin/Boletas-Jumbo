@@ -54,6 +54,9 @@ async def upload_file(
             }
 
         if result["status"] == "error":
+            # Si el error es por input del usuario (archivo vacio, etc), usamos 400
+            if "vacio" in result["message"] or "empty" in result["message"].lower():
+                raise HTTPException(status_code=400, detail=result["message"])
             raise HTTPException(status_code=500, detail=result["message"])
         
         if result["status"] == "duplicate":

@@ -2,7 +2,7 @@ import requests
 import os
 
 API_URL = "http://localhost:8000/api/v1/files/upload"
-FILE_PATH = "ingesta_masiva/Banco_Chile/Cartola_LC/01022026_Cartola-Emitida-Cuenta.pdf"
+FILE_PATH = "ingesta_masiva/Falabella/Cartola_CC/cartola 01-11-2025.pdf"
 
 def explore():
     print(f"Probando carga a través de la API: {FILE_PATH}")

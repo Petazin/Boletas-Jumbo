@@ -5,14 +5,15 @@ Sistema inteligente de ingesta y análisis de finanzas personales, diseñado par
 ## Características (v0.5.1)
 
 - **IA Visual Multimodal**: Extracción de datos sin depender de capas de texto nativas, ideal para cartolas escaneadas.
-- **Estrategia Two-Pass**: Captura de metadatos ( Pass 1) y transacciones (Pass 2) para máxima precisión sin alucinaciones.
-- **Soporte de PDFs Protegidos**: Sistema de **Llavero de Contraseñas (Keychain)** que recuerda las claves de tus cartolas por banco.
-- **OCR Híbrido**: Integración con Poppler y Tesseract para pre-procesamiento de alta resolución.
-- **Privacidad Local**: Procesamiento mediante LM Studio (host.docker.internal:1234) sin enviar datos a la nube.
+- **Estrategia Two-Pass**: Captura de metadatos (Pass 1) y transacciones (Pass 2) para máxima precisión.
+- **Motor de Categorización Híbrido**: Capa de reglas locales (+40 patrones) reforzada con IA para clasificar cada gasto automáticamente.
+- **Soporte de PDFs Protegidos**: Sistema de **Llavero de Contraseñas (Keychain)** persistente.
+- **Escudo Anti-Saldos**: Lógica integrada para ignorar automáticamente balances y totales en Línea de Crédito.
+- **Ingesta Masiva**: Script `mass_ingest.py` para procesar cientos de PDFs recursivamente.
 
 ## Bancos Soportados
 
-- [x] **Banco de Chile**: Cartola de Cuenta Corriente (PDF Escaneado/Digital).
+- [x] **Banco de Chile**: Cartola de Cuenta Corriente y Línea de Crédito (LC).
 - [x] **Banco Falabella**: Cartola de Cuenta de Crédito/Corriente (PDF con Password).
 - [ ] **Jumbo**: Boletas de Supermercado (OCR Térmico) - *En desarrollo*.
 
