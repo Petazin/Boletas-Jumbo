@@ -40,4 +40,6 @@ Formato: AAAA-MM-DD | Descripción Unificada Completa | Monto | Tipo | Categorí
 - PROHIBIDO saltarse la primera línea de la descripción. El texto de la fila con los montos es la parte fundamental, las filas de abajo son agregados.
 - El monto debe ser numérico y absoluto (positivo), sin signos de dólar ni puntos de miles.
 - La columna Tipo debe ser "Ingreso" o "Gasto".
+- La columna Categoría DEBE ser una de las siguientes opciones (selecciona la más lógica):
+  'Alimentación/Supermercado', 'Vivienda y Servicios', 'Transporte', 'Salud', 'Ocio y Entretenimiento', 'Educación', 'Impuestos y Tasas', 'Otros'
 </RULES_OF_CONDUCT>

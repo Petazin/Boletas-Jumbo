@@ -133,8 +133,8 @@ class FalabellaParser(BaseParser):
         cursor = self.db.cursor()
         sql = """
             INSERT INTO staging_falabella 
-            (archivo_id, fecha_texto, descripcion_cruda, tipo_sugerido, monto_pesos_crudo, cuotas)
-            VALUES (%s, %s, %s, %s, %s, %s)
+            (archivo_id, fecha_texto, descripcion_cruda, tipo_sugerido, monto_pesos_crudo, cuotas, categoria_sugerida)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
         """
         for tx in data["transactions"]:
             cursor.execute(sql, (
@@ -143,13 +143,17 @@ class FalabellaParser(BaseParser):
                 tx.get("descripcion"),
                 tx.get("tipo", "Gasto"), # Captura el tipo de la IA
                 str(tx.get("monto")),
-                tx.get("cuotas", "")
+                tx.get("cuotas", ""),
+                tx.get("categoria", "Otros")
             ))
         self.db.commit()
         cursor.close()
 
     def consolidate(self):
-        """Limpia y mueve a transacciones_consolidadas priorizando la IA."""
+        """Limpia y mueve a transacciones_consolidadas priorizando la IA y Motor Categorización."""
+        from ..services.categorization import CategorizationService
+        cat_service = CategorizationService(self.db)
+        
         cursor = self.db.cursor(dictionary=True)
         cursor.execute("SELECT * FROM staging_falabella WHERE archivo_id = %s", (self.archivo_id,))
         rows = cursor.fetchall()
@@ -162,6 +166,8 @@ class FalabellaParser(BaseParser):
 
             # Priorizar tipo sugerido por IA si existe, de lo contrario usar lógica de respaldo
             tipo = row.get("tipo_sugerido", "Gasto")
+            
+            cat_id = cat_service.categorizar(row["descripcion_cruda"], row.get("categoria_sugerida"))
             
             description = row["descripcion_cruda"].upper()
             tx_raw_string = f"{row['fecha_texto']}_{row['descripcion_cruda']}_{monto}_{self.archivo_id}"
@@ -180,7 +186,7 @@ class FalabellaParser(BaseParser):
                 row["descripcion_cruda"].strip(), 
                 monto, 
                 tipo,
-                8 # "Otros" default
+                cat_id
             ))
         
         self.db.commit()

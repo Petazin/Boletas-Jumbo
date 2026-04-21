@@ -72,6 +72,14 @@ CREATE TABLE IF NOT EXISTS categorias_principales (
     color_hex VARCHAR(7) -- Para el diseño premium en el frontend
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+CREATE TABLE IF NOT EXISTS reglas_categorizacion (
+    regla_id INT AUTO_INCREMENT PRIMARY KEY,
+    patron VARCHAR(255) NOT NULL UNIQUE,
+    categoria_id INT,
+    subcategoria VARCHAR(100),
+    FOREIGN KEY (categoria_id) REFERENCES categorias_principales(categoria_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 CREATE TABLE IF NOT EXISTS transacciones_consolidadas (
     transaccion_id VARCHAR(64) PRIMARY KEY, -- Hash o UUID único de la transacción
     archivo_id INT NOT NULL,
@@ -143,5 +151,21 @@ INSERT INTO categorias_principales (nombre, color_hex) VALUES
 ('Educación', '#A133FF'),
 ('Impuestos y Tasas', '#8B4513'),
 ('Otros', '#808080');
+
+INSERT IGNORE INTO reglas_categorizacion (patron, categoria_id) VALUES 
+('JUMBO', 1), ('LIDER', 1), ('UNIMARC', 1), ('TOTTUS', 1), ('SANTA ISABEL', 1),
+('PANAD', 1), ('CARNICERIA', 1), ('BOTELL', 1), ('UBER EATS', 1), ('UBEREATS', 1), 
+('PEDIDOSYA', 1), ('RAPPI', 1), ('MCDONALD', 1), ('BURGER', 1), ('STARBUCKS', 1),
+('ENEL', 2), ('AGUAS ANDINAS', 2), ('VTR', 2), ('MOVISTAR', 2), ('ENTEL', 2), 
+('WOM', 2), ('CLARO', 2), ('METROGAS', 2), ('CGE', 2), ('GASTO COMUN', 2),
+('UBER', 3), ('CABIFY', 3), ('DIDI', 3), ('METRO', 3), ('EFE', 3), ('COPEC', 3), 
+('SHELL', 3), ('PETROBRAS', 3), ('ESTACIONAMIEN', 3), ('TAG', 3), ('AUTOPISTA', 3),
+('FARMACIA', 4), ('CRUZ VERDE', 4), ('SALCOBRAND', 4), ('AHUMADA', 4), ('CLINICA', 4), 
+('HOSPITAL', 4), ('INTEGRAMEDICA', 4), ('MEGASALUD', 4), ('DENTAL', 4), ('MEDICO', 4),
+('NETFLIX', 5), ('SPOTIFY', 5), ('DISNEY', 5), ('HBO', 5), ('AMAZON VIDEO', 5), 
+('PRIME VIDEO', 5), ('YOUTUBE', 5), ('CINEHOYTS', 5), ('CINEPOLIS', 5), ('CINEMARK', 5), 
+('TICKETMASTER', 5), ('PUNTOTICKET', 5), ('STEAM', 5), ('NINTENDO', 5), ('PLAYSTATION', 5),
+('UNIVERSIDAD', 6), ('COLEGIO', 6), ('INSTITUTO', 6), ('DUOC', 6), ('INACAP', 6), 
+('UDLA', 6), ('USS', 6), ('PLATZI', 6), ('UDEMY', 6);
 
 SET FOREIGN_KEY_CHECKS = 1;

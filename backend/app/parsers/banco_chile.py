@@ -125,8 +125,8 @@ class BancoChileParser(BaseParser):
         cursor = self.db.cursor()
         sql = """
             INSERT INTO staging_banco_chile 
-            (archivo_id, fecha_texto, descripcion_cruda, monto_cheques_cargos, monto_depositos_abonos)
-            VALUES (%s, %s, %s, %s, %s)
+            (archivo_id, fecha_texto, descripcion_cruda, monto_cheques_cargos, monto_depositos_abonos, categoria_sugerida)
+            VALUES (%s, %s, %s, %s, %s, %s)
         """
         for tx in data["transactions"]:
             monto = tx.get("monto", 0)
@@ -136,7 +136,8 @@ class BancoChileParser(BaseParser):
                 tx.get("fecha"), 
                 tx.get("descripcion"), 
                 str(monto) if es_gasto else "0",
-                str(monto) if not es_gasto else "0"
+                str(monto) if not es_gasto else "0",
+                tx.get("categoria", "Otros")
             )
             cursor.execute(sql, values)
             
@@ -144,7 +145,10 @@ class BancoChileParser(BaseParser):
         cursor.close()
 
     def consolidate(self):
-        """Mueve a transacciones_consolidadas."""
+        """Mueve a transacciones_consolidadas pasándolas por el motor de categorización híbrido."""
+        from ..services.categorization import CategorizationService
+        cat_service = CategorizationService(self.db)
+        
         cursor = self.db.cursor(dictionary=True)
         cursor.execute("SELECT * FROM staging_banco_chile WHERE archivo_id = %s", (self.archivo_id,))
         rows = cursor.fetchall()
@@ -154,6 +158,9 @@ class BancoChileParser(BaseParser):
             abono = float(row["monto_depositos_abonos"]) if row["monto_depositos_abonos"] else 0.0
             monto = cargo if cargo > 0 else abono
             tipo = "Gasto" if cargo > 0 else "Ingreso"
+            
+            # Hybrid categorization
+            cat_id = cat_service.categorizar(row["descripcion_cruda"], row.get("categoria_sugerida"))
             
             tx_raw_string = f"{row['fecha_texto']}_{row['descripcion_cruda']}_{monto}_{self.archivo_id}"
             tx_id = hashlib.sha256(tx_raw_string.encode()).hexdigest()
@@ -170,7 +177,7 @@ class BancoChileParser(BaseParser):
                 row["descripcion_cruda"].strip(), 
                 monto, 
                 tipo,
-                8 # "Otros"
+                cat_id
             ))
         self.db.commit()
         cursor.close()
