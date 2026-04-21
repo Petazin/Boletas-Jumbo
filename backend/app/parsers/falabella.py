@@ -27,7 +27,6 @@ class FalabellaParser(BaseParser):
         
         logger.info(f"Iniciando procesamiento Inteligente (PDF) para Falabella. Archivo ID: {self.archivo_id}")
         
-        # Pasar la contraseña a la conversión visual
         images = pdf_to_base64_images(file_content, password=password)
         if not images:
             raise ValueError("No se pudieron extraer imágenes del PDF de Falabella.")
@@ -47,10 +46,7 @@ class FalabellaParser(BaseParser):
                      y = parts[2]
                      year_to_use = f"20{y}" if len(y) == 2 else y
 
-        # Extracción de texto (OCR Fallback siempre para Falabella que suele ser ruidoso)
-        # Nota: pdfplumber también podría necesitar contraseña si decidimos usarlo para texto puro más adelante.
-        # Por ahora usamos Tesseract sobre las imágenes ya decodificadas con éxito.
-        
+        # Extracción de texto (OCR Fallback)
         logger.info("Activando OCR Tesseract Fallback para Falabella...")
         ocr_text_list = []
         for i, img_b64 in enumerate(images):
@@ -90,7 +86,7 @@ class FalabellaParser(BaseParser):
             for _, row in df.iterrows():
                 if pd.isna(row["Fecha"]): continue
                 raw_transactions.append({
-                    "fecha": str(row["Fecha"]),
+                    "fecha": f"{datetime.now().year}-{str(row['Fecha'])}", # Simplificado para excel
                     "descripcion": str(row["Descripción"]),
                     "monto": float(str(row.get("Monto", 0)).replace('.','').replace(',','.')),
                     "tipo": "Gasto" if float(str(row.get("Monto", 0))) < 0 else "Ingreso"
@@ -130,21 +126,22 @@ class FalabellaParser(BaseParser):
         cursor.close()
 
     def save_to_staging(self, data: Dict[str, Any]):
-        """Guarda en staging_falabella."""
+        """Guarda en staging_falabella con soporte para tipo_sugerido."""
         if "metadata" in data:
             self.save_metadata(data["metadata"])
             
         cursor = self.db.cursor()
         sql = """
             INSERT INTO staging_falabella 
-            (archivo_id, fecha_texto, descripcion_cruda, monto_pesos_crudo, cuotas)
-            VALUES (%s, %s, %s, %s, %s)
+            (archivo_id, fecha_texto, descripcion_cruda, tipo_sugerido, monto_pesos_crudo, cuotas)
+            VALUES (%s, %s, %s, %s, %s, %s)
         """
         for tx in data["transactions"]:
             cursor.execute(sql, (
                 self.archivo_id, 
                 tx.get("fecha"), 
-                tx.get("descripcion"), 
+                tx.get("descripcion"),
+                tx.get("tipo", "Gasto"), # Captura el tipo de la IA
                 str(tx.get("monto")),
                 tx.get("cuotas", "")
             ))
@@ -152,7 +149,7 @@ class FalabellaParser(BaseParser):
         cursor.close()
 
     def consolidate(self):
-        """Limpia y mueve a transacciones_consolidadas."""
+        """Limpia y mueve a transacciones_consolidadas priorizando la IA."""
         cursor = self.db.cursor(dictionary=True)
         cursor.execute("SELECT * FROM staging_falabella WHERE archivo_id = %s", (self.archivo_id,))
         rows = cursor.fetchall()
@@ -163,11 +160,10 @@ class FalabellaParser(BaseParser):
             except:
                 monto = 0.0
 
+            # Priorizar tipo sugerido por IA si existe, de lo contrario usar lógica de respaldo
+            tipo = row.get("tipo_sugerido", "Gasto")
+            
             description = row["descripcion_cruda"].upper()
-            tipo = "Gasto"
-            if "ABONO" in description or "DEPOSITO" in description or "TRASPASO DE" in description:
-                tipo = "Ingreso"
-
             tx_raw_string = f"{row['fecha_texto']}_{row['descripcion_cruda']}_{monto}_{self.archivo_id}"
             tx_id = hashlib.sha256(tx_raw_string.encode()).hexdigest()
 

@@ -2,7 +2,7 @@
 
 Sistema inteligente de ingesta y análisis de finanzas personales, diseñado para automatizar la extracción de datos desde PDFs bancarios (escaneados o digitales) y boletas de supermercado, utilizando IA Visual Local (OCR + LLM).
 
-## Características (v0.5.0)
+## Características (v0.5.1)
 
 - **IA Visual Multimodal**: Extracción de datos sin depender de capas de texto nativas, ideal para cartolas escaneadas.
 - **Estrategia Two-Pass**: Captura de metadatos ( Pass 1) y transacciones (Pass 2) para máxima precisión sin alucinaciones.

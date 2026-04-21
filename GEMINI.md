@@ -2,8 +2,8 @@
 
 Este archivo sirve para que los modelos de IA (como Antigravity) entiendan rápidamente el estado actual del proyecto, sus decisiones de arquitectura y sus desafíos.
 
-## Estado Actual (v0.5.0)
-- **Hito**: Soporte completo para Banco Falabella y Sistema de Llavero de Contraseñas (Keychain).
+## Estado Actual (v0.5.1)
+- **Hito**: Consolidación total de la ingesta para Falabella ("One-Pass" OCR Multilineal) y limpieza robusta de entorno de base de datos.
 - **Estrategia**: Extracción Híbrida IA + OCR + Gestión de Credenciales.
 - **Seguridad**: Los PDFs protegidos se manejan mediante un llavero local que persiste las claves por cada tipo de documento.
 
@@ -16,7 +16,7 @@ Este archivo sirve para que los modelos de IA (como Antigravity) entiendan rápi
 
 ## Desafíos Resueltos
 - **PDFs Protegidos**: Implementado soporte para contraseñas en `pdf2image` y `pdfplumber` con persistencia automática en DB tras éxito.
-- **Falabella PDF**: Nuevo motor de extracción IA One-Pass (con guía OCR) que maneja el layout ruidoso de las cartolas de crédito Falabella.
+- **Falabella PDF Multilínea**: Motor inteligente One-Pass perfeccionado para jamás truncar descripciones separadas en varias filas visuales ni omitir el último registro del estado de cuenta.
 - **Feedback de Error**: Identificación clara de errores de contraseña en el API (`PASSWORD_REQUIRED`).
 
 ## Próximos Pasos

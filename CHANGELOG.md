@@ -1,5 +1,11 @@
 # Changelog: Zenith Finance
 
+## [v0.5.1] - 2026-04-20
+### Añadido y Corregido
+- **Afinamiento OCR Extremo (Falabella)**: Corrección de prompts IA para concatenar de manera estricta descripciones multilínea complejas ("One-Pass" mejorado).
+- **Control de Tablas**: Modificación en el `CHAIN_OF_THOUGHT` del LLM para garantizar la extracción hasta el último registro de la cartola, evitando omisiones.
+- **Limpieza de Entorno**: Añadido script `reset_db.py` para purgar datos de staging sin afectar estructuras SQL en contenedores Docker.
+
 ## [v0.5.0] - 2026-04-17
 ### Añadido
 - **Soporte Banco Falabella**: Implementación del parser inteligente para PDFs de Banco Falabella (IA + OCR).
